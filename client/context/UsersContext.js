@@ -1,12 +1,29 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { URL } from "../config";
-import * as jose from "jose";
+import JWT from 'expo-jwt';
+// import * as jose from "jose";
 export const UsersContext = React.createContext();
 
 export const UsersProvider = ({ children }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState([]);
-  const [token, setToken] = useState(JSON.parse(localStorage.getItem("token")));
+  const jwt_secret = process.env.JWT_SECRET;
+  
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [token, setToken] = useState(null);
+  useEffect(() => {
+    const loadToken = async () => {
+      try {
+        const storedToken = await AsyncStorage.getItem('token');
+        if (storedToken) {
+          setToken(JSON.parse(storedToken));
+        }
+      } catch (error) {
+        console.log("Error loading token from AsyncStorage:", error);
+      }
+    };
+    loadToken();
+  }, []);
   const [user, setUser] = useState();
 
   const verify_token = async () => {
@@ -15,7 +32,7 @@ export const UsersProvider = ({ children }) => {
         setIsLoggedIn(false);
       } else {
         // axios.defaults.headers.common["Authorization"] = token;
-        const response = await axios.post(`${URL}/user/verify_token`);
+        const response = await axios.post(`${URL}/users/verify_token`);
         return response.data.ok ? login(token) : logout();
       }
     } catch (error) {
@@ -23,26 +40,37 @@ export const UsersProvider = ({ children }) => {
     }
   };
 
-  const login = (token) => {
-    let decodedToken = jose.decodeJwt(token);
-    let user = {
-      username: decodedToken.username,
-      email: decodedToken.email,
-      id: decodedToken.id,
-      currency: decodedToken.currency,
-    };
-    localStorage.setItem("token", JSON.stringify(token));
-    localStorage.setItem("user", JSON.stringify(user));
-    setIsLoggedIn(true);
-    setUser(user);
-    setToken(token);
+  const login = async (token) => {
+    try {
+      let decodedToken = JWT.decode(token, jwt_secret);
+      let user = {
+        username: decodedToken.username,
+        email: decodedToken.email,
+        id: decodedToken.id,
+        currency: decodedToken.currency,
+      };
+      await AsyncStorage.setItem('token', JSON.stringify(token));
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      setIsLoggedIn(true);
+      setUser(user);
+      setToken(token);
+    } catch (error) {
+      console.log("Error saving data to AsyncStorage:", error);
+    }
   };
 
-  const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    setIsLoggedIn(false);
+  const logout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('user');
+      setIsLoggedIn(false);
+      setUser(null);
+      setToken(null);
+    } catch (error) {
+      console.log("Error removing data from AsyncStorage:", error);
+    }
   };
+
 
   const getUserData = async () => {
     axios.defaults.headers.common["Authorization"] = token;
@@ -78,11 +106,10 @@ export const UsersProvider = ({ children }) => {
         user,
         setUser,
         token,
-        userData,
         login,
         logout,
         verify_token,
-        
+
       }}
     >
       {children}
