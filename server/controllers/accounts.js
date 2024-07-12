@@ -6,12 +6,12 @@ const addAccount = async (req, res) => {
       req.body;
    let newAccount =  await Accounts.create({
       ownerId: ownerId,
-      icon: icon,
+      // icon: icon,
       type: type,
       name: name,
       subcategories: subcategories,
-      currency: currency,
-      time: time,
+      // currency: currency,
+      // time: time,
     });
     res.send({
       ok: true,
@@ -104,4 +104,4 @@ const getAllAccounts = async (req, res) => {
   }
 };
 
-module.exports = {};
+module.exports = {addAccount};

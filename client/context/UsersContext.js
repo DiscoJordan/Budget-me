@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { URL } from "../config";
-import JWT from 'expo-jwt';
+import JWT from "expo-jwt";
+
 // import * as jose from "jose";
 export const UsersContext = React.createContext();
 
 export const UsersProvider = ({ children }) => {
-  const jwt_secret = process.env.JWT_SECRET;
-  
+  const jwt_secret = process.env.EXPO_PUBLIC_JWT_SECRET;
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
+
+useEffect(() => {
+  verify_token()
+}, [token]);
+
   useEffect(() => {
+    
     const loadToken = async () => {
       try {
-        const storedToken = await AsyncStorage.getItem('token');
+        const storedToken = await AsyncStorage.getItem("token");
         if (storedToken) {
           setToken(JSON.parse(storedToken));
+          console.log(storedToken);
+         
         }
       } catch (error) {
         console.log("Error loading token from AsyncStorage:", error);
@@ -24,14 +34,15 @@ export const UsersProvider = ({ children }) => {
     };
     loadToken();
   }, []);
-  const [user, setUser] = useState();
 
   const verify_token = async () => {
+    
     try {
       if (!token) {
+
         setIsLoggedIn(false);
       } else {
-        // axios.defaults.headers.common["Authorization"] = token;
+        axios.defaults.headers.common["Authorization"] = token;
         const response = await axios.post(`${URL}/users/verify_token`);
         return response.data.ok ? login(token) : logout();
       }
@@ -41,16 +52,18 @@ export const UsersProvider = ({ children }) => {
   };
 
   const login = async (token) => {
+
     try {
       let decodedToken = JWT.decode(token, jwt_secret);
+
       let user = {
         username: decodedToken.username,
         email: decodedToken.email,
         id: decodedToken.id,
         currency: decodedToken.currency,
       };
-      await AsyncStorage.setItem('token', JSON.stringify(token));
-      await AsyncStorage.setItem('user', JSON.stringify(user));
+       await AsyncStorage.setItem("token", JSON.stringify(token));
+      await AsyncStorage.setItem("user", JSON.stringify(user));
       setIsLoggedIn(true);
       setUser(user);
       setToken(token);
@@ -61,8 +74,8 @@ export const UsersProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("user");
       setIsLoggedIn(false);
       setUser(null);
       setToken(null);
@@ -71,19 +84,20 @@ export const UsersProvider = ({ children }) => {
     }
   };
 
-
   const getUserData = async () => {
-    axios.defaults.headers.common["Authorization"] = token;
+    // axios.defaults.headers.common["Authorization"] = token;
     try {
-      const response = await axios.get(`${URL}/user/get/${user.id}`);
-      setUser(response.data.data);
+      console.log(user);
+      const response = await axios.get(`${URL}/users/get/${user.id}`);
+      console.log('getUserData: ' ,response.data.user);
+      setUser(response.data.user);
     } catch (error) {
       console.log(error);
     }
   };
 
   const getUsers = async () => {
-    axios.defaults.headers.common["Authorization"] = token;
+    // axios.defaults.headers.common["Authorization"] = token;
     try {
       const response = await axios.get(`${URL}/user/getall`);
       setUsers(response.data.data);
@@ -95,6 +109,7 @@ export const UsersProvider = ({ children }) => {
   useEffect(() => {
     if (user) {
       getUserData();
+      
     }
   }, [user]);
 
@@ -109,7 +124,6 @@ export const UsersProvider = ({ children }) => {
         login,
         logout,
         verify_token,
-
       }}
     >
       {children}

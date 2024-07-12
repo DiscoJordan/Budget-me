@@ -1,9 +1,11 @@
 const express = require('express');
 const router = express.Router();
-const {} = require('../controllers/accounts')
+const {addAccount} = require('../controllers/accounts')
 
 const {verify_token } = require("../middlewares/authMiddleware");
 
+
+router.post('/addaccount',addAccount)
 // http://localhost:4050/category/categories
 // router.post('/add',verify_tokenAdmin, addPlace)  //
 // router.post('/delete',verify_tokenAdmin, deletePlace) //
