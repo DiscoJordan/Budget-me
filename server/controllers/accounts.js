@@ -87,7 +87,8 @@ const getAccount = async (req, res) => {
 };
 
 const getAllAccounts = async (req, res) => {
-  const ownerId = req._id;
+  const ownerId = req.params.id;
+
   try {
     let accounts = await Accounts.find({ ownerId: ownerId }).populate(
       "ownerId"
@@ -104,4 +105,4 @@ const getAllAccounts = async (req, res) => {
   }
 };
 
-module.exports = {addAccount};
+module.exports = {addAccount,getAllAccounts};

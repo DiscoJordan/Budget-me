@@ -25,10 +25,12 @@ import {
 import { URL } from "../config";
 import axios from "axios";
 import { UsersContext } from "../context/UsersContext";
+import { AccountsContext } from "../context/AccountsContext";
 
 function NewAccount({ navigation,route }) {
     const { type } = route.params;
   const { login, user } = useContext(UsersContext);
+  const { getAccountsOfUser } = useContext(AccountsContext);
   const [message, setMessage] = useState("");
   const [accountData, setAccountData] = useState({
     name: "",
@@ -59,7 +61,6 @@ console.log(accountData);
     try {
     //   axios.defaults.headers.common["Authorization"] = token;
       const response = await axios.post(`${URL}/accounts/addaccount`, accountData);
-      console.log(response.data);
       setMessage(response.data.data);
       setTimeout(() => {
         setMessage("");
@@ -126,7 +127,6 @@ console.log(accountData);
       newData.subcategories = newData.subcategories.filter(
         (subcat) => subcat.id !== currentSubcat.id
       );
-      console.log(newData);
       setAccountData(newData);
     }
     setDialogVisible(false);

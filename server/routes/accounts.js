@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const {addAccount} = require('../controllers/accounts')
+const {addAccount,getAllAccounts} = require('../controllers/accounts')
 
 const {verify_token } = require("../middlewares/authMiddleware");
 
@@ -11,7 +11,7 @@ router.post('/addaccount',addAccount)
 // router.post('/delete',verify_tokenAdmin, deletePlace) //
 // router.post('/:oldtitle/update',verify_tokenAdmin, updatePlace) //
 // router.get('/get/:placetitle', getPlace)
-// router.get('/getall', getAllPlaces)
+router.get('/getall/:id', getAllAccounts)
 // router.post('/removePicture',verify_tokenAdmin, removePicture) //
 // router.post('/comment',verify_token, addComment)
 // router.post('/deletecomment',verify_token, deleteComment)

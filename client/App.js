@@ -11,6 +11,7 @@ import Dashboard from "./screens/Dashboard";
 import Report from "./screens/Report";
 import Settings from "./screens/Settings";
 import { UsersProvider } from "./context/UsersContext";
+import { AccountsProvider } from "./context/AccountsContext";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "./context/UsersContext";
@@ -29,12 +30,12 @@ import {
 } from "./styles/styles";
 
 const App = () => {
-
-
   return (
-    <UsersProvider> 
+    <UsersProvider>
+      <AccountsProvider>
         <SafeAreaView></SafeAreaView>
         <RegisteredOrNot />
+      </AccountsProvider>
     </UsersProvider>
   );
 };

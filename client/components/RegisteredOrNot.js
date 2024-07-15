@@ -14,8 +14,8 @@ import NewAccount from "../screens/NewAccount";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "../context/UsersContext";
+import { AccountsContext } from "../context/AccountsContext";
 import Login from "../screens/Login";
-
 
 import {
   container,
@@ -48,12 +48,11 @@ function MyTabs() {
           backgroundColor: colors.darkBlack,
           elevation: 0,
           shadowOpacity: 0,
-          borderBottomWidth: 0, 
+          borderBottomWidth: 0,
         },
         headerTintColor: "#fff",
         headerTitleStyle: {
           fontWeight: "bold",
-          
         },
       }}
     >
@@ -109,29 +108,27 @@ function MyTabs() {
   );
 }
 const RegisteredOrNot = () => {
- 
-  const { user, login, getUserData, verify_token } =
-  useContext(UsersContext);
+  const { user, login, getUserData, verify_token } = useContext(UsersContext);
 
+//   const { getAccountsOfUser } = useContext(AccountsContext);
 
-  console.log("user", user);
   return (
     <NavigationContainer>
       <Stack.Navigator
-      screenOptions={{
-        headerShown: true,
-        headerStyle: {
-          backgroundColor: colors.darkBlack,
-          elevation: 0,
-          shadowOpacity: 0,
-          borderBottomWidth: 0,
-          
-        },
-        headerTintColor: "#fff",
-        headerTitleStyle: {
-          fontWeight: "bold",
-        },
-      }}>
+        screenOptions={{
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: colors.darkBlack,
+            elevation: 0,
+            shadowOpacity: 0,
+            borderBottomWidth: 0,
+          },
+          headerTintColor: "#fff",
+          headerTitleStyle: {
+            fontWeight: "bold",
+          },
+        }}
+      >
         {user ? (
           <>
             <Stack.Screen
@@ -143,10 +140,18 @@ const RegisteredOrNot = () => {
             <Stack.Screen name="Settings" component={Settings} />
           </>
         ) : (
-            <>
-            <Stack.Screen options={{ headerShown: false }} name="Registration" component={Registration} />
-            <Stack.Screen options={{ headerShown: false }} name="Login" component={Login} />
-            </>
+          <>
+            <Stack.Screen
+              options={{ headerShown: false }}
+              name="Registration"
+              component={Registration}
+            />
+            <Stack.Screen
+              options={{ headerShown: false }}
+              name="Login"
+              component={Login}
+            />
+          </>
         )}
       </Stack.Navigator>
       {/* )} */}

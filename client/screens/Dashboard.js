@@ -1,5 +1,4 @@
-import React, { useContext, useState } from "react";
-import { UsersContext } from "../context/UsersContext";
+import React, { useContext, useState, useEffect, useMemo } from "react";
 import { AntDesign } from "@expo/vector-icons";
 import {
   StyleSheet,
@@ -28,32 +27,47 @@ import {
   size,
   accounts__body,
 } from "../styles/styles";
-function Dashboard({navigation}) {
-  const DATA = [
-    
-    {
-      id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
-      title: "First Item",
-    },
-  ];
+import { AccountsContext } from "../context/AccountsContext";
+import { UsersContext } from "../context/UsersContext";
 
-  const Item = ({ item, onPress}) => (
+function Dashboard({ navigation }) {
+  const { getAccountsOfUser, accounts } = useContext(AccountsContext);
+  const { user } = useContext(UsersContext);
+
+  useEffect(() => {
+    if (user) {
+
+      getAccountsOfUser();
+    }
+  }, []);
+
+  const DATA = useMemo(
+    () => [
+      ...accounts,
+      {
+        id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
+        title: "First Item",
+      },
+    ],
+    [accounts]
+  );
+
+  const Item = ({ item, onPress }) => (
     <TouchableOpacity
       onPress={onPress}
-      style={[accounts__add, { backgroundColor:colors.darkGray }]}
+      style={[accounts__add, { backgroundColor: colors.darkGray }]}
     >
       <AntDesign name="pluscircleo" size={24} color="white" />
     </TouchableOpacity>
   );
 
-
   const renderItem = ({ item }) => {
-    
     return (
       <Item
         item={item}
-        onPress={()=>navigation.navigate('Add new account',{type:"income"})}
-
+        onPress={() =>
+          navigation.navigate("Add new account", { type: "income" })
+        }
       />
     );
   };

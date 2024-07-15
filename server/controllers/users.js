@@ -5,7 +5,6 @@ const validator = require("validator");
 const jwt_secret = process.env.JWT_SECRET;
 
 const registerUser = async (req, res, next) => {
-  console.log(11);
   const { username, email, password, password2,currency } = req.body;
   if (!username || !email || !password || !password2) {
     return res.json({ ok: false, message: "All fields required" });
@@ -59,7 +58,7 @@ const loginUser = async (req, res) => {
         const token = jwt.sign(
           {
             username: user.username,
-            id: user._id,
+            _id: user._id,
             email: user.email,
             currency: user.currency
           },

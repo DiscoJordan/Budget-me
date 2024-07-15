@@ -25,8 +25,6 @@ useEffect(() => {
         const storedToken = await AsyncStorage.getItem("token");
         if (storedToken) {
           setToken(JSON.parse(storedToken));
-          console.log(storedToken);
-         
         }
       } catch (error) {
         console.log("Error loading token from AsyncStorage:", error);
@@ -39,7 +37,6 @@ useEffect(() => {
     
     try {
       if (!token) {
-
         setIsLoggedIn(false);
       } else {
         axios.defaults.headers.common["Authorization"] = token;
@@ -87,12 +84,11 @@ useEffect(() => {
   const getUserData = async () => {
     // axios.defaults.headers.common["Authorization"] = token;
     try {
-      console.log(user);
-      const response = await axios.get(`${URL}/users/get/${user.id}`);
-      console.log('getUserData: ' ,response.data.user);
+      const response = await axios.get(`${URL}/users/get/${user._id}`);
       setUser(response.data.user);
+      console.log(user);
     } catch (error) {
-      console.log(error);
+      console.log(`11`,error);
     }
   };
 
