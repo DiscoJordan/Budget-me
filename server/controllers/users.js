@@ -58,7 +58,7 @@ const loginUser = async (req, res) => {
         const token = jwt.sign(
           {
             username: user.username,
-            _id: user._id,
+            id: user._id,
             email: user.email,
             currency: user.currency
           },
@@ -89,7 +89,7 @@ const verifyToken = (req, res) => {
 const deleteUser = async (req, res) => {
   try {
     const { user } = req.body;
-    const uniqeUser = await Users.findById({ _id: user._id });
+    const uniqeUser = await Users.findone({ _id: user.id });
 
     if (uniqeUser) {
       await uniqeUser.deleteOne();
@@ -161,7 +161,8 @@ const updateUser = async (req, res) => {
 const getUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const uniqeUser = await Users.findById({ _id: id });
+    const uniqeUser = await Users.findById({ id });
+
     if (uniqeUser) {
       res.status(200).send({ ok: true, user: uniqeUser });
     } else {

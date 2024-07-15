@@ -15,7 +15,6 @@ export const AccountsProvider = ({ children }) => {
       setAccounts(response.data.data);
     } catch (error) {
       console.log(error);
-
     }
   };
 

@@ -45,7 +45,7 @@ function Dashboard({ navigation }) {
     () => [
       ...accounts,
       {
-        id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
+        _id: "bd7acbea-c1b1-46c2-aed5-3ad53abb28ba",
         title: "First Item",
       },
     ],
@@ -83,7 +83,7 @@ function Dashboard({ navigation }) {
           style={accounts__body}
           data={DATA}
           renderItem={renderItem}
-          keyExtractor={(item) => item.id}
+          keyExtractor={(item) => item._id}
           numColumns={5}
         />
       </View>

@@ -35,7 +35,7 @@ function NewAccount({ navigation,route }) {
   const [accountData, setAccountData] = useState({
     name: "",
     subcategories: [],
-    ownerId: user._id,
+    ownerId: user.id,
     type:type,
 
     // icon: {

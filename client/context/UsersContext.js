@@ -82,13 +82,16 @@ useEffect(() => {
   };
 
   const getUserData = async () => {
+    debugger
     // axios.defaults.headers.common["Authorization"] = token;
     try {
-      const response = await axios.get(`${URL}/users/get/${user._id}`);
+      console.log(user.id);
+      const response = await axios.get(`${URL}/users/get/${user.id}`);
       setUser(response.data.user);
       console.log(user);
     } catch (error) {
-      console.log(`11`,error);
+      debugger
+      console.log(`crcrcrc`,error.message);
     }
   };
 
