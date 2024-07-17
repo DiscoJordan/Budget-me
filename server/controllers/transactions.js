@@ -116,11 +116,12 @@ const getTransaction = async (req, res) => {
 };
 
 const getAllTransactions = async (req, res) => {
-  const ownerId = req._id;
+  const ownerId = req.params.id;
   try {
     let transactions = await Transactions.find({ ownerId: ownerId }).populate(
-      "ownerId",'senderId','recipientId'
+      ["ownerId","senderId","recipientId"]
     );
+    console.log(transactions);
     transactions = JSON.parse(JSON.stringify(transactions));
     if (transactions) {
       res.status(200).send({ ok: true, data: transactions });
@@ -133,4 +134,4 @@ const getAllTransactions = async (req, res) => {
   }
 };
 
-module.exports = {};
+module.exports = {addTransaction,getAllTransactions};

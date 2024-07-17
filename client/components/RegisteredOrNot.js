@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View, Button, TouchableOpacity } from "react-native";
 import React, { useContext, useEffect } from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -15,7 +15,10 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
+import Account from "../screens/Account";
+import NewOperation from "../screens/NewOperation";
 import Login from "../screens/Login";
+import EditIcon from "../screens/EditIcon";
 
 import {
   container,
@@ -107,10 +110,10 @@ function MyTabs() {
     </Tab.Navigator>
   );
 }
-const RegisteredOrNot = () => {
+const RegisteredOrNot = ({ navigation }) => {
   const { user, login, getUserData, verify_token } = useContext(UsersContext);
 
-//   const { getAccountsOfUser } = useContext(AccountsContext);
+  const { activeAccount, accounts } = useContext(AccountsContext);
 
   return (
     <NavigationContainer>
@@ -136,8 +139,56 @@ const RegisteredOrNot = () => {
               component={MyTabs}
               options={{ headerShown: false }}
             />
-            <Stack.Screen name="Add new account" component={NewAccount} />
+            <Stack.Screen
+              name="Add new account"
+              component={NewAccount}
+              options={activeAccount.name?{title:'Edit '+ activeAccount.name}:'New Account'}
+            />
+            <Stack.Screen
+              options={({ navigation }) => ({
+                title: activeAccount.name,
+                headerRight: () => (
+                  <TouchableOpacity
+                    onPress={() =>
+                      navigation.navigate("Add new account", { type: "edit" })
+                    }
+                  >
+                    <MaterialCommunityIcons
+                      style={{ paddingRight: 20 }}
+                      name="pencil-outline"
+                      size={24}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                ),
+              })}
+              name="Account"
+              component={Account}
+            />
             <Stack.Screen name="Settings" component={Settings} />
+            <Stack.Group screenOptions={{ presentation: "modal" }}>
+              <Stack.Screen name="New operation" component={NewOperation} />
+              <Stack.Screen name="Choose icon" component={EditIcon} />
+              {/* <Stack.Screen
+                name="Edit Account"
+                component={EditAccount}
+                options={() => ({
+                  title: activeAccount.name,
+                  headerRight: () => (
+                    <TouchableOpacity
+                    //   onPress={() => ()}
+                    >
+                      <MaterialCommunityIcons
+                        style={{ paddingRight: 20 }}
+                        name="delete-sweep-outline"
+                        size={24}
+                        color="white"
+                      />
+                    </TouchableOpacity>
+                  ),
+                })}
+              /> */}
+            </Stack.Group>
           </>
         ) : (
           <>

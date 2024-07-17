@@ -1,4 +1,7 @@
 import React, { useContext } from "react";
+import "react-native-gesture-handler";
+import { enableScreens } from "react-native-screens";
+enableScreens();
 import { StyleSheet } from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -12,6 +15,7 @@ import Report from "./screens/Report";
 import Settings from "./screens/Settings";
 import { UsersProvider } from "./context/UsersContext";
 import { AccountsProvider } from "./context/AccountsContext";
+import { TransactionsProvider } from "./context/TransactionsContext";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "./context/UsersContext";
@@ -33,8 +37,10 @@ const App = () => {
   return (
     <UsersProvider>
       <AccountsProvider>
-        <SafeAreaView></SafeAreaView>
-        <RegisteredOrNot />
+        <TransactionsProvider>
+          <SafeAreaView></SafeAreaView>
+          <RegisteredOrNot />
+        </TransactionsProvider>
       </AccountsProvider>
     </UsersProvider>
   );

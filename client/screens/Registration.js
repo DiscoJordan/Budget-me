@@ -109,11 +109,11 @@ function Registration({ navigation }) {
       </TouchableOpacity>
       <Text style={caption1}>
         Have an account?{" "}
-        <Text style={styles.green} onPress={()=>navigation.navigate("Login")}>
+        <Text style={styles.green} onPress={() => navigation.navigate("Login")}>
           Log In
         </Text>
       </Text>
-      {message && <Text>{message}</Text>}
+      {message && <Text style={{ color: "white" }}>{message}</Text>}
     </View>
   );
 }

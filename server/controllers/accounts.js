@@ -1,10 +1,11 @@
 const Accounts = require("../models/accounts");
+const Transactions = require("../models/transactions");
 
 const addAccount = async (req, res) => {
   try {
     const { ownerId, icon, type, name, subcategories, currency, time } =
       req.body;
-   let newAccount =  await Accounts.create({
+    let newAccount = await Accounts.create({
       ownerId: ownerId,
       // icon: icon,
       type: type,
@@ -16,7 +17,7 @@ const addAccount = async (req, res) => {
     res.send({
       ok: true,
       data: `Account with tipe '${type}' '${name}' was created`,
-      newAccount
+      newAccount,
     });
   } catch (error) {
     res.send({ ok: false, data: error.message });
@@ -36,6 +37,64 @@ const deleteAccount = async (req, res) => {
     }
   } catch (error) {
     res.send({ ok: false, data: error.message });
+    console.log(error.message);
+  }
+};
+const setBalance = async (req, res) => {
+  try {
+    const { senderId, recipientId, userId } = req.body;
+    const senderAccount = await Accounts.findById(senderId);
+    const recipientAccount = await Accounts.findById(recipientId);
+
+    const incomeSenderTransactions = await Transactions.find(
+      { ownerId: userId } && { recipientId: senderId }
+    );
+    const expenseSenderTransactions = await Transactions.find(
+      { ownerId: userId } && { senderId: senderId }
+    );
+    const incomeRecepientTransactions = await Transactions.find(
+      { ownerId: userId } && { recipientId: recipientId }
+    );
+    const expenseRecepientTransactions = await Transactions.find(
+      { ownerId: userId } && { senderId: recipientId }
+    );
+
+    const incomeSenderAmount = incomeSenderTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const expenseSenderAmount = expenseSenderTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const incomeRecepientAmount = incomeRecepientTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const expenseRecepientAmount = expenseRecepientTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+
+    senderAccount.balance =
+      senderAccount.initialBalance + incomeSenderAmount - expenseSenderAmount;
+    senderAccount.type === "income" ? (senderAccount.balance *= -1) : null;
+
+    recipientAccount.balance =
+      senderAccount.initialBalance +
+      incomeRecepientAmount -
+      expenseRecepientAmount;
+
+    await senderAccount.save();
+    await recipientAccount.save();
+    res.status(200).send({
+      ok: true,
+      data: `Account balance was updated`,
+      senderAccount,
+      recipientAccount,
+    });
+  } catch (error) {
+    res.status(400).send({ ok: false, data: error.message });
     console.log(error.message);
   }
 };
@@ -105,4 +164,4 @@ const getAllAccounts = async (req, res) => {
   }
 };
 
-module.exports = {addAccount,getAllAccounts};
+module.exports = { addAccount, getAllAccounts, setBalance };

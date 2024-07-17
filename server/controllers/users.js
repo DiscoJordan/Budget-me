@@ -161,7 +161,7 @@ const updateUser = async (req, res) => {
 const getUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const uniqeUser = await Users.findById({ id });
+    const uniqeUser = await Users.findById(id );
 
     if (uniqeUser) {
       res.status(200).send({ ok: true, user: uniqeUser });

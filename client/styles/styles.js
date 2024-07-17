@@ -50,13 +50,13 @@ const body = {
   fontWeight: font.bold,
 };
 const container = {
-  flex: 1,
   color: "#ffffff",
   backgroundColor: colors.background,
   margin: "20px",
   alignItems: "center",
   justifyContent: "center",
   gap: "30px",
+  width:"100%"
 };
 const accounts__block = {
   paddingTop: 8,
@@ -72,14 +72,18 @@ const accounts__body = {
   width: "100%",
 };
 const accounts__add = {
-  
-  height: (windowWidth - 40-(4*10)) / 5, //40(container padding, 4*10(margins of buttons))
-  margin:4,
+  height: (windowWidth - 40 - 10 * 10) / 5, //40(container padding, 4*10(margins of buttons))
+  margin: 10,
   aspectRatio: 1 / 1,
   borderRadius: 20,
   justifyContent: "center",
   alignItems: "center",
   backgroundColor: colors.darkGray,
+};
+const account = {
+
+  flexDirection: "column",
+  alignItems: "center",
 };
 const green_line = {
   width: "100%",
@@ -117,6 +121,9 @@ const submit_button = {
   alignItems: "center",
   padding: 16,
   borderRadius: 20,
+  position: "absolute",
+  bottom: 30,
+  width: "80%",
 };
 const submit_button_text = {
   color: "white",
@@ -142,4 +149,6 @@ module.exports = {
   accounts__body,
   accounts__add,
   body,
+  account,
+  windowWidth,
 };

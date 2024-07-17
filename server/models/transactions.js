@@ -8,7 +8,8 @@ const transactionSchema = new mongoose.Schema({
     color: { type: String, required: false, unique: false, default: 'gray' },
     icon_value: { type: String, required: false },
   },
-  name: { type: String, required: true, unique: false }, // name of transaction
+  // type: { type: String, required: true, default: 'income' },
+  // name: { type: String, required: true, unique: false }, // name of transaction
   subcategory:{ type: String, required: false ,default: 'No subcategory'}, // subcategory of transaction
   amount: { type: Number, required: true, default: 0 }, // amount of transaction in recipient currensy
   currency: { type: String, required: true, default: 'USD' }, // initial currensy of account

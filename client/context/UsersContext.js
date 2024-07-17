@@ -82,7 +82,7 @@ useEffect(() => {
   };
 
   const getUserData = async () => {
-    debugger
+
     // axios.defaults.headers.common["Authorization"] = token;
     try {
       console.log(user.id);
@@ -90,8 +90,6 @@ useEffect(() => {
       setUser(response.data.user);
       console.log(user);
     } catch (error) {
-      debugger
-      console.log(`crcrcrc`,error.message);
     }
   };
 
@@ -105,12 +103,7 @@ useEffect(() => {
     }
   };
 
-  useEffect(() => {
-    if (user) {
-      getUserData();
-      
-    }
-  }, [user]);
+
 
   return (
     <UsersContext.Provider

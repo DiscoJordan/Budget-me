@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import uuid from "react-native-uuid";
 import Dialog from "react-native-dialog";
 import {
@@ -20,56 +20,77 @@ import {
   colors,
   font,
   caption1,
+  subheadline,
+  caption2,
+  body,
   size,
+  account,
+  accounts__add,
 } from "../styles/styles";
 import { URL } from "../config";
 import axios from "axios";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-function NewAccount({ navigation,route }) {
-    const { type } = route.params;
+function NewAccount({ navigation, route }) {
+  const { type } = route.params;
   const { login, user } = useContext(UsersContext);
-  const { getAccountsOfUser } = useContext(AccountsContext);
+  const {
+    getAccountsOfUser,
+    activeAccount,
+    iconColors,
+    randomColor,
+    getRandomColor,
+  } = useContext(AccountsContext);
   const [message, setMessage] = useState("");
   const [accountData, setAccountData] = useState({
     name: "",
     subcategories: [],
     ownerId: user.id,
-    type:type,
+    type: activeAccount.type || type,
+    icon: {
+      color: activeAccount?.icon?.color || randomColor,
+      icon_value: activeAccount?.icon?.icon_value || "",
+    },
 
     // icon: {
     //   color: { type: String, required: false, unique: false, default: 'gray' },
     //   icon_value: { type: String, required: false },
     // },
-    
-   
+
     //   }
     // ],
     // balance: { type: Number, required: true, default: 0 }, //balance of account
     // currency: { type: String, required: true, default: 'USD' }, // initial currensy of account
     // time: { type: Date, default: Date.now },  // date when acc was created
-  
   });
   const [dialogVisible, setDialogVisible] = useState(false);
   const [currentSubcat, setCurrentSubcat] = useState(null);
   const [newSubcatName, setNewSubcatName] = useState("");
-
+  useEffect(() => {
+    if (type === "edit") {
+      setAccountData(activeAccount);
+    } else {
+      getRandomColor();
+    }
+  }, []);
   const handleSubmit = async (e) => {
     e.preventDefault();
-console.log(accountData);
     try {
-    //   axios.defaults.headers.common["Authorization"] = token;
-      const response = await axios.post(`${URL}/accounts/addaccount`, accountData);
+      //   axios.defaults.headers.common["Authorization"] = token;
+      const response = await axios.post(
+        `${URL}/accounts/addaccount`,
+        accountData
+      );
       setMessage(response.data.data);
       setTimeout(() => {
         setMessage("");
       }, 2000);
-    //   getPlaces();
+      //   getPlaces();
       if (response.data.ok) {
-        setTimeout(() => {
-          navigation.navigate('Dashboard');
-        }, 500);
+        getAccountsOfUser();
+        navigation.navigate("Dashboard");
       }
     } catch (error) {
       console.log(error);
@@ -84,7 +105,7 @@ console.log(accountData);
   const handleChange = (value, name) => {
     setAccountData({ ...accountData, [name]: value });
   };
-  
+
   const createAlert = () =>
     Alert.prompt(
       "New subcategory",
@@ -96,7 +117,10 @@ console.log(accountData);
           onPress: (subcategory) => {
             if (subcategory.length > 0) {
               let newData = { ...accountData };
-              newData.subcategories.push({ subcategory: subcategory, id: uuid.v4() });
+              newData.subcategories.push({
+                subcategory: subcategory,
+                id: uuid.v4(),
+              });
               setAccountData(newData);
             }
           },
@@ -132,12 +156,36 @@ console.log(accountData);
     setDialogVisible(false);
   };
   return (
-    <View style={styles.container}>
-      {/* <Text style={styles.h1}>Title</Text> */}
+    <View style={{ ...container, minHeight: "100%" }}>
+      <View style={account}>
+        <TouchableOpacity
+          onPress={() =>
+            navigation.navigate(
+              "Choose icon",
+              {setAccountData:setAccountData, accountData:accountData }
+            )
+          }
+          style={{ ...accounts__add, backgroundColor: randomColor }}
+        >
+          <MaterialCommunityIcons
+            name={
+              activeAccount.icon
+                ? activeAccount.icon.icon_value
+                : "credit-card-outline"
+            }
+            size={24}
+            color="white"
+          />
+        </TouchableOpacity>
+        <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
+          Icon
+        </Text>
+      </View>
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "name")}
         name={"name"}
+        value={accountData?.name}
         inlineImageLeft="search_icon"
         placeholderTextColor={colors.primaryGreen}
         placeholder="Title*"
