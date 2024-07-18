@@ -36,13 +36,14 @@ import { AccountsContext } from "../context/AccountsContext";
 import { UsersContext } from "../context/UsersContext";
 
 function Dashboard({ navigation }) {
-  const { getAccountsOfUser, accounts, setActiveAccount } =
+  const { getAccountsOfUser, accounts, setActiveAccount ,setType,setAccountData,randomColor,activeAccount,type} =
     useContext(AccountsContext);
   const { user } = useContext(UsersContext);
 
   useEffect(() => {
     if (user) {
       getAccountsOfUser();
+      setActiveAccount({})
     }
   }, []);
 
@@ -88,10 +89,10 @@ function Dashboard({ navigation }) {
             color="white"
           />
         </TouchableOpacity>
-        <Text style={{ caption1, color: colors.gray, fontWeight: font.bold }}>
+        <Text numberOfLines={1} style={{ ...caption1, color: colors.gray, fontWeight: font.bold}}>
           {item.name}
         </Text>
-        <Text style={{ caption1, color: "white", fontWeight: font.bold }}>
+        <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
           {item.balance} {item.currency}
         </Text>
       </View>
@@ -107,8 +108,20 @@ function Dashboard({ navigation }) {
         onPress={() =>
           item.title === "New account"
             ? (setActiveAccount({}),
-              navigation.navigate("Add new account", { type: item.type }))
-            : handleCurrentAccount(item._id, item.type)
+            setAccountData({
+              name: "",
+              subcategories: [],
+              ownerId: user?.id,
+              type: activeAccount?.type || type,
+              icon: {
+                color: activeAccount?.icon?.color || randomColor,
+                icon_value: activeAccount?.icon?.icon_value || "credit-card-outline",
+              },
+            }),
+            setType(item.type),
+              navigation.navigate("Add new account"))
+            : (handleCurrentAccount(item._id, item.type),
+            setType('edit'))
         }
       />
     );
@@ -118,7 +131,7 @@ function Dashboard({ navigation }) {
       <View
         style={[
           styles.container,
-          { justifyContent: "start", minHeight: "100%" },
+          { justifyContent: "start", minHeight: "100%",margin:0 },
         ]}
       >
         <View style={accounts__block}>

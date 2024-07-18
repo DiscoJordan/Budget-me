@@ -18,7 +18,7 @@ const font = {
 const sizes = {
   navigation: 10,
   caption2: 11,
-  caption1: 12,
+  caption1: windowWidth*0.02,
   footnote: 13,
   subheadline: 15,
   callout: 16,
@@ -52,7 +52,6 @@ const body = {
 const container = {
   color: "#ffffff",
   backgroundColor: colors.background,
-  margin: "20px",
   alignItems: "center",
   justifyContent: "center",
   gap: "30px",
@@ -70,6 +69,7 @@ const accounts__header = {
 };
 const accounts__body = {
   width: "100%",
+  
 };
 const accounts__add = {
   height: (windowWidth - 40 - 10 * 10) / 5, //40(container padding, 4*10(margins of buttons))
@@ -81,9 +81,11 @@ const accounts__add = {
   backgroundColor: colors.darkGray,
 };
 const account = {
-
+  
   flexDirection: "column",
   alignItems: "center",
+  width: (windowWidth - 40 ) / 5,
+  
 };
 const green_line = {
   width: "100%",
@@ -121,7 +123,7 @@ const submit_button = {
   alignItems: "center",
   padding: 16,
   borderRadius: 20,
-  position: "absolute",
+  position: "relative",
   bottom: 30,
   width: "80%",
 };

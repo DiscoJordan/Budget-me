@@ -1,4 +1,6 @@
+const mongoose = require('mongoose');
 const Accounts = require("../models/accounts");
+
 const Transactions = require("../models/transactions");
 
 const addAccount = async (req, res) => {
@@ -7,7 +9,7 @@ const addAccount = async (req, res) => {
       req.body;
     let newAccount = await Accounts.create({
       ownerId: ownerId,
-      // icon: icon,
+      icon: icon,
       type: type,
       name: name,
       subcategories: subcategories,
@@ -25,13 +27,34 @@ const addAccount = async (req, res) => {
   }
 };
 
+
 const deleteAccount = async (req, res) => {
   try {
     const { accountId } = req.body;
     const accountExist = await Accounts.findById({ _id: accountId });
     if (accountExist) {
       await accountExist.deleteOne();
-      res.send({ ok: true, data: `Account '${accountId.name}' was deleted` });
+
+      const triggeredTrans = await Transactions.find({
+        senderId: accountId}|| {recipientId: accountId} )
+    
+      const allTriggeredAccs = triggeredTrans.flatMap(trans => [trans.senderId, trans.recipientId]);
+      const TriggeredAccs = Array.from(new Set(allTriggeredAccs));
+      console.log('====================================');
+      console.log('TriggeredAccs', TriggeredAccs);
+      console.log('====================================');
+
+      const deletedTrans = await Transactions.deleteMany({
+        senderId: accountId,
+        recipientId: accountId,
+      });
+      
+      
+      res.send({
+        ok: true,
+        data: `Account '${accountExist.name}' was deleted`,
+        deletedTrans: deletedTrans,
+      });
     } else {
       res.send({ ok: true, data: `Account was not found` });
     }
@@ -40,9 +63,75 @@ const deleteAccount = async (req, res) => {
     console.log(error.message);
   }
 };
+
+const updateBalance = async (req, res) => {
+  try {
+    const { userId, transactions } = req.body;
+    for (let i = 0; i < transactions.length; i++) {
+      let currentTransaction = transactions[i];
+      
+      let senderAccount = await Accounts.findById(currentTransaction.senderId);
+    }
+    const senderAccount = await Accounts.findById(senderId);
+    const recipientAccount = await Accounts.findById(recipientId);
+
+    const incomeSenderTransactions = await Transactions.find(
+      { ownerId: userId } && { recipientId: senderId }
+    );
+    const expenseSenderTransactions = await Transactions.find(
+      { ownerId: userId } && { senderId: senderId }
+    );
+    const incomeRecepientTransactions = await Transactions.find(
+      { ownerId: userId } && { recipientId: recipientId }
+    );
+    const expenseRecepientTransactions = await Transactions.find(
+      { ownerId: userId } && { senderId: recipientId }
+    );
+
+    const incomeSenderAmount = incomeSenderTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const expenseSenderAmount = expenseSenderTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const incomeRecepientAmount = incomeRecepientTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+    const expenseRecepientAmount = expenseRecepientTransactions.reduce(
+      (accumulator, transaction) => accumulator + transaction.amount,
+      0
+    );
+
+    senderAccount.balance =
+      senderAccount.initialBalance + incomeSenderAmount - expenseSenderAmount;
+    senderAccount.type === "income" ? (senderAccount.balance *= -1) : null;
+
+    recipientAccount.balance =
+      senderAccount.initialBalance +
+      incomeRecepientAmount -
+      expenseRecepientAmount;
+
+    await senderAccount.save();
+    await recipientAccount.save();
+    res.status(200).send({
+      ok: true,
+      data: `Account balance was updated`,
+      senderAccount,
+      recipientAccount,
+    });
+  } catch (error) {
+    res.status(400).send({ ok: false, data: error.message });
+    console.log(error.message);
+  }
+};
+
 const setBalance = async (req, res) => {
   try {
     const { senderId, recipientId, userId } = req.body;
+    
     const senderAccount = await Accounts.findById(senderId);
     const recipientAccount = await Accounts.findById(recipientId);
 
@@ -101,13 +190,13 @@ const setBalance = async (req, res) => {
 
 const updateAccount = async (req, res) => {
   try {
-    const { accountId } = req.body;
-    const account = await Accounts.findById({ _id: accountId });
+    const { accountData } = req.body;
+    const account = await Accounts.findById({ _id: accountData._id });
 
     if (account) {
       const result = await Accounts.findOneAndUpdate(
-        { _id: accountId },
-        { $set: req.body },
+        { _id: accountData._id },
+        { $set: accountData },
         { new: true, runValidators: true }
       );
       res.status(200).send({
@@ -164,4 +253,10 @@ const getAllAccounts = async (req, res) => {
   }
 };
 
-module.exports = { addAccount, getAllAccounts, setBalance };
+module.exports = {
+  addAccount,
+  getAllAccounts,
+  setBalance,
+  updateAccount,
+  deleteAccount,
+};

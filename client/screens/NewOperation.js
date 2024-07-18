@@ -114,10 +114,10 @@ const NewOperation = ({ navigation }) => {
   );
 
   return (
-    <View style={{ flex: 1, position: "relative", alignItems: "center" }}>
+    <View style={{ flex: 1, position: "relative", alignItems: "center"}}>
       <ScrollView
         contentContainerStyle={{ paddingBottom: 100 }}
-        style={{ backgroundColor: colors.background }}
+        style={{ backgroundColor: colors.background, width:'100%' }}
       >
         <View style={{ ...container, padding: 20 }}>
           <View

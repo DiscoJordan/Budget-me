@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const {addAccount,getAllAccounts,setBalance} = require('../controllers/accounts')
+const {addAccount,getAllAccounts,setBalance,updateAccount,deleteAccount} = require('../controllers/accounts')
 
 const {verify_token } = require("../middlewares/authMiddleware");
 
 
 router.post('/addaccount',addAccount)
+router.post('/updateaccount',updateAccount)
 router.post('/setBalance',setBalance)
+router.post('/deleteaccount',deleteAccount)
 // http://localhost:4050/category/categories
 // router.post('/add',verify_tokenAdmin, addPlace)  //
 // router.post('/delete',verify_tokenAdmin, deletePlace) //

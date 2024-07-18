@@ -4,6 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from "react-native";
 import React, { useContext, useState, useEffect, useMemo } from "react";
 import { AntDesign } from "@expo/vector-icons";
@@ -33,14 +34,17 @@ import {
 import { AccountsContext } from "../context/AccountsContext";
 import { UsersContext } from "../context/UsersContext";
 import { TransactionsContext } from "../context/TransactionsContext";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { wrap } from "framer-motion";
 const Account = ({ navigation }) => {
+
   const { transactions, getTransactionsOfUser } =
     useContext(TransactionsContext);
 
   useEffect(() => {
     getTransactionsOfUser();
   }, []);
+
   const { activeAccount } = useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   let transactionsOfAccount = transactions.filter(
@@ -53,6 +57,8 @@ const Account = ({ navigation }) => {
       (activeAccount.type === "expense" &&
         transaction?.recipientId?._id === activeAccount._id)
   );
+
+ 
 
   const transactionsByDate = (transactionsOfAccount) => {
     return transactionsOfAccount.reduce((acc, transaction) => {
@@ -120,53 +126,96 @@ const Account = ({ navigation }) => {
               <Text style={styles.dayText}>
                 {groupedTransactions[date]?.reduce(
                   (accumulator, transaction) =>
-                    transaction.senderId.type === "income"
+                    transaction?.senderId?.type === "personal" &&
+                    transaction?.recipientId?.type === "personal" &&
+                    transaction?.recipientId?._id === activeAccount._id
+                      ? accumulator + transaction?.amount
+                      : transaction?.senderId?.type === "income"
                       ? accumulator + transaction?.amount
                       : accumulator - transaction?.amount,
                   0
                 )}
-                 {" "+user.currency}
+                {" " + user.currency}
               </Text>
             </View>
 
             {groupedTransactions[date]?.map((transaction) => (
-              <React.Fragment key={transaction._id}>
-                <View style={styles.transaction} >
-                  <View style={{ gap: 8 }}>
-                    {/* operation info without amount */}
-                    <View style={styles.tranHeader}>
-                      <Text
-                        style={{
-                          color: "white",
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {transaction?.senderId?.name}
-                      </Text>
-                      <Text
-                        style={{
-                          color: colors.gray,
-                          fontSize: 12,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {transaction?.recipientId?.name}
-                      </Text>
+              <React.Fragment key={transaction?._id}>
+                <View style={styles.transaction}>
+                  <View style={{ flexDirection: "row", gap: 8 }}>
+                    <View style={styles.tranIcon}>
+                      <MaterialCommunityIcons
+                        name={
+                          transaction?.senderId?.type ===
+                          transaction?.recipientId?.type
+                            ? "arrow-expand"
+                            : transaction?.senderId?.type === "personal"
+                            ? transaction?.recipientId?.icon.icon_value
+                            : transaction?.senderId?.icon?.icon_value
+                        }
+                        size={24}
+                        color={
+                          transaction?.senderId?.type ===
+                          transaction?.recipientId?.type
+                            ? "gray"
+                            : transaction?.senderId?.icon?.color === "#000000"
+                            ? "white"
+                            : transaction?.senderId?.type === "personal"
+                            ? transaction?.recipientId?.icon?.color
+                            : transaction?.senderId?.icon?.color
+                        }
+                      />
                     </View>
-                    <View>
-                      {/* comment */}
-                      {transaction.comment && (
-                        <Text style={styles.comment}>
-                          {transaction?.comment}
+                    <View style={{ gap: 8 }}>
+                      <View style={styles.tranHeader}>
+                        <Text
+                          style={{
+                            color: "white",
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {transaction?.senderId?.type !==
+                          transaction?.recipientId?.type
+                            ? transaction?.senderId?.name
+                            : transaction?.senderId?.name +
+                              " -> " +
+                              transaction?.recipientId.name}
                         </Text>
-                      )}
+                        <Text
+                          style={{
+                            color: colors.gray,
+                            fontSize: 12,
+                            fontWeight: 600,
+                          }}
+                        >
+                          {transaction?.senderId?.type !==
+                          transaction?.recipientId?.type
+                            ? transaction?.recipientId?.name
+                            : "Transfer"}
+                        </Text>
+                      </View>
+                      <View>
+                        {/* comment */}
+                        {transaction.comment && (
+                          <Text style={styles.comment}>
+                            {transaction?.comment}
+                          </Text>
+                        )}
+                      </View>
                     </View>
                   </View>
                   <View style={{ justifyContent: "center" }}>
                     <Text
                       style={
-                        transaction.senderId.type === "income"
+                        transaction.senderId.type === "personal" &&
+                        transaction?.recipientId?.type === "personal"
+                          ? {
+                              color: colors.gray,
+                              fontSize: 13,
+                              fontWeight: 600,
+                            }
+                          : transaction.senderId.type === "income"
                           ? {
                               color: colors.green,
                               fontSize: 13,
@@ -211,17 +260,16 @@ const styles = StyleSheet.create({
     minWidth: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
-    
   },
   comment: {
     color: colors.gray,
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: "600",
     maxWidth: windowWidth * 0.65,
   },
   dayText: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: "600",
     color: "white",
   },
   transaction: {
@@ -237,6 +285,10 @@ const styles = StyleSheet.create({
     color: "white",
     gap: 8,
     flexDirection: "row",
+  },
+  tranIcon: {
+    alignItems: "center",
+    justifyContent: "center",
   },
 });
 

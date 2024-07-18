@@ -1,5 +1,14 @@
-import { StyleSheet, Text, View, Button, TouchableOpacity } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  View,
+  Button,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import React, { useContext, useEffect } from "react";
+import axios from "axios";
+import { URL } from "../config";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
@@ -15,6 +24,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
+import { TransactionsContext } from "../context/TransactionsContext";
 import Account from "../screens/Account";
 import NewOperation from "../screens/NewOperation";
 import Login from "../screens/Login";
@@ -111,9 +121,47 @@ function MyTabs() {
   );
 }
 const RegisteredOrNot = ({ navigation }) => {
-  const { user, login, getUserData, verify_token } = useContext(UsersContext);
+  const { user } = useContext(UsersContext);
+  const { activeAccount, getAccountsOfUser } = useContext(AccountsContext);
+  const { transactions,getTransactionsOfUser } = useContext(TransactionsContext);
 
-  const { activeAccount, accounts } = useContext(AccountsContext);
+  const deleteAccount = async (navigation) => {
+    try {
+      const response = await axios.post(`${URL}/accounts/deleteaccount/`, {
+        accountId:activeAccount._id
+      });
+      if (response.data.ok) {
+        console.log(response.data.data);
+        console.log(response.data.deletedTrans);
+        getAccountsOfUser();
+        getTransactionsOfUser()
+        navigation.navigate("Dashboard");
+      } else{
+        console.log(response.data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const createAlert = (navigation) =>
+    Alert.alert(
+      "Delete Account?",
+      `Are you sure that you want to delete an account with ${
+        transactions.filter(
+          (tran) =>
+            tran?.senderId?._id === activeAccount._id ||
+            tran?.recipientId?._id === activeAccount._id
+        ).length
+      } transactions?`,
+      [
+        { text: "Cancel", style: "destructive", onPress: () => {} },
+        {
+          text: "Delete",
+          onPress: () => deleteAccount(navigation),
+        },
+      ]
+    );
 
   return (
     <NavigationContainer>
@@ -142,7 +190,21 @@ const RegisteredOrNot = ({ navigation }) => {
             <Stack.Screen
               name="Add new account"
               component={NewAccount}
-              options={activeAccount.name?{title:'Edit '+ activeAccount.name}:'New Account'}
+              options={({ navigation }) => ({
+                title: activeAccount?.name
+                  ? "Edit " + activeAccount.name
+                  : "New Account",
+                headerRight: () => (
+                  <TouchableOpacity onPress={() => createAlert(navigation)}>
+                    <MaterialCommunityIcons
+                      style={{ paddingRight: 20 }}
+                      name="delete-sweep-outline"
+                      size={24}
+                      color="white"
+                    />
+                  </TouchableOpacity>
+                ),
+              })}
             />
             <Stack.Screen
               options={({ navigation }) => ({
@@ -169,25 +231,6 @@ const RegisteredOrNot = ({ navigation }) => {
             <Stack.Group screenOptions={{ presentation: "modal" }}>
               <Stack.Screen name="New operation" component={NewOperation} />
               <Stack.Screen name="Choose icon" component={EditIcon} />
-              {/* <Stack.Screen
-                name="Edit Account"
-                component={EditAccount}
-                options={() => ({
-                  title: activeAccount.name,
-                  headerRight: () => (
-                    <TouchableOpacity
-                    //   onPress={() => ()}
-                    >
-                      <MaterialCommunityIcons
-                        style={{ paddingRight: 20 }}
-                        name="delete-sweep-outline"
-                        size={24}
-                        color="white"
-                      />
-                    </TouchableOpacity>
-                  ),
-                })}
-              /> */}
             </Stack.Group>
           </>
         ) : (

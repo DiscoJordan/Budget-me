@@ -1,5 +1,6 @@
 import React, { useState, useContext, useEffect } from "react";
 import uuid from "react-native-uuid";
+
 import Dialog from "react-native-dialog";
 import {
   StyleSheet,
@@ -33,64 +34,67 @@ import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-function NewAccount({ navigation, route }) {
-  const { type } = route.params;
+function NewAccount({ navigation }) {
   const { login, user } = useContext(UsersContext);
   const {
     getAccountsOfUser,
     activeAccount,
     iconColors,
-    randomColor,
+    accountData,
     getRandomColor,
+    setAccountData,
+    randomColor,
+    type,
   } = useContext(AccountsContext);
   const [message, setMessage] = useState("");
-  const [accountData, setAccountData] = useState({
-    name: "",
-    subcategories: [],
-    ownerId: user.id,
-    type: activeAccount.type || type,
-    icon: {
-      color: activeAccount?.icon?.color || randomColor,
-      icon_value: activeAccount?.icon?.icon_value || "",
-    },
 
-    // icon: {
-    //   color: { type: String, required: false, unique: false, default: 'gray' },
-    //   icon_value: { type: String, required: false },
-    // },
-
-    //   }
-    // ],
-    // balance: { type: Number, required: true, default: 0 }, //balance of account
-    // currency: { type: String, required: true, default: 'USD' }, // initial currensy of account
-    // time: { type: Date, default: Date.now },  // date when acc was created
-  });
   const [dialogVisible, setDialogVisible] = useState(false);
   const [currentSubcat, setCurrentSubcat] = useState(null);
   const [newSubcatName, setNewSubcatName] = useState("");
+
   useEffect(() => {
     if (type === "edit") {
       setAccountData(activeAccount);
     } else {
       getRandomColor();
     }
+    console.log('type: ',type);
   }, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       //   axios.defaults.headers.common["Authorization"] = token;
-      const response = await axios.post(
-        `${URL}/accounts/addaccount`,
-        accountData
-      );
-      setMessage(response.data.data);
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
-      //   getPlaces();
-      if (response.data.ok) {
-        getAccountsOfUser();
-        navigation.navigate("Dashboard");
+      if (type !== "edit") {
+        const response = await axios.post(
+          `${URL}/accounts/addaccount`,
+          accountData
+        );
+        setMessage(response.data.data);
+        console.log(response.data.data);
+        setTimeout(() => {
+          setMessage("");
+        }, 2000);
+        if (response.data.ok) {
+          getAccountsOfUser();
+          navigation.navigate("Dashboard");
+        }
+      }
+      else{
+        const response = await axios.post(
+            `${URL}/accounts/updateaccount`,
+            {accountData:accountData}
+          );
+          setMessage(response.data.data);
+          console.log(response.data.data);
+          setTimeout(() => {
+            setMessage("");
+          }, 2000);
+          if (response.data.ok) {
+            getAccountsOfUser();
+            navigation.navigate("Dashboard");
+          }
       }
     } catch (error) {
       console.log(error);
@@ -156,22 +160,20 @@ function NewAccount({ navigation, route }) {
     setDialogVisible(false);
   };
   return (
-    <View style={{ ...container, minHeight: "100%" }}>
+    <View style={{ ...container,margin:0, minHeight: "100%" }}>
       <View style={account}>
         <TouchableOpacity
-          onPress={() =>
-            navigation.navigate(
-              "Choose icon",
-              {setAccountData:setAccountData, accountData:accountData }
-            )
-          }
-          style={{ ...accounts__add, backgroundColor: randomColor }}
+          onPress={() => navigation.navigate("Choose icon")}
+          style={{
+            ...accounts__add,
+            backgroundColor: accountData.icon.color,
+          }}
         >
           <MaterialCommunityIcons
             name={
-              activeAccount.icon
+              !accountData.icon
                 ? activeAccount.icon.icon_value
-                : "credit-card-outline"
+                : accountData.icon.icon_value
             }
             size={24}
             color="white"
@@ -204,12 +206,15 @@ function NewAccount({ navigation, route }) {
               ]
             )
           }
-          key={subcat.id}
+          key={uuid.v4()}
           style={caption1}
         >
           {subcat.subcategory}
         </Text>
       ))}
+      <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
+        <Text style={styles.submit_button_text}>Save</Text>
+      </TouchableOpacity>
       <Button title="Add" onPress={createAlert}></Button>
       <Dialog.Container visible={dialogVisible}>
         <Dialog.Title>Edit Subcategory</Dialog.Title>
@@ -221,19 +226,6 @@ function NewAccount({ navigation, route }) {
         <Dialog.Button label="Delete" onPress={deleteSubcat} />
         <Dialog.Button label="Save" onPress={editAlert} />
       </Dialog.Container>
-      {/* <TextInput
-        onChangeText={(text) => handleChange(text, "password")}
-        style={styles.input}
-        placeholder="Password*"
-        placeholderTextColor={colors.primaryGreen}
-        clearButtonMode={"while-editing"}
-        secureTextEntry={true}
-        selectionColor={"#primaryGreen"}
-      ></TextInput> */}
-
-      <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
-        <Text style={styles.submit_button_text}>Save</Text>
-      </TouchableOpacity>
     </View>
   );
 }
