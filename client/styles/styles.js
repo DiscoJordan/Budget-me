@@ -18,7 +18,7 @@ const font = {
 const sizes = {
   navigation: 10,
   caption2: 11,
-  caption1: windowWidth*0.02,
+  caption1: windowWidth*0.025,
   footnote: 13,
   subheadline: 15,
   callout: 16,
@@ -34,6 +34,16 @@ const caption2 = {
   fontSize: sizes.caption2,
   fontWeight: font.regular,
 };
+const title2 ={
+  color:'white',
+  fontSize: sizes.title2,
+  fontWeight: font.bold
+}
+const largeTitle ={
+  color:colors.primaryGreen,
+  fontSize: sizes.largeTitle,
+  fontWeight: font.bold
+}
 const caption1 = {
   color: "white",
   fontSize: sizes.caption1,
@@ -52,7 +62,6 @@ const body = {
 const container = {
   color: "#ffffff",
   backgroundColor: colors.background,
-  alignItems: "center",
   justifyContent: "center",
   gap: "30px",
   width:"100%"
@@ -61,7 +70,7 @@ const accounts__block = {
   paddingTop: 8,
   paddingBottom: 8,
   gap: 20,
-  width: "90%",
+  width: "100%",
 };
 const accounts__header = {
   flexDirection: "row",
@@ -81,11 +90,9 @@ const accounts__add = {
   backgroundColor: colors.darkGray,
 };
 const account = {
-  
   flexDirection: "column",
   alignItems: "center",
   width: (windowWidth - 40 ) / 5,
-  
 };
 const green_line = {
   width: "100%",
@@ -108,7 +115,7 @@ const input = {
   backgroundColor: colors.darkBlack,
   color: "white",
   fontSize: "16px",
-  width: "80%",
+  width: windowWidth-40,
   padding: 16,
   borderRadius: 20,
 };
@@ -119,13 +126,13 @@ const h1 = {
 };
 const submit_button = {
   backgroundColor: "#009F9C",
-  width: "80%",
+  width: windowWidth-40,
   alignItems: "center",
   padding: 16,
   borderRadius: 20,
-  position: "relative",
+  position: "absolute",
   bottom: 30,
-  width: "80%",
+
 };
 const submit_button_text = {
   color: "white",
@@ -153,4 +160,6 @@ module.exports = {
   body,
   account,
   windowWidth,
+  largeTitle,
+  title2
 };

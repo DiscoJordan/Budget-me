@@ -59,7 +59,7 @@ function Registration({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{...container, minHeight:'100%'}}>
       <Text style={styles.h1}>Sign up</Text>
       <TextInput
         style={styles.input}

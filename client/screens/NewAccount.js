@@ -40,6 +40,7 @@ function NewAccount({ navigation }) {
     getAccountsOfUser,
     activeAccount,
     iconColors,
+    createSubcatAlert,
     accountData,
     getRandomColor,
     setAccountData,
@@ -58,7 +59,7 @@ function NewAccount({ navigation }) {
     } else {
       getRandomColor();
     }
-    console.log('type: ',type);
+    console.log("type: ", type);
   }, []);
 
   const handleSubmit = async (e) => {
@@ -80,21 +81,19 @@ function NewAccount({ navigation }) {
           getAccountsOfUser();
           navigation.navigate("Dashboard");
         }
-      }
-      else{
-        const response = await axios.post(
-            `${URL}/accounts/updateaccount`,
-            {accountData:accountData}
-          );
-          setMessage(response.data.data);
-          console.log(response.data.data);
-          setTimeout(() => {
-            setMessage("");
-          }, 2000);
-          if (response.data.ok) {
-            getAccountsOfUser();
-            navigation.navigate("Dashboard");
-          }
+      } else {
+        const response = await axios.post(`${URL}/accounts/updateaccount`, {
+          accountData: accountData,
+        });
+        setMessage(response.data.data);
+        console.log(response.data.data);
+        setTimeout(() => {
+          setMessage("");
+        }, 2000);
+        if (response.data.ok) {
+          getAccountsOfUser();
+          navigation.navigate("Dashboard");
+        }
       }
     } catch (error) {
       console.log(error);
@@ -110,28 +109,7 @@ function NewAccount({ navigation }) {
     setAccountData({ ...accountData, [name]: value });
   };
 
-  const createAlert = () =>
-    Alert.prompt(
-      "New subcategory",
-      "Enter your new subcategory below",
-      [
-        { text: "Cancel", style: "destructive", onPress: () => {} },
-        {
-          text: "Submit",
-          onPress: (subcategory) => {
-            if (subcategory.length > 0) {
-              let newData = { ...accountData };
-              newData.subcategories.push({
-                subcategory: subcategory,
-                id: uuid.v4(),
-              });
-              setAccountData(newData);
-            }
-          },
-        },
-      ],
-      "plain-text"
-    );
+
 
   const editAlert = () => {
     if (currentSubcat && newSubcatName.length > 0) {
@@ -160,8 +138,16 @@ function NewAccount({ navigation }) {
     setDialogVisible(false);
   };
   return (
-    <View style={{ ...container,margin:0, minHeight: "100%" }}>
-      <View style={account}>
+    <View
+      style={{
+        ...container,
+        padding: 20,
+        alignItems:'center',
+        minHeight: "100%",
+        maxHeight: "100%",
+      }}
+    >
+      <View style={{ ...account }}>
         <TouchableOpacity
           onPress={() => navigation.navigate("Choose icon")}
           style={{
@@ -196,7 +182,7 @@ function NewAccount({ navigation }) {
         selectionColor={"#primaryGreen"}
         lineBreakStrategyIOS={"push-out"}
       ></TextInput>
-      <Text style={styles.h1}>Subcategories</Text>
+      <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
       {accountData?.subcategories?.map((subcat) => (
         <Text
           onPress={() =>
@@ -207,7 +193,7 @@ function NewAccount({ navigation }) {
             )
           }
           key={uuid.v4()}
-          style={caption1}
+          style={{...caption1,width: "100%",paddingLeft:8}}
         >
           {subcat.subcategory}
         </Text>
@@ -215,7 +201,14 @@ function NewAccount({ navigation }) {
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
         <Text style={styles.submit_button_text}>Save</Text>
       </TouchableOpacity>
-      <Button title="Add" onPress={createAlert}></Button>
+
+      <View style={{ alignSelf: "flex-start" }}>
+        <Button
+          title="Add"
+          onPress={createSubcatAlert}
+        ></Button>
+      </View>
+
       <Dialog.Container visible={dialogVisible}>
         <Dialog.Title>Edit Subcategory</Dialog.Title>
         <Dialog.Description>
@@ -226,6 +219,7 @@ function NewAccount({ navigation }) {
         <Dialog.Button label="Delete" onPress={deleteSubcat} />
         <Dialog.Button label="Save" onPress={editAlert} />
       </Dialog.Container>
+
     </View>
   );
 }

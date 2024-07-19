@@ -10,7 +10,7 @@ const transactionSchema = new mongoose.Schema({
   },
   // type: { type: String, required: true, default: 'income' },
   // name: { type: String, required: true, unique: false }, // name of transaction
-  subcategory:{ type: String, required: false ,default: 'No subcategory'}, // subcategory of transaction
+  subcategory:{ type: String, required: false ,default: ''}, // subcategory of transaction
   amount: { type: Number, required: true, default: 0 }, // amount of transaction in recipient currensy
   currency: { type: String, required: true, default: 'USD' }, // initial currensy of account
   time: { type: Date, default: Date.now },  // date of transaction

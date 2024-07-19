@@ -3,6 +3,8 @@ import axios from "axios";
 import { URL } from "../config";
 export const AccountsContext = React.createContext();
 import { UsersContext } from "./UsersContext";
+import { Alert } from "react-native";
+import uuid from "react-native-uuid";
 
 
 export const AccountsProvider = ({ children }) => {
@@ -61,7 +63,6 @@ export const AccountsProvider = ({ children }) => {
 
 
   
-  console.log('account Data in context',accountData);
 
 
 
@@ -79,6 +80,32 @@ export const AccountsProvider = ({ children }) => {
       console.log(error);
     }
   };
+
+  const createSubcatAlert = () =>
+    Alert.prompt(
+      "New subcategory",
+      "Enter your new subcategory below",
+      [
+        { text: "Cancel", style: "destructive", onPress: () => {} },
+        {
+          text: "Submit",
+          onPress: (subcategory) => {
+            if (subcategory.length > 0) {
+              let newData = { ...accountData };
+              newData.subcategories.push({
+                subcategory: subcategory,
+                id: uuid.v4(),
+              });
+              setAccountData(newData);
+            }
+          },
+        },
+      ],
+      "plain-text"
+    );
+
+
+
 
   return (
     <AccountsContext.Provider
@@ -98,7 +125,9 @@ export const AccountsProvider = ({ children }) => {
         setAccountData,
         accountData,
         setType,
-        type
+        type,
+        createSubcatAlert,
+        
       }}
     >
       {children}

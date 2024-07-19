@@ -147,9 +147,11 @@ function EditIcon({ navigation }) {
           </View>
         </View>
       </ScrollView>
+
       <TouchableOpacity style={submit_button} onPress={handleSubmit}>
         <Text style={styles.submit_button_text}>Save</Text>
       </TouchableOpacity>
+      
     </View>
   );
 }

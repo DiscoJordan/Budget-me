@@ -131,10 +131,9 @@ const RegisteredOrNot = ({ navigation }) => {
         accountId:activeAccount._id
       });
       if (response.data.ok) {
-        console.log(response.data.data);
-        console.log(response.data.deletedTrans);
+        getTransactionsOfUser();
         getAccountsOfUser();
-        getTransactionsOfUser()
+        
         navigation.navigate("Dashboard");
       } else{
         console.log(response.data);

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 const Accounts = require("../models/accounts");
 
 const Transactions = require("../models/transactions");
@@ -27,29 +27,31 @@ const addAccount = async (req, res) => {
   }
 };
 
-
 const deleteAccount = async (req, res) => {
   try {
     const { accountId } = req.body;
     const accountExist = await Accounts.findById({ _id: accountId });
     if (accountExist) {
+      const ownerId = accountExist.ownerId;
       await accountExist.deleteOne();
-
       const triggeredTrans = await Transactions.find({
-        senderId: accountId}|| {recipientId: accountId} )
-    
-      const allTriggeredAccs = triggeredTrans.flatMap(trans => [trans.senderId, trans.recipientId]);
-      const TriggeredAccs = Array.from(new Set(allTriggeredAccs));
-      console.log('====================================');
-      console.log('TriggeredAccs', TriggeredAccs);
-      console.log('====================================');
+        $or: [{ senderId: accountId }, { recipientId: accountId }],
+      });
+
+      const allTriggeredAccs = triggeredTrans.flatMap((trans) => [
+        trans.senderId.toString(),
+        trans.recipientId.toString(),
+      ]);
+      const triggeredAccs = Array.from(new Set(allTriggeredAccs)).map(
+        (id) => new mongoose.Types.ObjectId(id)
+      );
 
       const deletedTrans = await Transactions.deleteMany({
-        senderId: accountId,
-        recipientId: accountId,
+        $or: [{ senderId: accountId }, { recipientId: accountId }],
       });
-      
-      
+
+      await updateBalance(triggeredAccs, ownerId);
+
       res.send({
         ok: true,
         data: `Account '${accountExist.name}' was deleted`,
@@ -64,66 +66,39 @@ const deleteAccount = async (req, res) => {
   }
 };
 
-const updateBalance = async (req, res) => {
+const updateBalance = async (accs, ownerId) => {
   try {
-    const { userId, transactions } = req.body;
-    for (let i = 0; i < transactions.length; i++) {
-      let currentTransaction = transactions[i];
-      
-      let senderAccount = await Accounts.findById(currentTransaction.senderId);
+    for (let i = 0; i < accs.length; i++) {
+      let currentAccountId = accs[i];
+
+      let currentAccount = await Accounts.findById(currentAccountId);
+
+      const incomeTransactions = await Transactions.find({
+        ownerId: ownerId,
+        recipientId: currentAccountId,
+      });
+      const expenseTransactions = await Transactions.find({
+        ownerId: ownerId,
+        senderId: currentAccountId,
+      });
+      const incomeAmount = incomeTransactions.reduce(
+        (accumulator, transaction) => accumulator + transaction.amount,
+        0
+      );
+      const expenseAmount = expenseTransactions.reduce(
+        (accumulator, transaction) => accumulator + transaction.amount,
+        0
+      );
+      if (currentAccount) {
+        currentAccount.balance =
+          currentAccount.initialBalance + incomeAmount - expenseAmount;
+        currentAccount.type === "income"
+          ? (currentAccount.balance *= -1)
+          : null;
+        await currentAccount.save();
+      }
     }
-    const senderAccount = await Accounts.findById(senderId);
-    const recipientAccount = await Accounts.findById(recipientId);
-
-    const incomeSenderTransactions = await Transactions.find(
-      { ownerId: userId } && { recipientId: senderId }
-    );
-    const expenseSenderTransactions = await Transactions.find(
-      { ownerId: userId } && { senderId: senderId }
-    );
-    const incomeRecepientTransactions = await Transactions.find(
-      { ownerId: userId } && { recipientId: recipientId }
-    );
-    const expenseRecepientTransactions = await Transactions.find(
-      { ownerId: userId } && { senderId: recipientId }
-    );
-
-    const incomeSenderAmount = incomeSenderTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
-    );
-    const expenseSenderAmount = expenseSenderTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
-    );
-    const incomeRecepientAmount = incomeRecepientTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
-    );
-    const expenseRecepientAmount = expenseRecepientTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
-    );
-
-    senderAccount.balance =
-      senderAccount.initialBalance + incomeSenderAmount - expenseSenderAmount;
-    senderAccount.type === "income" ? (senderAccount.balance *= -1) : null;
-
-    recipientAccount.balance =
-      senderAccount.initialBalance +
-      incomeRecepientAmount -
-      expenseRecepientAmount;
-
-    await senderAccount.save();
-    await recipientAccount.save();
-    res.status(200).send({
-      ok: true,
-      data: `Account balance was updated`,
-      senderAccount,
-      recipientAccount,
-    });
   } catch (error) {
-    res.status(400).send({ ok: false, data: error.message });
     console.log(error.message);
   }
 };
@@ -131,21 +106,21 @@ const updateBalance = async (req, res) => {
 const setBalance = async (req, res) => {
   try {
     const { senderId, recipientId, userId } = req.body;
-    
+
     const senderAccount = await Accounts.findById(senderId);
     const recipientAccount = await Accounts.findById(recipientId);
 
     const incomeSenderTransactions = await Transactions.find(
-      { ownerId: userId } && { recipientId: senderId }
+      { ownerId: userId , recipientId: senderId }
     );
     const expenseSenderTransactions = await Transactions.find(
-      { ownerId: userId } && { senderId: senderId }
+      { ownerId: userId , senderId: senderId }
     );
     const incomeRecepientTransactions = await Transactions.find(
-      { ownerId: userId } && { recipientId: recipientId }
+      { ownerId: userId , recipientId: recipientId }
     );
     const expenseRecepientTransactions = await Transactions.find(
-      { ownerId: userId } && { senderId: recipientId }
+      { ownerId: userId ,senderId: recipientId }
     );
 
     const incomeSenderAmount = incomeSenderTransactions.reduce(

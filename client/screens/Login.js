@@ -54,7 +54,7 @@ function Login({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={{...container, minHeight:'100%'}}>
       <Text style={styles.h1}>Log In</Text>
       <TextInput
         style={styles.input}

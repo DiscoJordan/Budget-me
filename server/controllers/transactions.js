@@ -121,7 +121,6 @@ const getAllTransactions = async (req, res) => {
     let transactions = await Transactions.find({ ownerId: ownerId }).populate(
       ["ownerId","senderId","recipientId"]
     );
-    console.log(transactions);
     transactions = JSON.parse(JSON.stringify(transactions));
     if (transactions) {
       res.status(200).send({ ok: true, data: transactions });

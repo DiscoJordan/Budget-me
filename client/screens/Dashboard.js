@@ -93,7 +93,7 @@ function Dashboard({ navigation }) {
           {item.name}
         </Text>
         <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-          {item.balance} {item.currency}
+          {item.balance.format()} {item.currency}
         </Text>
       </View>
     );
@@ -101,6 +101,30 @@ function Dashboard({ navigation }) {
     setActiveAccount(accounts.find((acc) => acc._id === accountId));
     navigation.navigate("Account", { type: itemType });
   };
+
+Number.prototype.format = function() {
+  var num = this.toFixed(2);
+  var parts = num.split('.');
+  var integerPart = parts[0];
+  var formattedIntegerPart = '';
+
+  for (var i = integerPart.length - 1; i >= 0; i--) {
+    formattedIntegerPart = integerPart.charAt(i) + formattedIntegerPart;
+    if ((integerPart.length - i) % 3 === 0 && i !== 0) {
+      formattedIntegerPart = ' ' + formattedIntegerPart;
+    }
+  }
+  var fractionalPart = parts[1] || '';
+  while (fractionalPart.length > 0 && fractionalPart[fractionalPart.length - 1] === '0') {
+    fractionalPart = fractionalPart.slice(0, -1);
+  }
+  if (fractionalPart.length > 0) {
+    return formattedIntegerPart + '.' + fractionalPart;
+  } else {
+    return formattedIntegerPart;
+  }
+};
+
   const renderItem = ({ item }) => {
     return (
       <Item
@@ -127,11 +151,11 @@ function Dashboard({ navigation }) {
     );
   };
   return (
-    <ScrollView style={{ backgroundColor: colors.background }}>
+    <ScrollView style={{ backgroundColor: colors.background, padding:20 }}>
       <View
         style={[
           styles.container,
-          { justifyContent: "start", minHeight: "100%",margin:0 },
+          { justifyContent: "start", minHeight: "100%", },
         ]}
       >
         <View style={accounts__block}>
@@ -140,7 +164,7 @@ function Dashboard({ navigation }) {
             <Text style={body}>
               {Accounts.filter(
                 (acc) => acc.type === "income" && acc._id !== "income"
-              ).reduce((accumulator, acc) => accumulator + acc.balance, 0)}{" "}
+              ).reduce((accumulator, acc) => accumulator + acc.balance, 0).format()}{" "}
               {user?.currency}
             </Text>
           </View>
@@ -160,7 +184,7 @@ function Dashboard({ navigation }) {
             <Text style={body}>
               {Accounts.filter(
                 (acc) => acc.type === "personal" && acc._id !== "personal"
-              ).reduce((accumulator, acc) => accumulator + acc.balance, 0)}{" "}
+              ).reduce((accumulator, acc) => accumulator + acc.balance, 0).format()}{" "}
               {user?.currency}
             </Text>
           </View>
@@ -180,7 +204,7 @@ function Dashboard({ navigation }) {
             <Text style={body}>
               {Accounts.filter(
                 (acc) => acc.type === "expense" && acc._id !== "expense"
-              ).reduce((accumulator, acc) => accumulator + acc.balance, 0)}{" "}
+              ).reduce((accumulator, acc) => accumulator + acc.balance, 0).format()}{" "}
               {user?.currency}
             </Text>
           </View>
