@@ -22,17 +22,24 @@ import { URL } from "../config";
 import axios from "axios";
 import { UsersContext } from "../context/UsersContext";
 
-function Login({ navigation }) {
-  const { login } = useContext(UsersCorntext);
-  const [message, setMessage] = useState("");
-  const [userData, setUserData] = useState({
+interface LoginFormData {
+  username: string;
+  password: string;
+}
+
+function Login({ navigation }: { navigation: any }) {
+  const { login } = useContext(UsersContext);
+  const [message, setMessage] = useState<string>("");
+  const [userData, setUserData] = useState<LoginFormData>({
     username: "",
     password: "",
   });
-  const handleChange = (value, name) => {
+
+  const handleChange = (value: string, name: keyof LoginFormData) => {
     setUserData({ ...userData, [name]: value });
   };
-  const handleSubmit = async (e) => {
+
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     try {
       const response = await axios.post(`${URL}/users/login`, {
@@ -60,7 +67,6 @@ function Login({ navigation }) {
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "username")}
-        name={"username"}
         inlineImageLeft="search_icon"
         placeholderTextColor={colors.primaryGreen}
         placeholder="Username*"
@@ -69,7 +75,7 @@ function Login({ navigation }) {
         maxLength={20}
         selectionColor={"#primaryGreen"}
         lineBreakStrategyIOS={"push-out"}
-      ></TextInput>
+      />
       <TextInput
         onChangeText={(text) => handleChange(text, "password")}
         style={styles.input}
@@ -78,7 +84,7 @@ function Login({ navigation }) {
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
         selectionColor={"#primaryGreen"}
-      ></TextInput>
+      />
 
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
         <Text style={styles.submit_button_text}>Log In</Text>
@@ -92,7 +98,7 @@ function Login({ navigation }) {
           Sign Up
         </Text>
       </Text>
-      {message && <Text>{message}</Text>}
+      {message ? <Text>{message}</Text> : null}
     </View>
   );
 }
@@ -104,10 +110,8 @@ const styles = StyleSheet.create({
   container,
   h1,
   input,
-  blue,
   submit_button,
   submit_button_text,
-  colors,
-  font,
 });
+
 export default Login;
