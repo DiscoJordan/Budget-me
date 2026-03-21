@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm server/models/users.js server/models/accounts.js server/models/transactions.js)",
+      "Bash(rm server/controllers/users.js server/controllers/accounts.js server/controllers/transactions.js)",
+      "Bash(rm server/routes/users.js server/routes/accounts.js server/routes/transactions.js)",
+      "Bash(rm server/middlewares/authMiddleware.js)",
+      "Bash(rm server/index.js)",
+      "Bash(rm utils/formatNumber.js config.js context/UsersContext.js context/AccountsContext.js context/TransactionsContext.js components/RegisteredOrNot.js App.js)",
+      "Bash(rm screens/Dashboard.js screens/Login.js screens/Registration.js screens/NewAccount.js screens/NewOperation.js screens/EditIcon.js screens/Account.js screens/History.js screens/Report.js screens/Settings.js)",
+      "Bash(npm install:*)",
+      "Bash(npx tsc:*)",
+      "Bash(find C:/Users/Глеб/WebstormProjects/Budget-me/client/node_modules -name index.d.ts -path *vector-icons*)",
+      "Bash(find C:/Users/Глеб/WebstormProjects/Budget-me/client/node_modules -maxdepth 3 -name *.d.ts -path *vector-icons*)",
+      "Bash(xargs grep:*)",
+      "Bash(npx ts-node:*)",
+      "Bash(npm start:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :5050)",
+      "Bash(taskkill:*)"
+    ]
+  }
+}
