@@ -14,6 +14,7 @@ import {
 import { Feather } from "@expo/vector-icons";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { getCurrencyMeta } from "../utils/currencyInfo";
+import { convertCurrency } from "../utils/convertCurrency";
 import {
   container,
   h1,
@@ -48,7 +49,7 @@ function NewAccount({ navigation }: { navigation: any }) {
     randomColor,
     type,
   } = useContext(AccountsContext);
-  const { currencies, mainCurrency } = useContext(CurrencyContext);
+  const { currencies, mainCurrency, rates } = useContext(CurrencyContext);
   const [message, setMessage] = useState<string>("");
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
   const [addDialogVisible, setAddDialogVisible] = useState<boolean>(false);
@@ -287,7 +288,20 @@ function NewAccount({ navigation }: { navigation: any }) {
                 <TouchableOpacity
                   style={[styles.currencyItem, selected && styles.currencyItemActive]}
                   onPress={() => {
-                    setAccountData({ ...accountData, currency: item });
+                    const oldCurrency = accountData.currency || mainCurrency;
+                    const newCurrency = item;
+                    
+                    // Convert balance if currency is changing and account has a balance
+                    let convertedBalance = accountData.balance;
+                    if (oldCurrency !== newCurrency && accountData.balance !== undefined && accountData.balance !== 0) {
+                      convertedBalance = Math.round(convertCurrency(accountData.balance, oldCurrency, newCurrency, rates) * 100) / 100;
+                    }
+                    
+                    setAccountData({ 
+                      ...accountData, 
+                      currency: newCurrency,
+                      balance: convertedBalance
+                    });
                     setCurrencyModalVisible(false);
                     setCurrencySearch("");
                   }}

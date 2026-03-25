@@ -21,6 +21,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   const [rates, setRates] = useState<Record<string, number>>({});
   const [mainCurrency, setMainCurrencyState] = useState<string>("USD");
   const [loading, setLoading] = useState(false);
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
 
   useEffect(() => {
     if (user?.currency) {
@@ -41,7 +42,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       if (cached) {
         const parsed: CurrenciesCache = JSON.parse(cached);
         if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) {
-          applyRates(parsed.rates);
+          applyRates(parsed.rates, parsed.fetchedAt);
           setLoading(false);
           return;
         }
@@ -51,7 +52,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       if (response.data.ok) {
         const newCache: CurrenciesCache = { rates: response.data.rates, fetchedAt: Date.now() };
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newCache));
-        applyRates(response.data.rates);
+        applyRates(response.data.rates, newCache.fetchedAt);
       }
     } catch (error) {
       console.log("Error fetching currencies:", error);
@@ -60,9 +61,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const applyRates = (ratesData: Record<string, number>) => {
+  const applyRates = (ratesData: Record<string, number>, fetchedAt?: number) => {
     setRates(ratesData);
     setCurrencies(Object.keys(ratesData).sort());
+    if (fetchedAt) {
+      setLastFetchedAt(fetchedAt);
+    }
   };
 
   const setMainCurrency = async (currency: string) => {
@@ -80,7 +84,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <CurrencyContext.Provider value={{ currencies, rates, mainCurrency, setMainCurrency, loading }}>
+    <CurrencyContext.Provider value={{ currencies, rates, mainCurrency, setMainCurrency, loading, lastFetchedAt }}>
       {children}
     </CurrencyContext.Provider>
   );
