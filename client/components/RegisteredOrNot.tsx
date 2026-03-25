@@ -33,6 +33,8 @@ import EditTransaction from "../screens/EditTransaction";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { colors } from "../styles/styles";
+import { AccountingPeriodProvider } from "../context/AccountingPeriodContext";
+import PeriodHeader from "./PeriodHeader";
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -75,6 +77,7 @@ function MyTabs() {
               size={size}
             />
           ),
+          headerTitle: () => <PeriodHeader />,
         }}
       />
       <Tab.Screen
@@ -85,6 +88,7 @@ function MyTabs() {
           tabBarIcon: ({ color, size }: { color: string; size: number }) => (
             <MaterialCommunityIcons name="history" color={color} size={size} />
           ),
+          headerTitle: () => <PeriodHeader />,
         }}
       />
       <Tab.Screen
@@ -158,6 +162,7 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
     );
 
   return (
+    <AccountingPeriodProvider>
     <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
       <Stack.Navigator
@@ -247,6 +252,7 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
       </Stack.Navigator>
     </NavigationContainer>
     </GestureHandlerRootView>
+    </AccountingPeriodProvider>
   );
 };
 

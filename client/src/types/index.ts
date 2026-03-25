@@ -142,4 +142,5 @@ export interface CurrencyContextType {
   mainCurrency: string;
   setMainCurrency: (currency: string) => Promise<void>;
   loading: boolean;
+  lastFetchedAt: number | null;
 }
