@@ -28,7 +28,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 function Settings() {
   const { logout } = useContext(UsersContext);
-  const { currencies, mainCurrency, setMainCurrency, loading } =
+  const { currencies, mainCurrency, setMainCurrency, loading, lastFetchedAt } =
     useContext(CurrencyContext);
   const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
   const [modalVisible, setModalVisible] = useState(false);
@@ -74,6 +74,13 @@ function Settings() {
           />
         </View>
       </TouchableOpacity>
+
+      <View style={setting_option}>
+        <Text style={styles.label}>Currency rates last updated</Text>
+        <Text style={styles.currencyValue}>
+          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : "Never"}
+        </Text>
+      </View>
 
       <TouchableOpacity
         onPress={() => setDashboardSettingsOpen(true)}
