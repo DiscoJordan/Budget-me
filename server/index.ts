@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import usersRouter from "./routes/users";
 import accountsRouter from "./routes/accounts";
 import transactionsRouter from "./routes/transactions";
+import currenciesRouter from "./routes/currencies";
 
 dotenv.config();
 
@@ -30,5 +31,6 @@ connecting();
 app.use("/users", usersRouter);
 app.use("/accounts", accountsRouter);
 app.use("/transactions", transactionsRouter);
+app.use("/currencies", currenciesRouter);
 
 app.listen(port, () => console.log(`server listening on port ${port}`));

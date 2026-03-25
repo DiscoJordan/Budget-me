@@ -18,6 +18,7 @@ const accountSchema = new Schema<IAccount>({
   initialBalance: { type: Number, required: true, default: 0 },
   currency: { type: String, required: true, default: "USD" },
   time: { type: Date, default: Date.now },
+  archived: { type: Boolean, default: false },
 });
 
 export default mongoose.model<IAccount>("Account", accountSchema);

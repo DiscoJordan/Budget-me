@@ -1,4 +1,5 @@
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { URL } from "../config";
 import { formatNumber } from "../utils/formatNumber";
 import axios from "axios";
@@ -6,6 +7,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { UsersContext } from "../context/UsersContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
+import { CurrencyContext } from "../context/CurrencyContext";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { EvilIcons } from "@expo/vector-icons";
 import {
@@ -38,6 +40,8 @@ import { Account, TransactionFormData } from "../src/types";
 
 const NewOperation = ({ navigation }: { navigation: any }) => {
   const [message, setMessage] = React.useState<string>("");
+  const [date, setDate] = useState(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const {
     activeAccount,
     accounts,
@@ -45,8 +49,31 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
     recipientAccount,
     setRecipientAccount,
     createSubcatAlert,
+    accountData,
   } = useContext(AccountsContext);
   const { user } = useContext(UsersContext);
+  const { rates } = useContext(CurrencyContext);
+
+  const senderCurrency = activeAccount?.currency ?? "USD";
+  const recipientCurrency = recipientAccount?.currency ?? "USD";
+  const isCrossCurrency = recipientAccount?._id && senderCurrency !== recipientCurrency;
+
+  const autoRate = useMemo(() => {
+    if (!isCrossCurrency || !rates[senderCurrency] || !rates[recipientCurrency]) return 1;
+    return rates[recipientCurrency] / rates[senderCurrency];
+  }, [isCrossCurrency, rates, senderCurrency, recipientCurrency]);
+
+  const [customRate, setCustomRate] = useState<string>("");
+
+  useEffect(() => {
+    if (isCrossCurrency) {
+      setCustomRate(autoRate.toFixed(6));
+    } else {
+      setCustomRate("");
+    }
+  }, [isCrossCurrency, autoRate]);
+
+  const effectiveRate = isCrossCurrency ? (parseFloat(customRate) || autoRate) : 1;
 
   const [transactionData, setTransactionData] =
     React.useState<TransactionFormData>({
@@ -56,6 +83,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
       comment: "",
       subcategory: "",
       amount: 0,
+      time: new Date().toISOString(),
     });
 
   useEffect(() => {
@@ -89,6 +117,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
         comment: transactionData.comment,
         amount: transactionData.amount,
         subcategory: transactionData.subcategory,
+        time: transactionData.time,
+        currency: senderCurrency,
+        rate: effectiveRate,
       });
       setMessage(response.data.message);
       setTimeout(() => {
@@ -120,7 +151,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
         {item.name}
       </Text>
       <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-        {formatNumber(item.balance)} {item.currency}
+        {formatNumber(item.balance ?? 0)} {item.currency}
       </Text>
     </View>
   );
@@ -148,7 +179,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 ]}
               >
                 <MaterialCommunityIcons
-                  name={(activeAccount?.icon?.icon_value || "wallet-outline") as any}
+                  name={activeAccount?.icon?.icon_value || "wallet-outline"}
                   size={24}
                   color="white"
                 />
@@ -175,8 +206,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 style={[
                   accounts__add,
                   {
-                    backgroundColor:
-                      recipientAccount?.icon?.color || "gray",
+                    backgroundColor: recipientAccount?.icon?.color || "gray",
                   },
                 ]}
               >
@@ -205,11 +235,34 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 {recipientAccount?.balance != null
                   ? formatNumber(recipientAccount.balance)
                   : ""}
-                {recipientAccount?.currency || "Balance"}
+                {" " + (recipientAccount?.currency || "Balance")}
               </Text>
             </View>
           </View>
           <View style={green_line} />
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <MaterialCommunityIcons name="calendar" size={20} color={colors.primaryGreen} />
+            <Text style={styles.dateText}>
+              {date.toLocaleDateString("en-EN", { year: "numeric", month: "long", day: "numeric" })}
+            </Text>
+          </TouchableOpacity>
+          {showDatePicker && (
+            <DateTimePicker
+              value={date}
+              mode="date"
+              maximumDate={new Date()}
+              onChange={(_event, selected) => {
+                setShowDatePicker(false);
+                if (selected) {
+                  setDate(selected);
+                  setTransactionData((prev) => ({ ...prev, time: selected.toISOString() }));
+                }
+              }}
+            />
+          )}
           <TextInput
             style={{ ...input, width: "100%", color: "white" }}
             onChangeText={(text) => handleChange(text, "comment")}
@@ -230,6 +283,27 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             maxLength={20}
             selectionColor={colors.primaryGreen}
           />
+          {isCrossCurrency && (
+            <View style={styles.rateContainer}>
+              <Text style={styles.rateLabel}>
+                1 {senderCurrency} =
+              </Text>
+              <TextInput
+                style={styles.rateInput}
+                value={customRate}
+                onChangeText={setCustomRate}
+                keyboardType="decimal-pad"
+                selectTextOnFocus
+                selectionColor={colors.primaryGreen}
+              />
+              <Text style={styles.rateLabel}>{recipientCurrency}</Text>
+            </View>
+          )}
+          {isCrossCurrency && transactionData.amount > 0 && (
+            <Text style={styles.ratePreview}>
+              {formatNumber(transactionData.amount)} {senderCurrency} → {formatNumber(transactionData.amount * effectiveRate)} {recipientCurrency}
+            </Text>
+          )}
           <Text style={body}> Subcategory</Text>
           <ScrollView horizontal style={styles.subcats}>
             <TouchableOpacity
@@ -244,7 +318,10 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
               <Text style={body}>?</Text>
               <Text style={caption1}>Without</Text>
             </TouchableOpacity>
-            {activeAccount?.subcategories?.map((subcat) => (
+            {(activeAccount?.type === "personal"
+              ? recipientAccount?.subcategories
+              : activeAccount?.subcategories
+            )?.map((subcat) => (
               <TouchableOpacity
                 key={subcat._id || subcat.id || subcat.subcategory}
                 onPress={() =>
@@ -267,10 +344,15 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 <Text style={caption1}>{subcat.subcategory}</Text>
               </TouchableOpacity>
             ))}
-            <TouchableOpacity onPress={createSubcatAlert} style={styles.subcat}>
-              <Text style={body}>+</Text>
-              <Text style={caption1}>Add</Text>
-            </TouchableOpacity>
+            {activeAccount?.type !== "personal" && (
+              <TouchableOpacity
+                onPress={createSubcatAlert}
+                style={styles.subcat}
+              >
+                <Text style={body}>+</Text>
+                <Text style={caption1}>Add</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
 
           <View style={green_line} />
@@ -283,7 +365,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   (acc) =>
                     acc.type ===
                     ((activeAccount?.type === "income" && "personal") ||
-                      (activeAccount?.type === "personal" && "expense"))
+                      (activeAccount?.type === "personal" && "expense")),
                 )}
                 renderItem={renderItem}
                 keyExtractor={(item) => item._id}
@@ -292,7 +374,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             </View>
             {activeAccount?.type === "personal" &&
               Accounts.filter((acc) => acc.type === "personal").filter(
-                (acc) => acc._id !== activeAccount?._id
+                (acc) => acc._id !== activeAccount?._id,
               ).length > 0 && (
                 <View style={styles.personal}>
                   <View style={{ ...green_line, minWidth: "100%" }} />
@@ -300,7 +382,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                     scrollEnabled={false}
                     style={accounts__body}
                     data={Accounts.filter(
-                      (acc) => acc.type === "personal"
+                      (acc) => acc.type === "personal",
                     ).filter((acc) => acc._id !== activeAccount?._id)}
                     renderItem={renderItem}
                     keyExtractor={(item) => item._id}
@@ -309,9 +391,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   <View style={{ ...green_line, minWidth: "100%" }} />
                 </View>
               )}
-            {message ? (
-              <Text style={{ color: "white" }}>{message}</Text>
-            ) : null}
+            {message ? <Text style={{ color: "white" }}>{message}</Text> : null}
           </View>
         </View>
       </ScrollView>
@@ -323,6 +403,36 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
+  rateContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    width: "100%",
+  },
+  rateLabel: {
+    color: colors.gray,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  rateInput: {
+    color: colors.primaryGreen,
+    fontSize: 15,
+    fontWeight: "600",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.primaryGreen,
+    minWidth: 80,
+    paddingVertical: 2,
+    paddingHorizontal: 4,
+  },
+  ratePreview: {
+    color: colors.gray,
+    fontSize: 13,
+    paddingHorizontal: 4,
+    paddingBottom: 4,
+    width: "100%",
+  },
   personal: {
     width: "100%",
     flex: 1,
@@ -341,6 +451,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.darkGray,
   },
   subcats: {},
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    width: "100%",
+  },
+  dateText: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
 });
 
 export default NewOperation;

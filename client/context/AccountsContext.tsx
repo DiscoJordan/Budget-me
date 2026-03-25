@@ -12,7 +12,7 @@ import {
 } from "../src/types";
 
 export const AccountsContext = React.createContext<AccountsContextType>(
-  {} as AccountsContextType
+  {} as AccountsContextType,
 );
 
 interface AccountsProviderProps {
@@ -25,7 +25,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   const { user } = useContext(UsersContext);
   const [activeAccount, setActiveAccount] = useState<Account | null>(null);
   const [recipientAccount, setRecipientAccount] = useState<Partial<Account>>(
-    {}
+    {},
   );
 
   const iconColors: string[] = [
@@ -160,7 +160,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   ];
 
   const [randomColor, setRandomColor] = React.useState<string>(
-    iconColors[Math.floor(Math.random() * iconColors.length)]
+    iconColors[Math.floor(Math.random() * iconColors.length)],
   );
 
   const getRandomColor = (): void => {
@@ -186,7 +186,32 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
       color: activeAccount?.icon?.color || randomColor,
       icon_value: activeAccount?.icon?.icon_value || "credit-card-outline",
     },
+    currency: "USD",
   });
+
+  useEffect(() => {
+    if (activeAccount) {
+      setAccountData({
+        name: activeAccount.name,
+        subcategories: activeAccount.subcategories || [],
+        ownerId: user?.id,
+        type: activeAccount.type,
+        icon: activeAccount.icon || {
+          color: randomColor,
+          icon_value: "credit-card-outline",
+        },
+        _id: activeAccount._id,
+        balance: activeAccount.balance ?? 0,
+        currency: activeAccount.currency ?? "USD",
+      });
+    }
+  }, [activeAccount]);
+
+  useEffect(() => {
+    if (!activeAccount) {
+      setAccountData((prev) => ({ ...prev, type, ownerId: user?.id }));
+    }
+  }, [type]);
 
   const getAccountsOfUser = async (): Promise<void> => {
     try {
@@ -205,6 +230,17 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         recipientId: recipientAccount._id,
       });
       getAccountsOfUser();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const toggleArchiveAccount = async (id: string, archived: boolean): Promise<void> => {
+    try {
+      await axios.post(`${URL}/accounts/updateaccount`, { accountData: { _id: id, archived } });
+      setAccounts((prev) =>
+        prev.map((acc) => (acc._id === id ? { ...acc, archived } : acc))
+      );
     } catch (error) {
       console.log(error);
     }
@@ -231,7 +267,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
           },
         },
       ],
-      "plain-text"
+      "plain-text",
     );
 
   return (
@@ -254,6 +290,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         setType,
         type,
         createSubcatAlert,
+        toggleArchiveAccount,
       }}
     >
       {children}

@@ -38,6 +38,7 @@ export interface IAccount extends Document {
   initialBalance: number;
   currency: string;
   time: Date;
+  archived?: boolean;
 }
 
 export interface ITransaction extends Document {

@@ -46,15 +46,11 @@ function Login({ navigation }: { navigation: any }) {
         username: userData.username,
         password: userData.password,
       });
-      setMessage(response.data.message);
-      console.log(response);
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
       if (response.data.ok) {
-        setTimeout(() => {
-          login(response.data.token);
-        }, 2000);
+        await login(response.data.token);
+      } else {
+        setMessage(response.data.message);
+        setTimeout(() => setMessage(""), 3000);
       }
     } catch (error) {
       console.log(error);

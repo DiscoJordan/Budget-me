@@ -53,14 +53,11 @@ function Registration({ navigation }: { navigation: any }) {
         password: userData.password,
         password2: userData.password2,
       });
-      setMessage(response.data.message);
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
       if (response.data.ok) {
-        setTimeout(() => {
-          login(response.data.token);
-        }, 2000);
+        await login(response.data.token);
+      } else {
+        setMessage(response.data.message);
+        setTimeout(() => setMessage(""), 3000);
       }
     } catch (error) {
       console.log(error);
