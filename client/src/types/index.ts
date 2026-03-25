@@ -122,7 +122,10 @@ export interface AccountsContextType {
   setType: React.Dispatch<React.SetStateAction<string>>;
   type: string;
   createSubcatAlert: () => void;
-  addSubcategoryToAccount: (accountId: string, subcatName: string) => Promise<void>;
+  addSubcategoryToAccount: (
+    accountId: string,
+    subcatName: string,
+  ) => Promise<void>;
   toggleArchiveAccount: (id: string, archived: boolean) => Promise<void>;
 }
 
@@ -131,8 +134,13 @@ export interface TransactionsContextType {
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   getTransactionsOfUser: () => Promise<void>;
   activeTransaction: Transaction | null;
-  setActiveTransaction: React.Dispatch<React.SetStateAction<Transaction | null>>;
-  updateTransaction: (id: string, fields: Partial<Transaction & { senderId: string; recipientId: string }>) => Promise<boolean>;
+  setActiveTransaction: React.Dispatch<
+    React.SetStateAction<Transaction | null>
+  >;
+  updateTransaction: (
+    id: string,
+    fields: Partial<Transaction & { senderId: string; recipientId: string }>,
+  ) => Promise<boolean>;
   deleteTransaction: (id: string) => Promise<boolean>;
 }
 

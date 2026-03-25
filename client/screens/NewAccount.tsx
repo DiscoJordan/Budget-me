@@ -229,7 +229,10 @@ function NewAccount({ navigation }: { navigation: any }) {
               </TouchableOpacity>
             ))}
             <TouchableOpacity
-              onPress={() => { setAddSubcatName(""); setAddDialogVisible(true); }}
+              onPress={() => {
+                setAddSubcatName("");
+                setAddDialogVisible(true);
+              }}
               style={styles.subcat}
             >
               <Text style={body}>+</Text>
@@ -244,8 +247,11 @@ function NewAccount({ navigation }: { navigation: any }) {
       >
         <Text style={{ ...subheadline, color: "white" }}>Currency</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-          <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
-            {accountData.currency || mainCurrency} {getCurrencyMeta(accountData.currency || mainCurrency).symbol}
+          <Text
+            style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}
+          >
+            {accountData.currency || mainCurrency}{" "}
+            {getCurrencyMeta(accountData.currency || mainCurrency).symbol}
           </Text>
           <Feather name="chevron-right" size={18} color={colors.gray} />
         </View>
@@ -263,7 +269,12 @@ function NewAccount({ navigation }: { navigation: any }) {
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Choose currency</Text>
-            <TouchableOpacity onPress={() => { setCurrencyModalVisible(false); setCurrencySearch(""); }}>
+            <TouchableOpacity
+              onPress={() => {
+                setCurrencyModalVisible(false);
+                setCurrencySearch("");
+              }}
+            >
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
@@ -278,7 +289,10 @@ function NewAccount({ navigation }: { navigation: any }) {
           <FlatList
             data={currencies.filter((c) => {
               const s = currencySearch.toLowerCase();
-              return c.toLowerCase().includes(s) || getCurrencyMeta(c).name.toLowerCase().includes(s);
+              return (
+                c.toLowerCase().includes(s) ||
+                getCurrencyMeta(c).name.toLowerCase().includes(s)
+              );
             })}
             keyExtractor={(item) => item}
             renderItem={({ item }) => {
@@ -286,37 +300,68 @@ function NewAccount({ navigation }: { navigation: any }) {
               const selected = item === (accountData.currency || mainCurrency);
               return (
                 <TouchableOpacity
-                  style={[styles.currencyItem, selected && styles.currencyItemActive]}
+                  style={[
+                    styles.currencyItem,
+                    selected && styles.currencyItemActive,
+                  ]}
                   onPress={() => {
                     const oldCurrency = accountData.currency || mainCurrency;
                     const newCurrency = item;
-                    
+
                     // Convert balance if currency is changing and account has a balance
                     let convertedBalance = accountData.balance;
-                    if (oldCurrency !== newCurrency && accountData.balance !== undefined && accountData.balance !== 0) {
-                      convertedBalance = Math.round(convertCurrency(accountData.balance, oldCurrency, newCurrency, rates) * 100) / 100;
+                    if (
+                      oldCurrency !== newCurrency &&
+                      accountData.balance !== undefined &&
+                      accountData.balance !== 0
+                    ) {
+                      convertedBalance =
+                        Math.round(
+                          convertCurrency(
+                            accountData.balance,
+                            oldCurrency,
+                            newCurrency,
+                            rates,
+                          ) * 100,
+                        ) / 100;
                     }
-                    
-                    setAccountData({ 
-                      ...accountData, 
+
+                    setAccountData({
+                      ...accountData,
                       currency: newCurrency,
-                      balance: convertedBalance
+                      balance: convertedBalance,
                     });
                     setCurrencyModalVisible(false);
                     setCurrencySearch("");
                   }}
                 >
                   <View style={styles.currencyItemLeft}>
-                    <Text style={[styles.currencyCode, selected && styles.currencyItemTextActive]}>
+                    <Text
+                      style={[
+                        styles.currencyCode,
+                        selected && styles.currencyItemTextActive,
+                      ]}
+                    >
                       {item}
                     </Text>
                     <Text style={styles.currencyName}>{meta.name}</Text>
                   </View>
                   <View style={styles.currencyItemRight}>
-                    <Text style={[styles.currencySymbol, selected && styles.currencyItemTextActive]}>
+                    <Text
+                      style={[
+                        styles.currencySymbol,
+                        selected && styles.currencyItemTextActive,
+                      ]}
+                    >
                       {meta.symbol}
                     </Text>
-                    {selected && <Feather name="check" size={18} color={colors.primaryGreen} />}
+                    {selected && (
+                      <Feather
+                        name="check"
+                        size={18}
+                        color={colors.primaryGreen}
+                      />
+                    )}
                   </View>
                 </TouchableOpacity>
               );
@@ -344,7 +389,10 @@ function NewAccount({ navigation }: { navigation: any }) {
           onChangeText={setAddSubcatName}
           autoFocus
         />
-        <Dialog.Button label="Cancel" onPress={() => setAddDialogVisible(false)} />
+        <Dialog.Button
+          label="Cancel"
+          onPress={() => setAddDialogVisible(false)}
+        />
         <Dialog.Button
           label="Add"
           onPress={() => {
