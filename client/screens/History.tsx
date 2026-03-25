@@ -1,9 +1,10 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import { StyleSheet, Text, View, ScrollView } from "react-native";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { UsersContext } from "../context/UsersContext";
 import { Transaction } from "../src/types";
 import { CurrencyContext } from "../context/CurrencyContext";
+import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
 import { colors, body, largeTitle, title2 } from "../styles/styles";
 import { formatNumber } from "../utils/formatNumber";
 import { toMainCurrency } from "../utils/convertCurrency";
@@ -40,6 +41,7 @@ function History({ navigation }: { navigation: any }) {
   const { transactions, getTransactionsOfUser, setActiveTransaction } = useContext(TransactionsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
+  const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -50,10 +52,20 @@ function History({ navigation }: { navigation: any }) {
     getTransactionsOfUser();
   }, []);
 
-  const { inflows, outflows } = calcFlows(transactions, rates, mainCurrency);
+  const filtered = useMemo(() => {
+    if (!dateFrom && !dateTo) return transactions;
+    return transactions.filter((t) => {
+      const time = new Date(t.time).getTime();
+      if (dateFrom && time < dateFrom.getTime()) return false;
+      if (dateTo && time > dateTo.getTime()) return false;
+      return true;
+    });
+  }, [transactions, dateFrom, dateTo]);
+
+  const { inflows, outflows } = calcFlows(filtered, rates, mainCurrency);
   const net = inflows - outflows;
 
-  const grouped = groupByDate(transactions);
+  const grouped = groupByDate(filtered);
   const sortedDates = Object.keys(grouped).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
@@ -70,7 +82,7 @@ function History({ navigation }: { navigation: any }) {
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 40 }}
       >
-        {transactions.length > 0 && (
+        {filtered.length > 0 && (
           <View style={styles.summary}>
             <View style={styles.summaryCard}>
               <Text style={[body, { color: colors.gray }]}>Inflows</Text>
@@ -93,8 +105,8 @@ function History({ navigation }: { navigation: any }) {
           </View>
         )}
 
-        {transactions.length === 0 ? (
-          <Text style={styles.empty}>No transactions yet</Text>
+        {filtered.length === 0 ? (
+          <Text style={styles.empty}>No transactions for this period</Text>
         ) : (
           sortedDates.map((date) => (
             <DaySection
