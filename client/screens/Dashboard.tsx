@@ -1,6 +1,9 @@
 import React, { useContext, useMemo, useRef, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import Animated, { useAnimatedStyle, useSharedValue } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+} from "react-native-reanimated";
 import { formatNumber } from "../utils/formatNumber";
 import { AntDesign } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -60,7 +63,8 @@ function Dashboard({ navigation }: { navigation: any }) {
   } = useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
-  const { transactions, getTransactionsOfUser } = useContext(TransactionsContext);
+  const { transactions, getTransactionsOfUser } =
+    useContext(TransactionsContext);
   const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
   const containerRef = useRef<View>(null);
   const containerOffsetY = useSharedValue(0); // shared value so useAnimatedStyle can read it
@@ -71,7 +75,6 @@ function Dashboard({ navigation }: { navigation: any }) {
     });
   }, [containerOffsetY]);
 
-
   useFocusEffect(
     useCallback(() => {
       if (user) {
@@ -79,7 +82,7 @@ function Dashboard({ navigation }: { navigation: any }) {
         getTransactionsOfUser();
         setActiveAccount(null);
       }
-    }, [user])
+    }, [user]),
   );
 
   const {
@@ -108,7 +111,7 @@ function Dashboard({ navigation }: { navigation: any }) {
       { _id: "personal", title: "New account", type: "personal" },
       { _id: "expense", title: "New account", type: "expense" },
     ],
-    [accounts]
+    [accounts],
   );
 
   const { periodAmounts, periodTotals } = useMemo(() => {
@@ -151,23 +154,43 @@ function Dashboard({ navigation }: { navigation: any }) {
         // personal accounts: subtract what they sent
         amountMap.set(
           senderId,
-          (amountMap.get(senderId) ?? 0) + (senderType === "income" ? converted : -converted)
+          (amountMap.get(senderId) ?? 0) +
+            (senderType === "income" ? converted : -converted),
         );
       }
       if (recipientId && amountMap.has(recipientId)) {
         const tgt = accCurrencyMap.get(recipientId) ?? "USD";
-        amountMap.set(recipientId, (amountMap.get(recipientId) ?? 0) + convertTo(t.amount, tCurrency, tgt));
+        amountMap.set(
+          recipientId,
+          (amountMap.get(recipientId) ?? 0) +
+            convertTo(t.amount, tCurrency, tgt),
+        );
       }
 
-      const converted = toMainCurrency(t.amount, tCurrency, rates, mainCurrency);
-      if (senderType === "income" && recipientType === "personal") incomeTotal += converted;
-      else if (senderType === "personal" && recipientType === "expense") expenseTotal += converted;
+      const converted = toMainCurrency(
+        t.amount,
+        tCurrency,
+        rates,
+        mainCurrency,
+      );
+      if (senderType === "income" && recipientType === "personal")
+        incomeTotal += converted;
+      else if (senderType === "personal" && recipientType === "expense")
+        expenseTotal += converted;
     }
 
     // Calculate total personal accounts balance (not affected by period filter)
-    const personalTotal = Math.round(accounts
-      .filter(acc => acc.type === "personal")
-      .reduce((sum, acc) => sum + toMainCurrency(acc.balance, acc.currency, rates, mainCurrency), 0) * 100) / 100;
+    const personalTotal =
+      Math.round(
+        accounts
+          .filter((acc) => acc.type === "personal")
+          .reduce(
+            (sum, acc) =>
+              sum +
+              toMainCurrency(acc.balance, acc.currency, rates, mainCurrency),
+            0,
+          ) * 100,
+      ) / 100;
 
     return {
       periodAmounts: amountMap,
@@ -216,7 +239,12 @@ function Dashboard({ navigation }: { navigation: any }) {
 
     const tileChildren = (
       <View style={account}>
-        <View style={[accounts__add, { backgroundColor: item.icon?.color || "gray" }]}>
+        <View
+          style={[
+            accounts__add,
+            { backgroundColor: item.icon?.color || "gray" },
+          ]}
+        >
           <MaterialCommunityIcons
             name={(item.icon?.icon_value || "wallet-outline") as any}
             size={24}
@@ -230,7 +258,12 @@ function Dashboard({ navigation }: { navigation: any }) {
           {item.name}
         </Text>
         <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-          {formatNumber(item.type === "personal" ? (item as Account).balance : (periodAmounts.get(item._id) ?? 0))} {item.currency}
+          {formatNumber(
+            item.type === "personal"
+              ? (item as Account).balance
+              : (periodAmounts.get(item._id) ?? 0),
+          )}{" "}
+          {item.currency}
         </Text>
       </View>
     );
@@ -247,7 +280,10 @@ function Dashboard({ navigation }: { navigation: any }) {
       >
         <DraggableAccountTile
           account={item as Account}
-          onDragStart={(account, x, y) => { measureContainer(); startDrag(account, x, y); }}
+          onDragStart={(account, x, y) => {
+            measureContainer();
+            startDrag(account, x, y);
+          }}
           onDragMove={updateDrag}
           onDragEnd={endDrag}
           onRegister={registerDropTarget}
@@ -276,11 +312,18 @@ function Dashboard({ navigation }: { navigation: any }) {
         style={{ backgroundColor: colors.background, padding: 20 }}
         scrollEnabled={!draggedAccount}
       >
-        <View style={[styles.container, { justifyContent: "flex-start", minHeight: "100%" }]}>
+        <View
+          style={[
+            styles.container,
+            { justifyContent: "flex-start", minHeight: "100%" },
+          ]}
+        >
           <View style={accounts__block}>
             <View style={accounts__header}>
               <Text style={body}>Income</Text>
-              <Text style={body}>{formatNumber(periodTotals.incomeTotal)} {mainCurrency}</Text>
+              <Text style={body}>
+                {formatNumber(periodTotals.incomeTotal)} {mainCurrency}
+              </Text>
             </View>
             <View style={green_line} />
             <FlatList
@@ -295,7 +338,9 @@ function Dashboard({ navigation }: { navigation: any }) {
           <View style={accounts__block}>
             <View style={accounts__header}>
               <Text style={body}>Personal</Text>
-              <Text style={body}>{formatNumber(periodTotals.personalNet)} {mainCurrency}</Text>
+              <Text style={body}>
+                {formatNumber(periodTotals.personalNet)} {mainCurrency}
+              </Text>
             </View>
             <View style={green_line} />
             <FlatList
@@ -310,7 +355,9 @@ function Dashboard({ navigation }: { navigation: any }) {
           <View style={accounts__block}>
             <View style={accounts__header}>
               <Text style={body}>Expenses</Text>
-              <Text style={body}>{formatNumber(periodTotals.expenseTotal)} {mainCurrency}</Text>
+              <Text style={body}>
+                {formatNumber(periodTotals.expenseTotal)} {mainCurrency}
+              </Text>
             </View>
             <View style={green_line} />
             <FlatList
@@ -334,7 +381,12 @@ function Dashboard({ navigation }: { navigation: any }) {
           { opacity: draggedAccount ? 1 : 0 },
         ]}
       >
-        <View style={[styles.floatingIconInner, { backgroundColor: draggedAccount?.icon?.color || "gray" }]}>
+        <View
+          style={[
+            styles.floatingIconInner,
+            { backgroundColor: draggedAccount?.icon?.color || "gray" },
+          ]}
+        >
           <MaterialCommunityIcons
             name={(draggedAccount?.icon?.icon_value || "wallet-outline") as any}
             size={28}

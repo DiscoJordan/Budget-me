@@ -1,11 +1,19 @@
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+} from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { URL } from "../config";
 import { UsersContext } from "./UsersContext";
 import { CurrencyContextType } from "../src/types";
 
-export const CurrencyContext = createContext<CurrencyContextType>({} as CurrencyContextType);
+export const CurrencyContext = createContext<CurrencyContextType>(
+  {} as CurrencyContextType,
+);
 
 const STORAGE_KEY = "currencies_cache";
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
@@ -50,7 +58,10 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
       const response = await axios.get(`${URL}/currencies`);
       if (response.data.ok) {
-        const newCache: CurrenciesCache = { rates: response.data.rates, fetchedAt: Date.now() };
+        const newCache: CurrenciesCache = {
+          rates: response.data.rates,
+          fetchedAt: Date.now(),
+        };
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newCache));
         applyRates(response.data.rates, newCache.fetchedAt);
       }
@@ -61,7 +72,10 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const applyRates = (ratesData: Record<string, number>, fetchedAt?: number) => {
+  const applyRates = (
+    ratesData: Record<string, number>,
+    fetchedAt?: number,
+  ) => {
     setRates(ratesData);
     setCurrencies(Object.keys(ratesData).sort());
     if (fetchedAt) {
@@ -71,7 +85,9 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
   const setMainCurrency = async (currency: string) => {
     try {
-      const response = await axios.post(`${URL}/users/update-currency`, { currency });
+      const response = await axios.post(`${URL}/users/update-currency`, {
+        currency,
+      });
       if (response.data.ok) {
         setMainCurrencyState(currency);
         if (response.data.token) {
@@ -84,7 +100,16 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <CurrencyContext.Provider value={{ currencies, rates, mainCurrency, setMainCurrency, loading, lastFetchedAt }}>
+    <CurrencyContext.Provider
+      value={{
+        currencies,
+        rates,
+        mainCurrency,
+        setMainCurrency,
+        loading,
+        lastFetchedAt,
+      }}
+    >
       {children}
     </CurrencyContext.Provider>
   );

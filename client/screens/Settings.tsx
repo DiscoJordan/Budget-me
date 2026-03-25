@@ -78,7 +78,7 @@ function Settings() {
       <View style={setting_option}>
         <Text style={styles.label}>Currency rates last updated</Text>
         <Text style={styles.currencyValue}>
-          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Never'}
+          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : "Never"}
         </Text>
       </View>
 

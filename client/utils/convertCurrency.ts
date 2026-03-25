@@ -6,7 +6,7 @@ export function toMainCurrency(
   amount: number,
   fromCurrency: string,
   rates: Record<string, number>,
-  mainCurrency: string
+  mainCurrency: string,
 ): number {
   if (fromCurrency === mainCurrency) return amount;
   const fromRate = rates[fromCurrency];
@@ -23,7 +23,7 @@ export function convertCurrency(
   amount: number,
   fromCurrency: string,
   toCurrency: string,
-  rates: Record<string, number>
+  rates: Record<string, number>,
 ): number {
   if (fromCurrency === toCurrency) return amount;
   const fromRate = rates[fromCurrency];
