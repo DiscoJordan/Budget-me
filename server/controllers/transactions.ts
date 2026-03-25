@@ -17,6 +17,7 @@ const addTransaction = async (
       subcategory,
       amount,
       currency,
+      rate,
       time,
       comment,
     } = req.body as {
@@ -28,6 +29,7 @@ const addTransaction = async (
       subcategory?: string;
       amount: number;
       currency?: string;
+      rate?: number;
       time?: string;
       comment?: string;
     };
@@ -40,6 +42,7 @@ const addTransaction = async (
       subcategory,
       amount,
       currency,
+      rate: rate ?? 1,
       time,
       comment,
     });
@@ -103,31 +106,70 @@ const deleteTransaction = async (
   }
 };
 
-const updateAccount = async (
+const recalcBalance = async (accountId: string, ownerId: string): Promise<void> => {
+  const account = await Accounts.findById(accountId);
+  if (!account) return;
+  const incomeTransactions = await Transactions.find({ ownerId, recipientId: accountId });
+  const expenseTransactions = await Transactions.find({ ownerId, senderId: accountId });
+  const incomeAmount = incomeTransactions.reduce((acc, t) => acc + t.amount * t.rate, 0);
+  const expenseAmount = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
+  account.balance = account.initialBalance + incomeAmount - expenseAmount;
+  if (account.type === "income") account.balance *= -1;
+  await account.save();
+};
+
+const updateTransaction = async (
   req: AuthRequest,
   res: Response
 ): Promise<void> => {
   try {
-    const { transactionId } = req.body as { transactionId: string };
-    const transaction = await Transactions.findById({ _id: transactionId });
+    const { transactionId, senderId, recipientId, amount, rate, time, comment, subcategory, icon, currency } =
+      req.body as {
+        transactionId: string;
+        senderId?: string;
+        recipientId?: string;
+        amount?: number;
+        rate?: number;
+        time?: string;
+        comment?: string;
+        subcategory?: string;
+        icon?: { color: string; icon_value: string };
+        currency?: string;
+      };
 
-    if (transaction) {
-      const result = await Transactions.findOneAndUpdate(
-        { _id: transactionId },
-        { $set: req.body },
-        { new: true, runValidators: true }
-      );
-      res.status(200).send({
-        ok: true,
-        data: `Transaction was updated`,
-        result,
-      });
-    } else {
-      res.status(200).send({
-        ok: true,
-        data: `Transaction was not found `,
-      });
+    const transaction = await Transactions.findById(transactionId);
+    if (!transaction) {
+      res.status(404).send({ ok: false, data: "Transaction was not found" });
+      return;
     }
+
+    const oldSenderId = transaction.senderId.toString();
+    const oldRecipientId = transaction.recipientId.toString();
+
+    const updateFields: Record<string, unknown> = {};
+    if (senderId !== undefined) updateFields.senderId = senderId;
+    if (recipientId !== undefined) updateFields.recipientId = recipientId;
+    if (amount !== undefined) updateFields.amount = amount;
+    if (rate !== undefined) updateFields.rate = rate;
+    if (time !== undefined) updateFields.time = time;
+    if (comment !== undefined) updateFields.comment = comment;
+    if (subcategory !== undefined) updateFields.subcategory = subcategory;
+    if (icon !== undefined) updateFields.icon = icon;
+    if (currency !== undefined) updateFields.currency = currency;
+
+    const result = await Transactions.findOneAndUpdate(
+      { _id: transactionId },
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    );
+
+    const ownerId = transaction.ownerId.toString();
+    const affectedIds = new Set([oldSenderId, oldRecipientId, senderId, recipientId].filter(Boolean) as string[]);
+    for (const id of affectedIds) {
+      await recalcBalance(id, ownerId);
+    }
+
+    res.status(200).send({ ok: true, data: "Transaction was updated", result });
   } catch (error) {
     const err = error as Error;
     res.status(400).send({ ok: false, data: err.message });
@@ -186,5 +228,5 @@ export {
   getAllTransactions,
   getTransaction,
   deleteTransaction,
-  updateAccount,
+  updateTransaction,
 };
