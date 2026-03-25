@@ -246,6 +246,18 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
     }
   };
 
+  const addSubcategoryToAccount = async (accountId: string, subcatName: string): Promise<void> => {
+    const account = accounts.find((a) => a._id === accountId);
+    if (!account) return;
+    const newSubcat: Subcategory = { subcategory: subcatName, id: uuid.v4() as string };
+    const updatedSubcategories = [...(account.subcategories || []), newSubcat];
+    const updatedAccount = { ...account, subcategories: updatedSubcategories };
+    await axios.post(`${URL}/accounts/updateaccount`, { accountData: updatedAccount });
+    setAccounts((prev) => prev.map((a) => (a._id === accountId ? updatedAccount : a)));
+    if (activeAccount?._id === accountId) setActiveAccount(updatedAccount);
+    if (recipientAccount?._id === accountId) setRecipientAccount(updatedAccount);
+  };
+
   const createSubcatAlert = (): void =>
     Alert.prompt(
       "New subcategory",
@@ -290,6 +302,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         setType,
         type,
         createSubcatAlert,
+        addSubcategoryToAccount,
         toggleArchiveAccount,
       }}
     >

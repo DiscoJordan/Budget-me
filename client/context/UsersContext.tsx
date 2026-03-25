@@ -52,7 +52,13 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
         return;
       }
       const response = await axios.post(`${URL}/users/verify_token`);
-      if (!response.data.ok) {
+      if (response.data.ok) {
+        setIsLoggedIn(true);
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser && !user) {
+          setUser(JSON.parse(storedUser));
+        }
+      } else {
         logout();
       }
     } catch (error) {

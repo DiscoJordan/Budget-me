@@ -24,7 +24,26 @@
       "Bash(nvm list:*)",
       "Bash(winget --version)",
       "Bash(winget upgrade:*)",
-      "Bash(winget install:*)"
+      "Bash(winget install:*)",
+      "Skill(update-config)",
+      "WebFetch(domain:rtk-ai-rtk.mintlify.app)",
+      "Bash(curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh)",
+      "Bash(sh)",
+      "Bash(curl -s https://api.github.com/repos/rtk-ai/rtk/releases/latest)",
+      "Bash(mkdir -p \"$HOME/.local/bin\")",
+      "Bash(curl -fsSL \"https://github.com/rtk-ai/rtk/releases/download/v0.33.1/rtk-x86_64-pc-windows-msvc.zip\" -o /tmp/rtk.zip)",
+      "Bash(unzip -o /tmp/rtk.zip -d /tmp/rtk-extracted)",
+      "Read(//tmp/**)",
+      "Bash(cp /tmp/rtk-extracted/rtk.exe \"$HOME/.local/bin/rtk.exe\")",
+      "Read(//c/Users/Глеб/WebstormProjects/Budget-me/$HOME/.local/bin/**)",
+      "Bash(\"$HOME/.local/bin/rtk.exe\" --version)",
+      "Bash(\"$HOME/.local/bin/rtk.exe\" init:*)",
+      "Bash(rtk gain:*)",
+      "Bash(where rtk:*)",
+      "Bash(echo:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(find /c/Users/Глеб/WebstormProjects/Budget-me/server -name *.ts)",
+      "Bash(rtk tsc:*)"
     ]
   }
 }
