@@ -122,6 +122,7 @@ export interface AccountsContextType {
   setType: React.Dispatch<React.SetStateAction<string>>;
   type: string;
   createSubcatAlert: () => void;
+  addSubcategoryToAccount: (accountId: string, subcatName: string) => Promise<void>;
   toggleArchiveAccount: (id: string, archived: boolean) => Promise<void>;
 }
 
