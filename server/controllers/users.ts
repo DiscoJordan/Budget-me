@@ -1,9 +1,23 @@
 import Users from "../models/users";
+import Accounts from "../models/accounts";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import { Request, Response, NextFunction } from "express";
 import { AuthRequest } from "../src/types";
+
+const DEFAULT_EXPENSE_ACCOUNTS = [
+  { name: "Clothes",       icon: { icon_value: "hanger",              color: "#DE36B7" } },
+  { name: "Food",          icon: { icon_value: "food",                color: "#FF8824" } },
+  { name: "Taxes",         icon: { icon_value: "bank-outline",        color: "#00438F" } },
+  { name: "Vehicle",       icon: { icon_value: "car",                 color: "#717171" } },
+  { name: "Health",        icon: { icon_value: "heart",               color: "#FF7070" } },
+  { name: "Groceries",     icon: { icon_value: "cart",                color: "#58D41E" } },
+  { name: "Beauty",        icon: { icon_value: "flower-outline",      color: "#B46DFF" } },
+  { name: "Entertainment", icon: { icon_value: "movie-open-play",     color: "#FFBD24" } },
+  { name: "Travelling",    icon: { icon_value: "airplane",            color: "#0077FF" } },
+  { name: "Transport",     icon: { icon_value: "bus",                 color: "#2CBDAB" } },
+];
 
 const jwt_secret = "budgetMe";
 
@@ -47,7 +61,21 @@ const registerUser = async (
     const hash = bcrypt.hashSync(password, salt);
 
     const newUser = { username, email, password: hash, currency };
-    await Users.create(newUser);
+    const createdUser = await Users.create(newUser);
+    await Promise.all(
+      DEFAULT_EXPENSE_ACCOUNTS.map((acc) =>
+        Accounts.create({
+          ownerId: createdUser._id,
+          type: "expense",
+          name: acc.name,
+          icon: acc.icon,
+          subcategories: [],
+          balance: 0,
+          initialBalance: 0,
+          currency: currency ?? "USD",
+        })
+      )
+    );
     next();
   } catch (error) {
     console.log(error);
@@ -204,9 +232,36 @@ const getUser = async (req: Request, res: Response): Promise<void> => {
   }
 };
 
+const updateCurrency = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { currency } = req.body as { currency: string };
+    if (!currency) {
+      res.json({ ok: false, message: "Currency is required" });
+      return;
+    }
+    const user = await Users.findByIdAndUpdate(
+      req._id,
+      { $set: { currency } },
+      { new: true }
+    );
+    if (!user) {
+      res.json({ ok: false, message: "User not found" });
+      return;
+    }
+    const token = jwt.sign(
+      { username: user.username, id: user._id, email: user.email, currency: user.currency },
+      jwt_secret
+    );
+    res.json({ ok: true, token, user });
+  } catch (error) {
+    res.status(500).json({ ok: false, message: (error as Error).message });
+  }
+};
+
 export {
   registerUser,
   updateUser,
+  updateCurrency,
   getUser,
   deleteUser,
   loginUser,

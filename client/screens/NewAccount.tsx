@@ -9,7 +9,12 @@ import {
   TouchableOpacity,
   Button,
   Alert,
+  Modal,
+  FlatList,
 } from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { CurrencyContext } from "../context/CurrencyContext";
+import { getCurrencyMeta } from "../utils/currencyInfo";
 import {
   container,
   h1,
@@ -47,10 +52,13 @@ function NewAccount({ navigation }: { navigation: any }) {
     randomColor,
     type,
   } = useContext(AccountsContext);
+  const { currencies, mainCurrency } = useContext(CurrencyContext);
   const [message, setMessage] = useState<string>("");
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
   const [currentSubcat, setCurrentSubcat] = useState<Subcategory | null>(null);
   const [newSubcatName, setNewSubcatName] = useState<string>("");
+  const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState("");
 
   useEffect(() => {
     console.log(accountData, "accountData");
@@ -58,6 +66,10 @@ function NewAccount({ navigation }: { navigation: any }) {
       setAccountData(accountData);
     } else {
       getRandomColor();
+    }
+    // Set default currency if not already set (new account only)
+    if (!accountData.currency && type !== "edit") {
+      setAccountData((prev) => ({ ...prev, currency: mainCurrency }));
     }
     console.log("type: ", type);
   }, []);
@@ -68,7 +80,7 @@ function NewAccount({ navigation }: { navigation: any }) {
       if (type !== "edit") {
         const response = await axios.post(
           `${URL}/accounts/addaccount`,
-          accountData
+          accountData,
         );
         setMessage(response.data.data);
         console.log(response.data.data);
@@ -128,7 +140,7 @@ function NewAccount({ navigation }: { navigation: any }) {
     if (currentSubcat && newSubcatName.length > 0) {
       const newData = { ...accountData };
       newData.subcategories = newData.subcategories.filter(
-        (subcat) => subcat.id !== currentSubcat.id
+        (subcat) => subcat.id !== currentSubcat.id,
       );
       setAccountData(newData);
     }
@@ -179,29 +191,116 @@ function NewAccount({ navigation }: { navigation: any }) {
         selectionColor={"#primaryGreen"}
         lineBreakStrategyIOS={"push-out"}
       />
-      <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
-      {accountData?.subcategories?.map((subcat) => (
-        <Text
-          onPress={() =>
-            showEditDialog(
-              accountData.subcategories[
-                accountData.subcategories.map((e) => e.id).indexOf(subcat.id)
-              ]
-            )
+      {accountData.type === "personal" && (
+        <TextInput
+          style={styles.input}
+          onChangeText={(text) =>
+            setAccountData({ ...accountData, balance: parseFloat(text) || 0 })
           }
-          key={uuid.v4() as string}
-          style={{ ...caption1, width: "100%", paddingLeft: 8 }}
-        >
-          {subcat.subcategory}
-        </Text>
-      ))}
+          value={accountData.balance ? String(accountData.balance) : ""}
+          placeholderTextColor={colors.primaryGreen}
+          placeholder="Balance"
+          keyboardType="decimal-pad"
+          clearButtonMode="while-editing"
+          selectionColor={colors.primaryGreen}
+        />
+      )}
+      {accountData.type !== "personal" && (
+        <>
+          <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
+          {accountData?.subcategories?.map((subcat) => (
+            <Text
+              onPress={() =>
+                showEditDialog(
+                  accountData.subcategories[
+                    accountData.subcategories.map((e) => e.id).indexOf(subcat.id)
+                  ],
+                )
+              }
+              key={uuid.v4() as string}
+              style={{ ...caption1, width: "100%", paddingLeft: 8 }}
+            >
+              {subcat.subcategory}
+            </Text>
+          ))}
+          <View style={{ alignSelf: "flex-start" }}>
+            <Button title="Add" onPress={createSubcatAlert} />
+          </View>
+        </>
+      )}
+      <TouchableOpacity
+        onPress={() => setCurrencyModalVisible(true)}
+        style={styles.currencyRow}
+      >
+        <Text style={{ ...subheadline, color: "white" }}>Currency</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+          <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
+            {accountData.currency || mainCurrency} {getCurrencyMeta(accountData.currency || mainCurrency).symbol}
+          </Text>
+          <Feather name="chevron-right" size={18} color={colors.gray} />
+        </View>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
         <Text style={styles.submit_button_text}>Save</Text>
       </TouchableOpacity>
 
-      <View style={{ alignSelf: "flex-start" }}>
-        <Button title="Add" onPress={createSubcatAlert} />
-      </View>
+      <Modal
+        visible={currencyModalVisible}
+        animationType="slide"
+        onRequestClose={() => setCurrencyModalVisible(false)}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Choose currency</Text>
+            <TouchableOpacity onPress={() => { setCurrencyModalVisible(false); setCurrencySearch(""); }}>
+              <Feather name="x" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={styles.currencySearch}
+            placeholder="Search..."
+            placeholderTextColor={colors.gray}
+            value={currencySearch}
+            onChangeText={setCurrencySearch}
+            autoCapitalize="characters"
+          />
+          <FlatList
+            data={currencies.filter((c) => {
+              const s = currencySearch.toLowerCase();
+              return c.toLowerCase().includes(s) || getCurrencyMeta(c).name.toLowerCase().includes(s);
+            })}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => {
+              const meta = getCurrencyMeta(item);
+              const selected = item === (accountData.currency || mainCurrency);
+              return (
+                <TouchableOpacity
+                  style={[styles.currencyItem, selected && styles.currencyItemActive]}
+                  onPress={() => {
+                    setAccountData({ ...accountData, currency: item });
+                    setCurrencyModalVisible(false);
+                    setCurrencySearch("");
+                  }}
+                >
+                  <View style={styles.currencyItemLeft}>
+                    <Text style={[styles.currencyCode, selected && styles.currencyItemTextActive]}>
+                      {item}
+                    </Text>
+                    <Text style={styles.currencyName}>{meta.name}</Text>
+                  </View>
+                  <View style={styles.currencyItemRight}>
+                    <Text style={[styles.currencySymbol, selected && styles.currencyItemTextActive]}>
+                      {meta.symbol}
+                    </Text>
+                    {selected && <Feather name="check" size={18} color={colors.primaryGreen} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+        </View>
+      </Modal>
 
       <Dialog.Container visible={dialogVisible}>
         <Dialog.Title>Edit Subcategory</Dialog.Title>
@@ -226,6 +325,85 @@ const styles = StyleSheet.create({
   input,
   submit_button,
   submit_button_text,
+  currencyRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 14,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+    marginBottom: 8,
+  },
+  modal: {
+    flex: 1,
+    backgroundColor: colors.background,
+    paddingTop: 56,
+    paddingHorizontal: 16,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    color: "white",
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  currencySearch: {
+    backgroundColor: colors.darkGray,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    color: "white",
+    fontSize: 17,
+    marginBottom: 12,
+  },
+  currencyItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+  },
+  currencyItemActive: {
+    backgroundColor: colors.darkGray,
+    borderRadius: 8,
+  },
+  currencyItemLeft: {
+    flex: 1,
+    gap: 2,
+  },
+  currencyItemRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  currencyCode: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "600",
+  },
+  currencyName: {
+    color: colors.gray,
+    fontSize: 13,
+  },
+  currencySymbol: {
+    color: colors.gray,
+    fontSize: 17,
+    fontWeight: "600",
+    minWidth: 24,
+    textAlign: "right" as const,
+  },
+  currencyItemTextActive: {
+    color: colors.primaryGreen,
+    fontWeight: "600" as const,
+  },
 });
 
 export default NewAccount;

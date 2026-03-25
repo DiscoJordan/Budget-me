@@ -38,6 +38,7 @@ export interface Account {
   initialBalance: number;
   currency: string;
   time?: string;
+  archived?: boolean;
   /** Used locally in Dashboard to render "New account" placeholders */
   title?: string;
 }
@@ -76,6 +77,8 @@ export interface AccountFormData {
   type: AccountType | string;
   icon: AccountIcon;
   _id?: string;
+  balance?: number;
+  currency?: string;
 }
 
 export interface TransactionFormData {
@@ -85,6 +88,7 @@ export interface TransactionFormData {
   comment: string;
   subcategory: string;
   amount: number;
+  time?: string;
 }
 
 // ─── Context value types ──────────────────────────────────────────────────────
@@ -118,10 +122,23 @@ export interface AccountsContextType {
   setType: React.Dispatch<React.SetStateAction<string>>;
   type: string;
   createSubcatAlert: () => void;
+  toggleArchiveAccount: (id: string, archived: boolean) => Promise<void>;
 }
 
 export interface TransactionsContextType {
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   getTransactionsOfUser: () => Promise<void>;
+  activeTransaction: Transaction | null;
+  setActiveTransaction: React.Dispatch<React.SetStateAction<Transaction | null>>;
+  updateTransaction: (id: string, fields: Partial<Transaction & { senderId: string; recipientId: string }>) => Promise<boolean>;
+  deleteTransaction: (id: string) => Promise<boolean>;
+}
+
+export interface CurrencyContextType {
+  currencies: string[];
+  rates: Record<string, number>;
+  mainCurrency: string;
+  setMainCurrency: (currency: string) => Promise<void>;
+  loading: boolean;
 }

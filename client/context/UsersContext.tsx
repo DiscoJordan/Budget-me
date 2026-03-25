@@ -2,8 +2,15 @@ import React, { useEffect, useState, ReactNode } from "react";
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { URL } from "../config";
-import JWT from "expo-jwt";
 import { User, UsersContextType } from "../src/types";
+
+function decodeJwt(token: string): Record<string, any> {
+  const base64Url = token.split(".")[1];
+  const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
+  const padding = "=".repeat((4 - (base64.length % 4)) % 4);
+  const decoded = atob(base64 + padding);
+  return JSON.parse(decoded);
+}
 
 export const UsersContext = React.createContext<UsersContextType>(
   {} as UsersContextType
@@ -14,8 +21,6 @@ interface UsersProviderProps {
 }
 
 export const UsersProvider = ({ children }: UsersProviderProps) => {
-  const jwt_secret = "budgetMe";
-
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
@@ -44,9 +49,11 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
     try {
       if (!token) {
         setIsLoggedIn(false);
-      } else {
-        const response = await axios.post(`${URL}/users/verify_token`);
-        return response.data.ok ? login(token) : logout();
+        return;
+      }
+      const response = await axios.post(`${URL}/users/verify_token`);
+      if (!response.data.ok) {
+        logout();
       }
     } catch (error) {
       console.log(error);
@@ -55,7 +62,7 @@ export const UsersProvider = ({ children }: UsersProviderProps) => {
 
   const login = async (token: string): Promise<void> => {
     try {
-      const decodedToken = JWT.decode(token, jwt_secret) as {
+      const decodedToken = decodeJwt(token) as {
         username: string;
         email: string;
         id: string;
