@@ -29,7 +29,9 @@ import Account from "../screens/Account";
 import NewOperation from "../screens/NewOperation";
 import Login from "../screens/Login";
 import EditIcon from "../screens/EditIcon";
+import EditTransaction from "../screens/EditTransaction";
 
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { colors } from "../styles/styles";
 
 const Tab = createBottomTabNavigator();
@@ -156,6 +158,7 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
     );
 
   return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
     <NavigationContainer>
       <Stack.Navigator
         id={undefined}
@@ -223,6 +226,7 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
             <Stack.Screen name="Settings" component={Settings} />
             <Stack.Group screenOptions={{ presentation: "modal" }}>
               <Stack.Screen name="New operation" component={NewOperation} />
+              <Stack.Screen name="Edit transaction" component={EditTransaction} />
               <Stack.Screen name="Choose icon" component={EditIcon} />
             </Stack.Group>
           </>
@@ -242,6 +246,7 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </GestureHandlerRootView>
   );
 };
 

@@ -6,12 +6,13 @@ import { AuthRequest } from "../src/types";
 
 const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { ownerId, icon, type, name, subcategories } = req.body as {
+    const { ownerId, icon, type, name, subcategories, balance, currency } = req.body as {
       ownerId: string;
       icon: { color: string; icon_value: string };
       type: string;
       name: string;
       subcategories: Array<{ subcategory: string }>;
+      balance?: number;
       currency?: string;
       time?: string;
     };
@@ -21,6 +22,9 @@ const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
       type,
       name,
       subcategories,
+      balance: balance ?? 0,
+      initialBalance: balance ?? 0,
+      currency: currency ?? "USD",
     });
     res.send({
       ok: true,
@@ -36,7 +40,7 @@ const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
 
 const deleteAccount = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { accountId } = req.body as { accountId: string };
@@ -53,7 +57,7 @@ const deleteAccount = async (
         trans.recipientId.toString(),
       ]);
       const triggeredAccs = Array.from(new Set(allTriggeredAccs)).map(
-        (id) => new mongoose.Types.ObjectId(id)
+        (id) => new mongoose.Types.ObjectId(id),
       );
 
       const deletedTrans = await Transactions.deleteMany({
@@ -79,7 +83,7 @@ const deleteAccount = async (
 
 const updateBalance = async (
   accs: mongoose.Types.ObjectId[],
-  ownerId: string
+  ownerId: string,
 ): Promise<void> => {
   try {
     for (let i = 0; i < accs.length; i++) {
@@ -94,13 +98,15 @@ const updateBalance = async (
         ownerId,
         senderId: currentAccountId,
       });
+      // Income amounts are received in the current account's currency (amount * rate)
       const incomeAmount = incomeTransactions.reduce(
-        (accumulator, transaction) => accumulator + transaction.amount,
-        0
+        (accumulator, transaction) => accumulator + transaction.amount * transaction.rate,
+        0,
       );
+      // Expense amounts are sent in the current account's currency (just amount)
       const expenseAmount = expenseTransactions.reduce(
         (accumulator, transaction) => accumulator + transaction.amount,
-        0
+        0,
       );
       if (currentAccount) {
         currentAccount.balance =
@@ -151,20 +157,20 @@ const setBalance = async (req: AuthRequest, res: Response): Promise<void> => {
     });
 
     const incomeSenderAmount = incomeSenderTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
+      (accumulator, transaction) => accumulator + transaction.amount * transaction.rate,
+      0,
     );
     const expenseSenderAmount = expenseSenderTransactions.reduce(
       (accumulator, transaction) => accumulator + transaction.amount,
-      0
+      0,
     );
     const incomeRecepientAmount = incomeRecepientTransactions.reduce(
-      (accumulator, transaction) => accumulator + transaction.amount,
-      0
+      (accumulator, transaction) => accumulator + transaction.amount * transaction.rate,
+      0,
     );
     const expenseRecepientAmount = expenseRecepientTransactions.reduce(
       (accumulator, transaction) => accumulator + transaction.amount,
-      0
+      0,
     );
 
     senderAccount.balance =
@@ -195,7 +201,7 @@ const setBalance = async (req: AuthRequest, res: Response): Promise<void> => {
 
 const updateAccount = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   try {
     const { accountData } = req.body as {
@@ -207,7 +213,7 @@ const updateAccount = async (
       const result = await Accounts.findOneAndUpdate(
         { _id: accountData._id },
         { $set: accountData },
-        { new: true, runValidators: true }
+        { new: true, runValidators: true },
       );
       res.status(200).send({
         ok: true,
@@ -231,7 +237,7 @@ const getAccount = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const { accountId } = req.params;
     const account = await Accounts.findById({ _id: accountId }).populate(
-      "ownerId"
+      "ownerId",
     );
 
     if (account) {
@@ -248,7 +254,7 @@ const getAccount = async (req: AuthRequest, res: Response): Promise<void> => {
 
 const getAllAccounts = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const ownerId = req.params.id;
 
@@ -267,10 +273,4 @@ const getAllAccounts = async (
   }
 };
 
-export {
-  addAccount,
-  getAllAccounts,
-  setBalance,
-  updateAccount,
-  deleteAccount,
-};
+export { addAccount, getAllAccounts, setBalance, updateAccount, deleteAccount };

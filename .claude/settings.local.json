@@ -17,7 +17,14 @@
       "Bash(npm start:*)",
       "Bash(netstat -ano)",
       "Bash(findstr :5050)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(npx expo:*)",
+      "Bash(npx jest:*)",
+      "Bash(nvm --version)",
+      "Bash(nvm list:*)",
+      "Bash(winget --version)",
+      "Bash(winget upgrade:*)",
+      "Bash(winget install:*)"
     ]
   }
 }

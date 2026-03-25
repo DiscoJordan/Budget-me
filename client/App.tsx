@@ -16,6 +16,7 @@ import Settings from "./screens/Settings";
 import { UsersProvider } from "./context/UsersContext";
 import { AccountsProvider } from "./context/AccountsContext";
 import { TransactionsProvider } from "./context/TransactionsContext";
+import { CurrencyProvider } from "./context/CurrencyContext";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "./context/UsersContext";
@@ -32,12 +33,14 @@ import {
 const App = () => {
   return (
     <UsersProvider>
-      <AccountsProvider>
-        <TransactionsProvider>
-          <SafeAreaView />
-          <RegisteredOrNot />
-        </TransactionsProvider>
-      </AccountsProvider>
+      <CurrencyProvider>
+        <AccountsProvider>
+          <TransactionsProvider>
+            <SafeAreaView />
+            <RegisteredOrNot />
+          </TransactionsProvider>
+        </AccountsProvider>
+      </CurrencyProvider>
     </UsersProvider>
   );
 };
