@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import Dialog from "react-native-dialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { URL } from "../config";
 import { formatNumber } from "../utils/formatNumber";
 import axios from "axios";
-import { Ionicons } from "@expo/vector-icons";
 import { UsersContext } from "../context/UsersContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
@@ -15,10 +15,9 @@ import {
   Text,
   View,
   ScrollView,
-  FlatList,
+  Modal,
   TextInput,
   TouchableOpacity,
-  Alert,
 } from "react-native";
 import {
   container,
@@ -26,8 +25,6 @@ import {
   green_line,
   account,
   accounts__add,
-  accounts__body,
-  accounts__block,
   body,
   input,
   submit_button,
@@ -44,13 +41,16 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const {
     activeAccount,
+    setActiveAccount,
     accounts,
     setBalance,
     recipientAccount,
     setRecipientAccount,
-    createSubcatAlert,
-    accountData,
+    addSubcategoryToAccount,
   } = useContext(AccountsContext);
+  const [addSubcatDialogVisible, setAddSubcatDialogVisible] = useState(false);
+  const [newSubcatInput, setNewSubcatInput] = useState("");
+  const [pickerTarget, setPickerTarget] = useState<"sender" | "recipient" | null>(null);
   const { user } = useContext(UsersContext);
   const { rates } = useContext(CurrencyContext);
 
@@ -95,9 +95,23 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
 
   const Accounts = useMemo<Account[]>(() => [...accounts], [accounts]);
 
-  const renderItem = ({ item }: { item: Account }) => {
-    return <Item item={item} />;
-  };
+  const pickerAccounts = useMemo<Account[]>(() => {
+    if (pickerTarget === "sender") {
+      const senderType = activeAccount?.type ?? "personal";
+      return Accounts.filter((a) => a.type === senderType && !a.archived);
+    }
+    if (pickerTarget === "recipient") {
+      if (activeAccount?.type === "income") {
+        return Accounts.filter((a) => a.type === "personal" && !a.archived);
+      }
+      if (activeAccount?.type === "personal") {
+        return Accounts.filter(
+          (a) => !a.archived && a._id !== activeAccount._id,
+        );
+      }
+    }
+    return [];
+  }, [pickerTarget, activeAccount, Accounts]);
 
   const handleChange = (value: string, name: keyof TransactionFormData) => {
     setTransactionData({ ...transactionData, [name]: value as any });
@@ -135,26 +149,6 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
     }
   };
 
-  const Item = ({ item }: { item: Account }) => (
-    <View style={account}>
-      <TouchableOpacity
-        onPress={() => setRecipientAccount(item)}
-        style={[accounts__add, { backgroundColor: item.icon?.color || "gray" }]}
-      >
-        <MaterialCommunityIcons
-          name={(item.icon?.icon_value || "wallet-outline") as any}
-          size={24}
-          color="white"
-        />
-      </TouchableOpacity>
-      <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
-        {item.name}
-      </Text>
-      <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-        {formatNumber(item.balance ?? 0)} {item.currency}
-      </Text>
-    </View>
-  );
 
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
@@ -173,6 +167,7 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
           >
             <View style={account}>
               <TouchableOpacity
+                onPress={() => setPickerTarget("sender")}
                 style={[
                   accounts__add,
                   { backgroundColor: activeAccount?.icon?.color },
@@ -184,30 +179,20 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   color="white"
                 />
               </TouchableOpacity>
-              <Text
-                style={{
-                  ...caption1,
-                  color: colors.gray,
-                  fontWeight: font.bold,
-                }}
-              >
+              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
                 {activeAccount?.name}
               </Text>
-              <Text
-                style={{ ...caption1, color: "white", fontWeight: font.bold }}
-              >
-                {formatNumber(activeAccount?.balance ?? 0)}{" "}
-                {activeAccount?.currency}
+              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
+                {formatNumber(activeAccount?.balance ?? 0)} {activeAccount?.currency}
               </Text>
             </View>
             <EvilIcons name="arrow-right" size={48} color="white" />
             <View style={account}>
               <TouchableOpacity
+                onPress={() => setPickerTarget("recipient")}
                 style={[
                   accounts__add,
-                  {
-                    backgroundColor: recipientAccount?.icon?.color || "gray",
-                  },
+                  { backgroundColor: recipientAccount?.icon?.color || colors.darkGray },
                 ]}
               >
                 {recipientAccount?.icon ? (
@@ -220,25 +205,89 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   <FontAwesome5 name="question" size={24} color="white" />
                 )}
               </TouchableOpacity>
-              <Text
-                style={{
-                  ...caption1,
-                  color: colors.gray,
-                  fontWeight: font.bold,
-                }}
-              >
-                {recipientAccount?.name || "Account"}
+              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
+                {recipientAccount?.name || "Recipient"}
               </Text>
-              <Text
-                style={{ ...caption1, color: "white", fontWeight: font.bold }}
-              >
-                {recipientAccount?.balance != null
-                  ? formatNumber(recipientAccount.balance)
-                  : ""}
-                {" " + (recipientAccount?.currency || "Balance")}
+              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
+                {recipientAccount?.balance != null ? formatNumber(recipientAccount.balance) : ""}
+                {" " + (recipientAccount?.currency || "")}
               </Text>
             </View>
           </View>
+
+          <Modal
+            visible={pickerTarget !== null}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setPickerTarget(null)}
+          >
+            <TouchableOpacity
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setPickerTarget(null)}
+            >
+              <View style={styles.pickerSheet}>
+                <Text style={styles.pickerTitle}>
+                  {pickerTarget === "sender" ? "Choose sender" : "Choose recipient"}
+                </Text>
+                <ScrollView>
+                  {pickerAccounts.map((item) => (
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.pickerRow}
+                      onPress={() => {
+                        if (pickerTarget === "sender") {
+                          setActiveAccount(item);
+                          const currentRecipientId = recipientAccount?._id;
+                          const recipientStillValid =
+                            currentRecipientId &&
+                            currentRecipientId !== item._id &&
+                            (() => {
+                              const rec = Accounts.find((a) => a._id === currentRecipientId);
+                              if (!rec) return false;
+                              if (item.type === "income") return rec.type === "personal";
+                              if (item.type === "personal") return rec.type === "expense" || rec.type === "personal";
+                              return false;
+                            })();
+                          if (!recipientStillValid) {
+                            setRecipientAccount({});
+                          }
+                          setTransactionData((prev) => ({
+                            ...prev,
+                            senderId: item._id,
+                            recipientId: recipientStillValid ? prev.recipientId : undefined,
+                            subcategory: "",
+                          }));
+                        } else {
+                          setRecipientAccount(item);
+                        }
+                        setPickerTarget(null);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.pickerIcon,
+                          { backgroundColor: item.icon?.color || colors.darkGray },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={(item.icon?.icon_value || "wallet-outline") as any}
+                          size={22}
+                          color="white"
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.pickerName}>{item.name}</Text>
+                        <Text style={styles.pickerBalance}>
+                          {formatNumber(item.balance ?? 0)} {item.currency}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
           <View style={green_line} />
           <TouchableOpacity
             style={styles.dateButton}
@@ -304,95 +353,97 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
               {formatNumber(transactionData.amount)} {senderCurrency} → {formatNumber(transactionData.amount * effectiveRate)} {recipientCurrency}
             </Text>
           )}
-          <Text style={body}> Subcategory</Text>
-          <ScrollView horizontal style={styles.subcats}>
-            <TouchableOpacity
-              onPress={() =>
-                setTransactionData({ ...transactionData, subcategory: "" })
-              }
-              style={{
-                ...styles.subcat,
-                opacity: transactionData.subcategory === "" ? 1 : 0.5,
-              }}
-            >
-              <Text style={body}>?</Text>
-              <Text style={caption1}>Without</Text>
-            </TouchableOpacity>
-            {(activeAccount?.type === "personal"
-              ? recipientAccount?.subcategories
-              : activeAccount?.subcategories
-            )?.map((subcat) => (
-              <TouchableOpacity
-                key={subcat._id || subcat.id || subcat.subcategory}
-                onPress={() =>
-                  setTransactionData({
-                    ...transactionData,
-                    subcategory: subcat.subcategory,
-                  })
-                }
-                style={{
-                  ...styles.subcat,
-                  opacity:
-                    transactionData.subcategory === subcat.subcategory
-                      ? 1
-                      : 0.5,
-                }}
-              >
-                <Text style={body}>
-                  {subcat.subcategory.slice(0, 1).toUpperCase()}
-                </Text>
-                <Text style={caption1}>{subcat.subcategory}</Text>
-              </TouchableOpacity>
-            ))}
-            {activeAccount?.type !== "personal" && (
-              <TouchableOpacity
-                onPress={createSubcatAlert}
-                style={styles.subcat}
-              >
-                <Text style={body}>+</Text>
-                <Text style={caption1}>Add</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-
-          <View style={green_line} />
-          <View style={{ minWidth: "100%" }}>
-            <View style={{ ...accounts__block }}>
-              <FlatList
-                scrollEnabled={false}
-                style={accounts__body}
-                data={Accounts.filter(
-                  (acc) =>
-                    acc.type ===
-                    ((activeAccount?.type === "income" && "personal") ||
-                      (activeAccount?.type === "personal" && "expense")),
-                )}
-                renderItem={renderItem}
-                keyExtractor={(item) => item._id}
-                numColumns={5}
-              />
-            </View>
-            {activeAccount?.type === "personal" &&
-              Accounts.filter((acc) => acc.type === "personal").filter(
-                (acc) => acc._id !== activeAccount?._id,
-              ).length > 0 && (
-                <View style={styles.personal}>
-                  <View style={{ ...green_line, minWidth: "100%" }} />
-                  <FlatList
-                    scrollEnabled={false}
-                    style={accounts__body}
-                    data={Accounts.filter(
-                      (acc) => acc.type === "personal",
-                    ).filter((acc) => acc._id !== activeAccount?._id)}
-                    renderItem={renderItem}
-                    keyExtractor={(item) => item._id}
-                    numColumns={5}
+          {(() => {
+            const isExpenseRecipient =
+              activeAccount?.type === "personal" &&
+              recipientAccount?.type === "expense";
+            const expenseAccount =
+              activeAccount?.type === "income" || activeAccount?.type === "expense"
+                ? activeAccount
+                : isExpenseRecipient
+                ? recipientAccount
+                : null;
+            if (!expenseAccount) return null;
+            return (
+              <>
+                <Text style={body}> Subcategory</Text>
+                <ScrollView horizontal style={styles.subcats}>
+                  <TouchableOpacity
+                    onPress={() =>
+                      setTransactionData({ ...transactionData, subcategory: "" })
+                    }
+                    style={{
+                      ...styles.subcat,
+                      opacity: transactionData.subcategory === "" ? 1 : 0.5,
+                    }}
+                  >
+                    <Text style={body}>?</Text>
+                    <Text style={caption1}>Without</Text>
+                  </TouchableOpacity>
+                  {expenseAccount.subcategories?.map((subcat) => (
+                    <TouchableOpacity
+                      key={subcat._id || subcat.id || subcat.subcategory}
+                      onPress={() =>
+                        setTransactionData({
+                          ...transactionData,
+                          subcategory: subcat.subcategory,
+                        })
+                      }
+                      style={{
+                        ...styles.subcat,
+                        opacity:
+                          transactionData.subcategory === subcat.subcategory
+                            ? 1
+                            : 0.5,
+                      }}
+                    >
+                      <Text style={body}>
+                        {subcat.subcategory.slice(0, 1).toUpperCase()}
+                      </Text>
+                      <Text style={caption1}>{subcat.subcategory}</Text>
+                    </TouchableOpacity>
+                  ))}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setNewSubcatInput("");
+                      setAddSubcatDialogVisible(true);
+                    }}
+                    style={styles.subcat}
+                  >
+                    <Text style={body}>+</Text>
+                    <Text style={caption1}>Add</Text>
+                  </TouchableOpacity>
+                </ScrollView>
+                <Dialog.Container visible={addSubcatDialogVisible}>
+                  <Dialog.Title>New Subcategory</Dialog.Title>
+                  <Dialog.Description>Enter subcategory name</Dialog.Description>
+                  <Dialog.Input
+                    value={newSubcatInput}
+                    onChangeText={setNewSubcatInput}
+                    autoFocus
                   />
-                  <View style={{ ...green_line, minWidth: "100%" }} />
-                </View>
-              )}
-            {message ? <Text style={{ color: "white" }}>{message}</Text> : null}
-          </View>
+                  <Dialog.Button
+                    label="Cancel"
+                    onPress={() => setAddSubcatDialogVisible(false)}
+                  />
+                  <Dialog.Button
+                    label="Add"
+                    onPress={async () => {
+                      if (newSubcatInput.trim().length > 0 && expenseAccount._id) {
+                        await addSubcategoryToAccount(
+                          expenseAccount._id,
+                          newSubcatInput.trim(),
+                        );
+                      }
+                      setAddSubcatDialogVisible(false);
+                    }}
+                  />
+                </Dialog.Container>
+              </>
+            );
+          })()}
+
+          {message ? <Text style={{ color: "white", marginTop: 8 }}>{message}</Text> : null}
         </View>
       </ScrollView>
       <TouchableOpacity style={{ ...submit_button }} onPress={handleSubmit}>
@@ -433,12 +484,47 @@ const styles = StyleSheet.create({
     paddingBottom: 4,
     width: "100%",
   },
-  personal: {
-    width: "100%",
+  modalOverlay: {
     flex: 1,
-    gap: 20,
-    paddingTop: 20,
-    paddingBottom: 20,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  pickerSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "60%",
+  },
+  pickerTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  pickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+  },
+  pickerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pickerName: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  pickerBalance: {
+    color: colors.gray,
+    fontSize: 13,
   },
   subcat: {
     height: (windowWidth - 40 - 10 * 10) / 5,

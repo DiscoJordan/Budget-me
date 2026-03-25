@@ -7,10 +7,9 @@ import {
   View,
   TextInput,
   TouchableOpacity,
-  Button,
-  Alert,
   Modal,
   FlatList,
+  ScrollView,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { CurrencyContext } from "../context/CurrencyContext";
@@ -19,18 +18,16 @@ import {
   container,
   h1,
   input,
-  blue,
   submit_button,
   submit_button_text,
   colors,
   font,
   caption1,
   subheadline,
-  caption2,
   body,
-  size,
   account,
   accounts__add,
+  windowWidth,
 } from "../styles/styles";
 import { URL } from "../config";
 import axios from "axios";
@@ -45,7 +42,6 @@ function NewAccount({ navigation }: { navigation: any }) {
     getAccountsOfUser,
     activeAccount,
     iconColors,
-    createSubcatAlert,
     accountData,
     getRandomColor,
     setAccountData,
@@ -55,8 +51,10 @@ function NewAccount({ navigation }: { navigation: any }) {
   const { currencies, mainCurrency } = useContext(CurrencyContext);
   const [message, setMessage] = useState<string>("");
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
+  const [addDialogVisible, setAddDialogVisible] = useState<boolean>(false);
   const [currentSubcat, setCurrentSubcat] = useState<Subcategory | null>(null);
   const [newSubcatName, setNewSubcatName] = useState<string>("");
+  const [addSubcatName, setAddSubcatName] = useState<string>("");
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [currencySearch, setCurrencySearch] = useState("");
 
@@ -208,24 +206,35 @@ function NewAccount({ navigation }: { navigation: any }) {
       {accountData.type !== "personal" && (
         <>
           <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
-          {accountData?.subcategories?.map((subcat) => (
-            <Text
-              onPress={() =>
-                showEditDialog(
-                  accountData.subcategories[
-                    accountData.subcategories.map((e) => e.id).indexOf(subcat.id)
-                  ],
-                )
-              }
-              key={uuid.v4() as string}
-              style={{ ...caption1, width: "100%", paddingLeft: 8 }}
+          <ScrollView horizontal style={{ width: "100%" }}>
+            {accountData?.subcategories?.map((subcat) => (
+              <TouchableOpacity
+                key={subcat.id || subcat._id || subcat.subcategory}
+                onPress={() =>
+                  showEditDialog(
+                    accountData.subcategories[
+                      accountData.subcategories
+                        .map((e) => e.id || e._id)
+                        .indexOf(subcat.id || subcat._id)
+                    ],
+                  )
+                }
+                style={styles.subcat}
+              >
+                <Text style={body}>
+                  {subcat.subcategory.slice(0, 1).toUpperCase()}
+                </Text>
+                <Text style={caption1}>{subcat.subcategory}</Text>
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity
+              onPress={() => { setAddSubcatName(""); setAddDialogVisible(true); }}
+              style={styles.subcat}
             >
-              {subcat.subcategory}
-            </Text>
-          ))}
-          <View style={{ alignSelf: "flex-start" }}>
-            <Button title="Add" onPress={createSubcatAlert} />
-          </View>
+              <Text style={body}>+</Text>
+              <Text style={caption1}>Add</Text>
+            </TouchableOpacity>
+          </ScrollView>
         </>
       )}
       <TouchableOpacity
@@ -311,6 +320,31 @@ function NewAccount({ navigation }: { navigation: any }) {
         <Dialog.Button label="Cancel" onPress={() => setDialogVisible(false)} />
         <Dialog.Button label="Delete" onPress={deleteSubcat} />
         <Dialog.Button label="Save" onPress={editAlert} />
+      </Dialog.Container>
+
+      <Dialog.Container visible={addDialogVisible}>
+        <Dialog.Title>New Subcategory</Dialog.Title>
+        <Dialog.Description>Enter subcategory name</Dialog.Description>
+        <Dialog.Input
+          value={addSubcatName}
+          onChangeText={setAddSubcatName}
+          autoFocus
+        />
+        <Dialog.Button label="Cancel" onPress={() => setAddDialogVisible(false)} />
+        <Dialog.Button
+          label="Add"
+          onPress={() => {
+            if (addSubcatName.trim().length > 0) {
+              const newData = { ...accountData };
+              newData.subcategories = [
+                ...newData.subcategories,
+                { id: uuid.v4() as string, subcategory: addSubcatName.trim() },
+              ];
+              setAccountData(newData);
+            }
+            setAddDialogVisible(false);
+          }}
+        />
       </Dialog.Container>
     </View>
   );
@@ -403,6 +437,16 @@ const styles = StyleSheet.create({
   currencyItemTextActive: {
     color: colors.primaryGreen,
     fontWeight: "600" as const,
+  },
+  subcat: {
+    height: (windowWidth - 40 - 10 * 10) / 5,
+    gap: 4,
+    margin: 10,
+    aspectRatio: 1 / 1,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.darkGray,
   },
 });
 
