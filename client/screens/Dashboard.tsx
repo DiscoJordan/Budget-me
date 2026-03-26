@@ -33,6 +33,7 @@ import { UsersContext } from "../context/UsersContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
+import { DebtsContext } from "../context/DebtsContext";
 import { toMainCurrency } from "../utils/convertCurrency";
 import { Account } from "../src/types";
 import { getCurrencyMeta } from "../utils/currencyInfo";
@@ -65,6 +66,7 @@ function Dashboard({ navigation }: { navigation: any }) {
   } = useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
+  const { settings: debtSettings } = useContext(DebtsContext);
   const { transactions, getTransactionsOfUser } =
     useContext(TransactionsContext);
   const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
@@ -103,7 +105,7 @@ function Dashboard({ navigation }: { navigation: any }) {
   } = useDragOperation({
     setActiveAccount,
     setRecipientAccount,
-    navigate: (screen) => navigation.navigate(screen),
+    navigate: (screen, params) => navigation.navigate(screen, params),
   });
 
   // Map parentId → sub-accounts for multi-account balance aggregation
@@ -118,11 +120,37 @@ function Dashboard({ navigation }: { navigation: any }) {
     return map;
   }, [accounts]);
 
+  const debtAccounts = useMemo(
+    () => accounts.filter((a) => a.type === "debt" && !a.archived),
+    [accounts],
+  );
+
+  const debtTotalBalance = useMemo(
+    () =>
+      debtAccounts.reduce(
+        (sum, a) => sum + toMainCurrency(a.balance ?? 0, a.currency ?? mainCurrency, rates, mainCurrency),
+        0,
+      ),
+    [debtAccounts, rates, mainCurrency],
+  );
+
+  const DEBTS_TILE = useMemo<DashboardItem>(
+    () => ({
+      _id: "__debts__",
+      type: "debt",
+      name: "Debts",
+      balance: debtTotalBalance,
+      currency: mainCurrency,
+      icon: { color: colors.primaryGreen, icon_value: "handshake-outline" },
+    }),
+    [debtTotalBalance, mainCurrency],
+  );
+
   const Accounts = useMemo<DashboardItem[]>(
     () => [
       // exclude sub-accounts (they appear under their parent tile)
       ...(accounts.filter(
-        (a) => !a.archived && !a.parentId,
+        (a) => !a.archived && !a.parentId && a.type !== "debt",
       ) as DashboardItem[]),
       { _id: "income", title: "New account", type: "income" },
       { _id: "personal", title: "New account", type: "personal" },
@@ -200,7 +228,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     const personalTotal =
       Math.round(
         accounts
-          .filter((acc) => acc.type === "personal")
+          .filter((acc) => !acc.archived && (acc.type === "personal" || (acc.type === "debt" && debtSettings.includeInPersonalBalance)))
           .reduce(
             (sum, acc) =>
               sum +
@@ -236,6 +264,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     dateTo,
     rates,
     mainCurrency,
+    debtSettings.includeInPersonalBalance,
   ]);
 
   const handleCurrentAccount = (accountId: string, itemType: string) => {
@@ -252,7 +281,7 @@ function Dashboard({ navigation }: { navigation: any }) {
 
   const isDraggableItem = (item: DashboardItem): boolean =>
     item.title !== "New account" &&
-    (item.type === "income" || item.type === "personal");
+    (item.type === "income" || item.type === "personal" || item.type === "debt");
 
   const renderItem = ({ item }: { item: DashboardItem }) => {
     if (item.title === "New account") {
@@ -299,7 +328,9 @@ function Dashboard({ navigation }: { navigation: any }) {
         </Text>
         <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
           {formatNumber(
-            item.isMultiAccount
+            item._id === "__debts__"
+              ? (item.balance ?? 0)
+              : item.isMultiAccount
               ? (subAccountsByParent.get(item._id) ?? []).reduce(
                   (sum, sub) =>
                     sum +
@@ -312,8 +343,8 @@ function Dashboard({ navigation }: { navigation: any }) {
                   0,
                 )
               : item.type === "personal"
-                ? (item as Account).balance
-                : (periodAmounts.get(item._id) ?? 0),
+              ? (item as Account).balance
+              : (periodAmounts.get(item._id) ?? 0),
           )}{" "}
           {item.isMultiAccount
             ? mainCurrency
@@ -327,8 +358,12 @@ function Dashboard({ navigation }: { navigation: any }) {
         activeOpacity={0.8}
         onPress={() => {
           if (!draggedAccount) {
-            handleCurrentAccount(item._id, item.type);
-            setType("edit");
+            if (item._id === "__debts__") {
+              navigation.navigate("Debts");
+            } else {
+              handleCurrentAccount(item._id, item.type);
+              setType("edit");
+            }
           }
         }}
       >
@@ -364,6 +399,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     >
       <ScrollView
         style={{ backgroundColor: colors.background, padding: 20 }}
+        contentContainerStyle={{ paddingBottom: 90 }}
         scrollEnabled={!draggedAccount}
       >
         <View
@@ -402,7 +438,10 @@ function Dashboard({ navigation }: { navigation: any }) {
             <FlatList
               scrollEnabled={false}
               style={accounts__body}
-              data={Accounts.filter((acc) => acc.type === "personal")}
+              data={[
+                ...(debtSettings.enabled ? [DEBTS_TILE] : []),
+                ...Accounts.filter((acc) => acc.type === "personal"),
+              ]}
               renderItem={renderItem}
               keyExtractor={(item) => item._id}
               numColumns={5}

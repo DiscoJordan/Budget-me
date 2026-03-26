@@ -92,7 +92,7 @@ function History({ navigation }: { navigation: any }) {
     <View style={styles.screen}>
       <ScrollView
         style={{ backgroundColor: colors.background }}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 90 }}
       >
         {filtered.length > 0 && (
           <FlowSummary inflows={inflows} outflows={outflows} currency={mainCurrency} />

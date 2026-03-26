@@ -43,7 +43,10 @@
       "Bash(echo:*)",
       "Bash(npm uninstall:*)",
       "Bash(find /c/Users/Глеб/WebstormProjects/Budget-me/server -name *.ts)",
-      "Bash(rtk tsc:*)"
+      "Bash(rtk tsc:*)",
+      "Bash(ls:*)",
+      "Bash(rtk npx:*)",
+      "WebSearch"
     ]
   }
 }

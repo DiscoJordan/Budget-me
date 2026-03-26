@@ -47,6 +47,8 @@ function getDayTotal(
       mainCurrency,
     );
     if (sender?.type === "income") return acc + converted;
+    if (sender?.type === "debt" && recipient?.type === "personal")
+      return acc + converted;
     return acc - converted;
   }, 0);
 }

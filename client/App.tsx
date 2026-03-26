@@ -17,6 +17,7 @@ import { UsersProvider } from "./context/UsersContext";
 import { AccountsProvider } from "./context/AccountsContext";
 import { TransactionsProvider } from "./context/TransactionsContext";
 import { CurrencyProvider } from "./context/CurrencyContext";
+import { DebtsProvider } from "./context/DebtsContext";
 import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "./context/UsersContext";
@@ -36,8 +37,10 @@ const App = () => {
       <CurrencyProvider>
         <AccountsProvider>
           <TransactionsProvider>
-            <SafeAreaView />
-            <RegisteredOrNot />
+            <DebtsProvider>
+              <SafeAreaView />
+              <RegisteredOrNot />
+            </DebtsProvider>
           </TransactionsProvider>
         </AccountsProvider>
       </CurrencyProvider>
