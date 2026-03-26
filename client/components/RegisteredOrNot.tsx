@@ -195,16 +195,18 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
                 title: activeAccount?.name
                   ? "Edit " + activeAccount.name
                   : "New Account",
-                headerRight: () => (
-                  <TouchableOpacity onPress={() => createAlert(navigation)}>
-                    <MaterialCommunityIcons
-                      style={{ paddingRight: 20 }}
-                      name="delete-sweep-outline"
-                      size={24}
-                      color="white"
-                    />
-                  </TouchableOpacity>
-                ),
+                headerRight: activeAccount?.name
+                  ? () => (
+                      <TouchableOpacity onPress={() => createAlert(navigation)}>
+                        <MaterialCommunityIcons
+                          style={{ paddingRight: 20 }}
+                          name="delete-sweep-outline"
+                          size={24}
+                          color="white"
+                        />
+                      </TouchableOpacity>
+                    )
+                  : undefined,
               })}
             />
             <Stack.Screen
