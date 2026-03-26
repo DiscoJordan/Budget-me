@@ -222,14 +222,23 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
     }
   };
 
-  const setBalance = async (): Promise<void> => {
+  const setBalance = async (senderIdOverride?: string, recipientIdOverride?: string): Promise<void> => {
     try {
       await axios.post(`${URL}/accounts/setBalance/`, {
         userId: user?.id,
-        senderId: activeAccount?._id,
-        recipientId: recipientAccount._id,
+        senderId: senderIdOverride ?? activeAccount?._id,
+        recipientId: recipientIdOverride ?? recipientAccount._id,
       });
       getAccountsOfUser();
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const deleteSubAccount = async (subAccountId: string): Promise<void> => {
+    try {
+      await axios.post(`${URL}/accounts/deleteaccount`, { accountId: subAccountId });
+      await getAccountsOfUser();
     } catch (error) {
       console.log(error);
     }
@@ -304,6 +313,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         createSubcatAlert,
         addSubcategoryToAccount,
         toggleArchiveAccount,
+        deleteSubAccount,
       }}
     >
       {children}

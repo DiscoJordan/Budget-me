@@ -39,6 +39,9 @@ export interface Account {
   currency: string;
   time?: string;
   archived?: boolean;
+  isMultiAccount?: boolean;
+  isMainSubAccount?: boolean;
+  parentId?: string;
   /** Used locally in Dashboard to render "New account" placeholders */
   title?: string;
 }
@@ -79,6 +82,8 @@ export interface AccountFormData {
   _id?: string;
   balance?: number;
   currency?: string;
+  isMultiAccount?: boolean;
+  parentId?: string;
 }
 
 export interface TransactionFormData {
@@ -110,7 +115,8 @@ export interface AccountsContextType {
   getAccountsOfUser: () => Promise<void>;
   setActiveAccount: React.Dispatch<React.SetStateAction<Account | null>>;
   activeAccount: Account | null;
-  setBalance: () => Promise<void>;
+  setBalance: (senderIdOverride?: string, recipientIdOverride?: string) => Promise<void>;
+  deleteSubAccount: (subAccountId: string) => Promise<void>;
   setRecipientAccount: React.Dispatch<React.SetStateAction<Partial<Account>>>;
   recipientAccount: Partial<Account>;
   iconColors: string[];
