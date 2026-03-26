@@ -39,6 +39,9 @@ export interface IAccount extends Document {
   currency: string;
   time: Date;
   archived?: boolean;
+  isMultiAccount?: boolean;
+  isMainSubAccount?: boolean;
+  parentId?: Types.ObjectId;
 }
 
 export interface ITransaction extends Document {

@@ -35,6 +35,7 @@ import { TransactionsContext } from "../context/TransactionsContext";
 import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
 import { toMainCurrency } from "../utils/convertCurrency";
 import { Account } from "../src/types";
+import { getCurrencyMeta } from "../utils/currencyInfo";
 import DraggableAccountTile from "../components/DraggableAccountTile";
 import { useDragOperation } from "../hooks/useDragOperation";
 
@@ -47,6 +48,7 @@ interface DashboardItem {
   currency?: string;
   icon?: { color: string; icon_value: string };
   subcategories?: import("../src/types").Subcategory[];
+  isMultiAccount?: boolean;
 }
 
 const ICON_SIZE = 48;
@@ -104,9 +106,24 @@ function Dashboard({ navigation }: { navigation: any }) {
     navigate: (screen) => navigation.navigate(screen),
   });
 
+  // Map parentId → sub-accounts for multi-account balance aggregation
+  const subAccountsByParent = useMemo(() => {
+    const map = new Map<string, (typeof accounts)[number][]>();
+    for (const acc of accounts) {
+      if (acc.parentId) {
+        if (!map.has(acc.parentId)) map.set(acc.parentId, []);
+        map.get(acc.parentId)!.push(acc);
+      }
+    }
+    return map;
+  }, [accounts]);
+
   const Accounts = useMemo<DashboardItem[]>(
     () => [
-      ...(accounts.filter((a) => !a.archived) as DashboardItem[]),
+      // exclude sub-accounts (they appear under their parent tile)
+      ...(accounts.filter(
+        (a) => !a.archived && !a.parentId,
+      ) as DashboardItem[]),
       { _id: "income", title: "New account", type: "income" },
       { _id: "personal", title: "New account", type: "personal" },
       { _id: "expense", title: "New account", type: "expense" },
@@ -192,11 +209,34 @@ function Dashboard({ navigation }: { navigation: any }) {
           ) * 100,
       ) / 100;
 
+    // Aggregate sub-account period amounts under their parent (in main currency)
+    for (const [parentId, subs] of subAccountsByParent.entries()) {
+      let parentPeriodTotal = 0;
+      for (const sub of subs) {
+        const subAmt = amountMap.get(sub._id) ?? 0;
+        parentPeriodTotal += toMainCurrency(
+          subAmt,
+          sub.currency ?? "USD",
+          rates,
+          mainCurrency,
+        );
+      }
+      amountMap.set(parentId, parentPeriodTotal);
+    }
+
     return {
       periodAmounts: amountMap,
       periodTotals: { incomeTotal, expenseTotal, personalNet: personalTotal },
     };
-  }, [transactions, accounts, dateFrom, dateTo, rates, mainCurrency]);
+  }, [
+    transactions,
+    accounts,
+    subAccountsByParent,
+    dateFrom,
+    dateTo,
+    rates,
+    mainCurrency,
+  ]);
 
   const handleCurrentAccount = (accountId: string, itemType: string) => {
     setActiveAccount(accounts.find((acc) => acc._id === accountId) || null);
@@ -259,11 +299,25 @@ function Dashboard({ navigation }: { navigation: any }) {
         </Text>
         <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
           {formatNumber(
-            item.type === "personal"
-              ? (item as Account).balance
-              : (periodAmounts.get(item._id) ?? 0),
+            item.isMultiAccount
+              ? (subAccountsByParent.get(item._id) ?? []).reduce(
+                  (sum, sub) =>
+                    sum +
+                    toMainCurrency(
+                      sub.balance ?? 0,
+                      sub.currency ?? "USD",
+                      rates,
+                      mainCurrency,
+                    ),
+                  0,
+                )
+              : item.type === "personal"
+                ? (item as Account).balance
+                : (periodAmounts.get(item._id) ?? 0),
           )}{" "}
-          {item.currency}
+          {item.isMultiAccount
+            ? mainCurrency
+            : getCurrencyMeta(item.currency).symbol}
         </Text>
       </View>
     );
@@ -322,7 +376,8 @@ function Dashboard({ navigation }: { navigation: any }) {
             <View style={accounts__header}>
               <Text style={body}>Income</Text>
               <Text style={body}>
-                {formatNumber(periodTotals.incomeTotal)} {mainCurrency}
+                {formatNumber(periodTotals.incomeTotal)}{" "}
+                {getCurrencyMeta(mainCurrency).symbol}
               </Text>
             </View>
             <View style={green_line} />
@@ -339,7 +394,8 @@ function Dashboard({ navigation }: { navigation: any }) {
             <View style={accounts__header}>
               <Text style={body}>Personal</Text>
               <Text style={body}>
-                {formatNumber(periodTotals.personalNet)} {mainCurrency}
+                {formatNumber(periodTotals.personalNet)}{" "}
+                {getCurrencyMeta(mainCurrency).symbol}
               </Text>
             </View>
             <View style={green_line} />
@@ -356,7 +412,8 @@ function Dashboard({ navigation }: { navigation: any }) {
             <View style={accounts__header}>
               <Text style={body}>Expenses</Text>
               <Text style={body}>
-                {formatNumber(periodTotals.expenseTotal)} {mainCurrency}
+                {formatNumber(periodTotals.expenseTotal)}{" "}
+                {getCurrencyMeta(mainCurrency).symbol}
               </Text>
             </View>
             <View style={green_line} />

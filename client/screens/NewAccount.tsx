@@ -1,8 +1,10 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect, useMemo } from "react";
 import uuid from "react-native-uuid";
 import Dialog from "react-native-dialog";
 import {
+  Alert,
   StyleSheet,
+  Switch,
   Text,
   View,
   TextInput,
@@ -36,11 +38,13 @@ import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Subcategory } from "../src/types";
+import { TransactionsContext } from "../context/TransactionsContext";
 
 function NewAccount({ navigation }: { navigation: any }) {
   const { login, user } = useContext(UsersContext);
   const {
     getAccountsOfUser,
+    accounts,
     activeAccount,
     iconColors,
     accountData,
@@ -48,8 +52,10 @@ function NewAccount({ navigation }: { navigation: any }) {
     setAccountData,
     randomColor,
     type,
+    deleteSubAccount,
   } = useContext(AccountsContext);
   const { currencies, mainCurrency, rates } = useContext(CurrencyContext);
+  const { transactions } = useContext(TransactionsContext);
   const [message, setMessage] = useState<string>("");
   const [dialogVisible, setDialogVisible] = useState<boolean>(false);
   const [addDialogVisible, setAddDialogVisible] = useState<boolean>(false);
@@ -58,6 +64,39 @@ function NewAccount({ navigation }: { navigation: any }) {
   const [addSubcatName, setAddSubcatName] = useState<string>("");
   const [currencyModalVisible, setCurrencyModalVisible] = useState(false);
   const [currencySearch, setCurrencySearch] = useState("");
+
+  // Multi-account state
+  const [isMultiAccount, setIsMultiAccount] = useState(
+    activeAccount?.isMultiAccount ?? false,
+  );
+  // Drafts used only when creating a new multi-account
+  const [subDrafts, setSubDrafts] = useState<{ currency: string; balance: number }[]>([]);
+  const [subModalVisible, setSubModalVisible] = useState(false);
+  const [subCurrencySearch, setSubCurrencySearch] = useState("");
+  const [pendingSubCurrency, setPendingSubCurrency] = useState(mainCurrency);
+  const [pendingSubBalance, setPendingSubBalance] = useState("");
+
+  // Existing sub-accounts when editing
+  const existingSubAccounts = useMemo(
+    () => accounts.filter((a) => a.parentId === activeAccount?._id),
+    [accounts, activeAccount],
+  );
+
+  // Auto-add first sub-draft whenever multi-account is turned on (create mode)
+  useEffect(() => {
+    if (isMultiAccount && type !== "edit" && subDrafts.length === 0) {
+      const currency = accountData.currency || mainCurrency;
+      const balance = accountData.balance ?? 0;
+      setSubDrafts([{ currency, balance }]);
+    }
+  }, [isMultiAccount]);
+
+  const countTransactionsForSub = (subId: string) =>
+    transactions.filter(
+      (t) =>
+        (t.senderId as any)?._id === subId ||
+        (t.recipientId as any)?._id === subId,
+    ).length;
 
   useEffect(() => {
     console.log(accountData, "accountData");
@@ -77,28 +116,42 @@ function NewAccount({ navigation }: { navigation: any }) {
     e.preventDefault();
     try {
       if (type !== "edit") {
-        const response = await axios.post(
-          `${URL}/accounts/addaccount`,
-          accountData,
-        );
+        const payload = { ...accountData, isMultiAccount };
+        if (isMultiAccount) {
+          payload.balance = 0;
+          payload.currency = subDrafts[0]?.currency ?? mainCurrency;
+        }
+        const response = await axios.post(`${URL}/accounts/addaccount`, payload);
         setMessage(response.data.data);
-        console.log(response.data.data);
-        setTimeout(() => {
-          setMessage("");
-        }, 2000);
+        setTimeout(() => setMessage(""), 2000);
         if (response.data.ok) {
+          const parentId = response.data.newAccount._id;
+          if (isMultiAccount) {
+            for (let i = 0; i < subDrafts.length; i++) {
+              const sub = subDrafts[i];
+              await axios.post(`${URL}/accounts/addaccount`, {
+                ownerId: user?.id,
+                icon: accountData.icon,
+                type: "personal",
+                name: sub.currency,
+                subcategories: [],
+                balance: sub.balance,
+                currency: sub.currency,
+                parentId,
+                isMultiAccount: false,
+                isMainSubAccount: i === 0,
+              });
+            }
+          }
           getAccountsOfUser();
           navigation.navigate("Home", { screen: "Dashboard" });
         }
       } else {
         const response = await axios.post(`${URL}/accounts/updateaccount`, {
-          accountData,
+          accountData: { ...accountData, isMultiAccount },
         });
         setMessage(response.data.data);
-        console.log(response.data.data);
-        setTimeout(() => {
-          setMessage("");
-        }, 2000);
+        setTimeout(() => setMessage(""), 2000);
         if (response.data.ok) {
           getAccountsOfUser();
           navigation.navigate("Home", { screen: "Dashboard" });
@@ -147,15 +200,15 @@ function NewAccount({ navigation }: { navigation: any }) {
   };
 
   return (
-    <View
-      style={{
-        ...container,
-        padding: 20,
-        alignItems: "center",
-        minHeight: "100%",
-        maxHeight: "100%",
-      }}
-    >
+    <View style={{ flex: 1, backgroundColor: container.backgroundColor }}>
+      <ScrollView
+        contentContainerStyle={{
+          padding: 20,
+          alignItems: "center",
+          gap: 16,
+        }}
+        keyboardShouldPersistTaps="handled"
+      >
       <View style={{ ...account }}>
         <TouchableOpacity
           onPress={() => navigation.navigate("Choose icon")}
@@ -190,7 +243,7 @@ function NewAccount({ navigation }: { navigation: any }) {
         selectionColor={"#primaryGreen"}
         lineBreakStrategyIOS={"push-out"}
       />
-      {accountData.type === "personal" && (
+      {accountData.type === "personal" && !isMultiAccount && (
         <TextInput
           style={styles.input}
           onChangeText={(text) =>
@@ -204,6 +257,113 @@ function NewAccount({ navigation }: { navigation: any }) {
           selectionColor={colors.primaryGreen}
         />
       )}
+
+      {accountData.type === "personal" && type !== "edit" && (
+        <View style={styles.switchRow}>
+          <Text style={styles.switchLabel}>Multi-account</Text>
+          <Switch
+            value={isMultiAccount}
+            onValueChange={(val) => {
+              if (val) {
+                Alert.alert(
+                  "Enable multi-account?",
+                  "Once enabled, this account cannot be switched back to a regular account.",
+                  [
+                    { text: "Cancel", style: "destructive" },
+                    {
+                      text: "Proceed",
+                      onPress: () => setIsMultiAccount(true),
+                    },
+                  ],
+                );
+                // auto-add handled by useEffect
+              } else {
+                Alert.alert(
+                  "Cannot disable",
+                  "A multi-account cannot be switched back to a regular account. Delete it and create a new one instead.",
+                );
+              }
+            }}
+            trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
+            thumbColor="white"
+          />
+        </View>
+      )}
+
+      {accountData.type === "personal" && isMultiAccount && (
+        <View style={styles.subSection}>
+          <Text style={styles.subSectionTitle}>Sub-accounts</Text>
+
+          {/* When editing: show existing sub-accounts */}
+          {type === "edit" &&
+            existingSubAccounts.map((sub) => (
+              <View key={sub._id} style={styles.subRow}>
+                <Text style={styles.subCurrency}>{getCurrencyMeta(sub.currency).symbol}</Text>
+                <Text style={styles.subBalance}>
+                  {sub.balance ?? 0} {getCurrencyMeta(sub.currency).symbol}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (existingSubAccounts.length === 1) {
+                      Alert.alert("Cannot remove", "A multi-account must have at least one sub-account.");
+                      return;
+                    }
+                    const txCount = countTransactionsForSub(sub._id);
+                    Alert.alert(
+                      "Delete sub-account?",
+                      `"${sub.currency}" and ${txCount} transaction${txCount !== 1 ? "s" : ""} will be permanently deleted.`,
+                      [
+                        { text: "Cancel", style: "cancel" },
+                        {
+                          text: "Delete",
+                          style: "destructive",
+                          onPress: () => deleteSubAccount(sub._id),
+                        },
+                      ],
+                    );
+                  }}
+                >
+                  <Text style={styles.subDelete}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+          {/* When creating: show drafts */}
+          {type !== "edit" &&
+            subDrafts.map((sub, i) => (
+              <View key={i} style={styles.subRow}>
+                <Text style={styles.subCurrency}>{getCurrencyMeta(sub.currency).symbol}</Text>
+                <Text style={styles.subBalance}>
+                  {sub.balance} {getCurrencyMeta(sub.currency).symbol}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (subDrafts.length === 1) {
+                      Alert.alert("Cannot remove", "A multi-account must have at least one sub-account.");
+                      return;
+                    }
+                    setSubDrafts((prev) => prev.filter((_, idx) => idx !== i));
+                  }}
+                >
+                  <Text style={styles.subDelete}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+
+          <TouchableOpacity
+            style={styles.addSubBtn}
+            onPress={() => {
+              setPendingSubCurrency(mainCurrency);
+              setPendingSubBalance("");
+              setSubCurrencySearch("");
+              setSubModalVisible(true);
+            }}
+          >
+            <Text style={styles.addSubText}>+ Add sub-account</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {accountData.type !== "personal" && (
         <>
           <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
@@ -241,7 +401,7 @@ function NewAccount({ navigation }: { navigation: any }) {
           </ScrollView>
         </>
       )}
-      <TouchableOpacity
+      {!(accountData.type === "personal" && isMultiAccount) && <TouchableOpacity
         onPress={() => setCurrencyModalVisible(true)}
         style={styles.currencyRow}
       >
@@ -255,11 +415,123 @@ function NewAccount({ navigation }: { navigation: any }) {
           </Text>
           <Feather name="chevron-right" size={18} color={colors.gray} />
         </View>
-      </TouchableOpacity>
+      </TouchableOpacity>}
 
-      <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
+      </ScrollView>
+
+      <TouchableOpacity
+        style={[styles.submit_button, { margin: 16, marginTop: 0 }]}
+        onPress={handleSubmit}
+      >
         <Text style={styles.submit_button_text}>Save</Text>
       </TouchableOpacity>
+
+      {/* Sub-account add modal */}
+      <Modal
+        visible={subModalVisible}
+        animationType="slide"
+        onRequestClose={() => setSubModalVisible(false)}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Add sub-account</Text>
+            <TouchableOpacity onPress={() => setSubModalVisible(false)}>
+              <Feather name="x" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={styles.currencySearch}
+            placeholder="Search currency..."
+            placeholderTextColor={colors.gray}
+            value={subCurrencySearch}
+            onChangeText={setSubCurrencySearch}
+            autoCapitalize="characters"
+          />
+          <FlatList
+            data={currencies.filter((c) => {
+              const s = subCurrencySearch.toLowerCase();
+              return (
+                c.toLowerCase().includes(s) ||
+                getCurrencyMeta(c).name.toLowerCase().includes(s)
+              );
+            })}
+            keyExtractor={(item) => item}
+            ListHeaderComponent={
+              <TextInput
+                style={[styles.currencySearch, { marginBottom: 0, marginTop: 8 }]}
+                placeholder="Initial balance"
+                placeholderTextColor={colors.gray}
+                value={pendingSubBalance}
+                onChangeText={setPendingSubBalance}
+                keyboardType="decimal-pad"
+              />
+            }
+            renderItem={({ item }) => {
+              const meta = getCurrencyMeta(item);
+              const selected = item === pendingSubCurrency;
+              return (
+                <TouchableOpacity
+                  style={[
+                    styles.currencyItem,
+                    selected && styles.currencyItemActive,
+                  ]}
+                  onPress={() => setPendingSubCurrency(item)}
+                >
+                  <View style={styles.currencyItemLeft}>
+                    <Text style={[styles.currencyCode, selected && styles.currencyItemTextActive]}>
+                      {item}
+                    </Text>
+                    <Text style={styles.currencyName}>{meta.name}</Text>
+                  </View>
+                  <View style={styles.currencyItemRight}>
+                    <Text style={[styles.currencySymbol, selected && styles.currencyItemTextActive]}>
+                      {meta.symbol}
+                    </Text>
+                    {selected && <Feather name="check" size={18} color={colors.primaryGreen} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            }}
+          />
+          <TouchableOpacity
+            style={[styles.submit_button, { position: "relative", bottom: 0, marginTop: 16 }]}
+            onPress={async () => {
+              // Prevent duplicate currencies
+              const alreadyExists =
+                type === "edit"
+                  ? existingSubAccounts.some((s) => s.currency === pendingSubCurrency)
+                  : subDrafts.some((d) => d.currency === pendingSubCurrency);
+              if (alreadyExists) {
+                Alert.alert("Duplicate currency", `A sub-account in ${pendingSubCurrency} already exists.`);
+                return;
+              }
+
+              const balance = parseFloat(pendingSubBalance) || 0;
+              if (type === "edit" && activeAccount?._id) {
+                // create immediately when editing
+                await axios.post(`${URL}/accounts/addaccount`, {
+                  ownerId: user?.id,
+                  icon: accountData.icon,
+                  type: "personal",
+                  name: pendingSubCurrency,
+                  subcategories: [],
+                  balance,
+                  currency: pendingSubCurrency,
+                  parentId: activeAccount._id,
+                  isMultiAccount: false,
+                  isMainSubAccount: existingSubAccounts.length === 0,
+                });
+                getAccountsOfUser();
+              } else {
+                setSubDrafts((prev) => [...prev, { currency: pendingSubCurrency, balance }]);
+              }
+              setSubModalVisible(false);
+            }}
+          >
+            <Text style={styles.submit_button_text}>Add</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
 
       <Modal
         visible={currencyModalVisible}
@@ -305,31 +577,33 @@ function NewAccount({ navigation }: { navigation: any }) {
                     selected && styles.currencyItemActive,
                   ]}
                   onPress={() => {
-                    const oldCurrency = accountData.currency || mainCurrency;
                     const newCurrency = item;
-
-                    // Convert balance if currency is changing and account has a balance
-                    let convertedBalance = accountData.balance;
+                    // For new accounts, keep the balance as-is (user enters amount in target currency)
+                    // For edits, convert the existing balance to the new currency
+                    let newBalance = accountData.balance;
                     if (
-                      oldCurrency !== newCurrency &&
+                      type === "edit" &&
                       accountData.balance !== undefined &&
                       accountData.balance !== 0
                     ) {
-                      convertedBalance =
-                        Math.round(
-                          convertCurrency(
-                            accountData.balance,
-                            oldCurrency,
-                            newCurrency,
-                            rates,
-                          ) * 100,
-                        ) / 100;
+                      const oldCurrency = accountData.currency || mainCurrency;
+                      if (oldCurrency !== newCurrency) {
+                        newBalance =
+                          Math.round(
+                            convertCurrency(
+                              accountData.balance,
+                              oldCurrency,
+                              newCurrency,
+                              rates,
+                            ) * 100,
+                          ) / 100;
+                      }
                     }
 
                     setAccountData({
                       ...accountData,
                       currency: newCurrency,
-                      balance: convertedBalance,
+                      balance: newBalance,
                     });
                     setCurrencyModalVisible(false);
                     setCurrencySearch("");
@@ -430,7 +704,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderBottomWidth: 1,
     borderBottomColor: colors.darkGray,
-    marginBottom: 8,
   },
   modal: {
     flex: 1,
@@ -498,6 +771,72 @@ const styles = StyleSheet.create({
   },
   currencyItemTextActive: {
     color: colors.primaryGreen,
+    fontWeight: "600" as const,
+  },
+  switchRow: {
+    flexDirection: "row" as const,
+    justifyContent: "space-between" as const,
+    alignItems: "center" as const,
+    width: "100%" as const,
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+  },
+  switchLabel: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600" as const,
+  },
+  subSection: {
+    width: "100%" as const,
+    gap: 8,
+    paddingVertical: 8,
+  },
+  subSectionTitle: {
+    color: colors.gray,
+    fontSize: 13,
+    fontWeight: "600" as const,
+    paddingLeft: 4,
+    marginBottom: 4,
+  },
+  subRow: {
+    flexDirection: "row" as const,
+    alignItems: "center" as const,
+    backgroundColor: colors.darkGray,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  subCurrency: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "700" as const,
+    minWidth: 44,
+  },
+  subBalance: {
+    flex: 1,
+    color: colors.gray,
+    fontSize: 14,
+  },
+  subDelete: {
+    color: colors.red,
+    fontSize: 16,
+    fontWeight: "700" as const,
+    padding: 4,
+  },
+  addSubBtn: {
+    paddingVertical: 12,
+    alignItems: "center" as const,
+    borderWidth: 1,
+    borderColor: colors.primaryGreen,
+    borderRadius: 12,
+    borderStyle: "dashed" as const,
+  },
+  addSubText: {
+    color: colors.primaryGreen,
+    fontSize: 15,
     fontWeight: "600" as const,
   },
   subcat: {
