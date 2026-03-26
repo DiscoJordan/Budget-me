@@ -35,6 +35,8 @@ function getAmountColor(transaction: Transaction): string {
   if (sender?.type === "personal" && recipient?.type === "personal")
     return colors.gray;
   if (sender?.type === "income") return colors.green;
+  if (sender?.type === "debt" && recipient?.type === "personal")
+    return colors.green;
   return colors.red;
 }
 
@@ -69,11 +71,27 @@ function getSubtitle(
   return accountLabel(recipient, accounts);
 }
 
+function isDebtTransaction(transaction: Transaction): boolean {
+  const sender = transaction.senderId as any;
+  const recipient = transaction.recipientId as any;
+  return sender?.type === "debt" || recipient?.type === "debt";
+}
+
+function getDebtLabel(transaction: Transaction): string | null {
+  const sender = transaction.senderId as any;
+  const recipient = transaction.recipientId as any;
+  if (sender?.type === "debt" && recipient?.type === "personal") return "Debt repayment";
+  if (sender?.type === "personal" && recipient?.type === "debt") return "Lent";
+  return "Debt";
+}
+
 export default function TransactionRow({
   transaction,
   accounts,
   onPress,
 }: Props) {
+  const isDebt = isDebtTransaction(transaction);
+
   return (
     <React.Fragment>
       <TouchableOpacity
@@ -97,11 +115,18 @@ export default function TransactionRow({
                   ? ` / ${transaction?.subcategory}`
                   : null}
               </Text>
-              <Text style={styles.titleText}> -{">"}</Text>
+              <MaterialCommunityIcons
+                name="arrow-right"
+                size={14}
+                color={colors.gray}
+              />
               <Text style={styles.subtitleText}>
                 {getSubtitle(transaction, accounts)}
               </Text>
             </View>
+            {isDebt && (
+              <Text style={styles.debtBadge}>{getDebtLabel(transaction)}</Text>
+            )}
             {transaction?.comment.length > 0 && (
               <View>
                 <Text style={styles.comment}>{transaction?.comment}</Text>
@@ -162,6 +187,12 @@ const styles = StyleSheet.create({
     color: colors.gray,
     fontWeight: "600",
     marginTop: 2,
+  },
+  debtBadge: {
+    color: colors.gray,
+    fontSize: 10,
+    fontWeight: "600",
+    fontStyle: "italic",
   },
   comment: {
     color: colors.gray,
