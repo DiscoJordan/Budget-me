@@ -19,6 +19,9 @@ const accountSchema = new Schema<IAccount>({
   currency: { type: String, required: true, default: "USD" },
   time: { type: Date, default: Date.now },
   archived: { type: Boolean, default: false },
+  isMultiAccount: { type: Boolean, default: false },
+  isMainSubAccount: { type: Boolean, default: false },
+  parentId: { type: Schema.Types.ObjectId, ref: "Account", required: false, default: null },
 });
 
 export default mongoose.model<IAccount>("Account", accountSchema);

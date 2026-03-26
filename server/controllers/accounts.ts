@@ -6,7 +6,7 @@ import { AuthRequest } from "../src/types";
 
 const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { ownerId, icon, type, name, subcategories, balance, currency } = req.body as {
+    const { ownerId, icon, type, name, subcategories, balance, currency, isMultiAccount, parentId } = req.body as {
       ownerId: string;
       icon: { color: string; icon_value: string };
       type: string;
@@ -15,6 +15,9 @@ const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
       balance?: number;
       currency?: string;
       time?: string;
+      isMultiAccount?: boolean;
+      isMainSubAccount?: boolean;
+      parentId?: string;
     };
     const newAccount = await Accounts.create({
       ownerId,
@@ -25,6 +28,9 @@ const addAccount = async (req: AuthRequest, res: Response): Promise<void> => {
       balance: balance ?? 0,
       initialBalance: balance ?? 0,
       currency: currency ?? "USD",
+      isMultiAccount: isMultiAccount ?? false,
+      isMainSubAccount: req.body.isMainSubAccount ?? false,
+      parentId: parentId ?? null,
     });
     res.send({
       ok: true,
@@ -48,15 +54,42 @@ const deleteAccount = async (
     if (accountExist) {
       const ownerId = accountExist.ownerId;
       await accountExist.deleteOne();
+
+      // If this is a multi-account, cascade-delete all sub-accounts and their transactions
+      const subAccounts = accountExist.isMultiAccount
+        ? await Accounts.find({ parentId: accountId })
+        : [];
+
+      const allTriggeredAccSet = new Set<string>();
+
+      // Collect affected accounts from sub-account transactions
+      for (const sub of subAccounts) {
+        const subTrans = await Transactions.find({
+          $or: [{ senderId: sub._id }, { recipientId: sub._id }],
+        });
+        subTrans.forEach((t) => {
+          allTriggeredAccSet.add(t.senderId.toString());
+          allTriggeredAccSet.add(t.recipientId.toString());
+        });
+        await Transactions.deleteMany({
+          $or: [{ senderId: sub._id }, { recipientId: sub._id }],
+        });
+        await sub.deleteOne();
+      }
+
       const triggeredTrans = await Transactions.find({
         $or: [{ senderId: accountId }, { recipientId: accountId }],
       });
+      triggeredTrans.forEach((trans) => {
+        allTriggeredAccSet.add(trans.senderId.toString());
+        allTriggeredAccSet.add(trans.recipientId.toString());
+      });
 
-      const allTriggeredAccs = triggeredTrans.flatMap((trans) => [
-        trans.senderId.toString(),
-        trans.recipientId.toString(),
-      ]);
-      const triggeredAccs = Array.from(new Set(allTriggeredAccs)).map(
+      // Remove deleted IDs and the parent itself from recalc set
+      allTriggeredAccSet.delete(accountId);
+      subAccounts.forEach((s) => allTriggeredAccSet.delete(s._id.toString()));
+
+      const triggeredAccs = Array.from(allTriggeredAccSet).map(
         (id) => new mongoose.Types.ObjectId(id),
       );
 

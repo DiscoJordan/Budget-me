@@ -4,6 +4,7 @@ import { colors } from "../../styles/styles";
 import { Transaction } from "../../src/types";
 import { toMainCurrency } from "../../utils/convertCurrency";
 import TransactionRow from "./TransactionRow";
+import { getCurrencyMeta } from "../../utils/currencyInfo";
 
 interface Props {
   date: string;
@@ -12,6 +13,7 @@ interface Props {
   currency?: string;
   rates?: Record<string, number>;
   mainCurrency?: string;
+  accounts?: { _id: string; name: string; parentId?: string }[];
   onTransactionPress?: (transaction: Transaction) => void;
 }
 
@@ -30,20 +32,35 @@ function getDayTotal(
   transactions: Transaction[],
   rates: Record<string, number>,
   mainCurrency: string,
-  activeAccountId?: string
+  activeAccountId?: string,
 ): number {
   return transactions.reduce((acc, transaction) => {
     const sender = transaction.senderId as any;
     const recipient = transaction.recipientId as any;
-    const isPersonalTransfer = sender?.type === "personal" && recipient?.type === "personal";
+    const isPersonalTransfer =
+      sender?.type === "personal" && recipient?.type === "personal";
     if (isPersonalTransfer) return acc;
-    const converted = toMainCurrency(transaction.amount ?? 0, transaction.currency ?? "USD", rates, mainCurrency);
+    const converted = toMainCurrency(
+      transaction.amount ?? 0,
+      transaction.currency ?? "USD",
+      rates,
+      mainCurrency,
+    );
     if (sender?.type === "income") return acc + converted;
     return acc - converted;
   }, 0);
 }
 
-export default function DaySection({ date, transactions, activeAccountId, currency, rates = {}, mainCurrency = "USD", onTransactionPress }: Props) {
+export default function DaySection({
+  date,
+  transactions,
+  activeAccountId,
+  currency,
+  rates = {},
+  mainCurrency = "USD",
+  accounts,
+  onTransactionPress,
+}: Props) {
   const total = getDayTotal(transactions, rates, mainCurrency, activeAccountId);
 
   return (
@@ -51,11 +68,18 @@ export default function DaySection({ date, transactions, activeAccountId, curren
       <View style={styles.day}>
         <Text style={styles.dayText}>{formatDate(date)}</Text>
         <Text style={styles.dayText}>
-          {total > 0 ? "+" : ""}{total.toLocaleString()} {currency}
+          {total > 0 ? "+" : ""}
+          {total.toLocaleString()} {getCurrencyMeta(currency).symbol}
         </Text>
       </View>
       {transactions.map((transaction) => (
-        <TransactionRow key={transaction._id} transaction={transaction} currency={currency} onPress={onTransactionPress} />
+        <TransactionRow
+          key={transaction._id}
+          transaction={transaction}
+          currency={currency}
+          accounts={accounts}
+          onPress={onTransactionPress}
+        />
       ))}
     </View>
   );

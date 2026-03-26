@@ -10,7 +10,9 @@ import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { EvilIcons } from "@expo/vector-icons";
+import { getCurrencyMeta } from "../utils/currencyInfo";
 import {
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -50,16 +52,61 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
   } = useContext(AccountsContext);
   const [addSubcatDialogVisible, setAddSubcatDialogVisible] = useState(false);
   const [newSubcatInput, setNewSubcatInput] = useState("");
-  const [pickerTarget, setPickerTarget] = useState<"sender" | "recipient" | null>(null);
+  const [pickerTarget, setPickerTarget] = useState<
+    "sender" | "recipient" | null
+  >(null);
   const { user } = useContext(UsersContext);
   const { rates } = useContext(CurrencyContext);
 
-  const senderCurrency = activeAccount?.currency ?? "USD";
-  const recipientCurrency = recipientAccount?.currency ?? "USD";
-  const isCrossCurrency = recipientAccount?._id && senderCurrency !== recipientCurrency;
+  // Sub-account selection for multi-accounts (sender)
+  const subAccounts = useMemo(
+    () => accounts.filter((a) => a.parentId === activeAccount?._id),
+    [accounts, activeAccount],
+  );
+  const [selectedSubAccount, setSelectedSubAccount] = useState<typeof accounts[number] | null>(null);
+
+  // Sub-account selection for multi-account recipient
+  const recipientSubAccounts = useMemo(
+    () => accounts.filter((a) => a.parentId === (recipientAccount as any)?._id),
+    [accounts, recipientAccount],
+  );
+  const [selectedRecipientSubAccount, setSelectedRecipientSubAccount] = useState<typeof accounts[number] | null>(null);
+
+  // Auto-select main sub-account for recipient
+  useEffect(() => {
+    if ((recipientAccount as any)?.isMultiAccount && recipientSubAccounts.length > 0) {
+      const main = recipientSubAccounts.find((s) => s.isMainSubAccount) ?? recipientSubAccounts[0];
+      setSelectedRecipientSubAccount(main);
+    } else {
+      setSelectedRecipientSubAccount(null);
+    }
+  }, [(recipientAccount as any)?._id, recipientSubAccounts.length]);
+
+  // Auto-select main sub-account when sender changes
+  useEffect(() => {
+    if (activeAccount?.isMultiAccount && subAccounts.length > 0) {
+      const main = subAccounts.find((s) => s.isMainSubAccount) ?? subAccounts[0];
+      setSelectedSubAccount(main);
+    } else {
+      setSelectedSubAccount(null);
+    }
+  }, [activeAccount?._id, subAccounts.length]);
+
+  // The "effective sender" for balance check, currency, and senderId
+  const effectiveSender = activeAccount?.isMultiAccount
+    ? selectedSubAccount
+    : activeAccount;
+
+  const senderCurrency = effectiveSender?.currency ?? activeAccount?.currency ?? "USD";
+  const recipientCurrency = (recipientAccount as any)?.isMultiAccount
+    ? (selectedRecipientSubAccount?.currency ?? recipientAccount?.currency ?? "USD")
+    : (recipientAccount?.currency ?? "USD");
+  const isCrossCurrency =
+    recipientAccount?._id && senderCurrency !== recipientCurrency;
 
   const autoRate = useMemo(() => {
-    if (!isCrossCurrency || !rates[senderCurrency] || !rates[recipientCurrency]) return 1;
+    if (!isCrossCurrency || !rates[senderCurrency] || !rates[recipientCurrency])
+      return 1;
     return rates[recipientCurrency] / rates[senderCurrency];
   }, [isCrossCurrency, rates, senderCurrency, recipientCurrency]);
 
@@ -73,7 +120,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
     }
   }, [isCrossCurrency, autoRate]);
 
-  const effectiveRate = isCrossCurrency ? (parseFloat(customRate) || autoRate) : 1;
+  const effectiveRate = isCrossCurrency
+    ? parseFloat(customRate) || autoRate
+    : 1;
 
   const [transactionData, setTransactionData] =
     React.useState<TransactionFormData>({
@@ -98,15 +147,15 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
   const pickerAccounts = useMemo<Account[]>(() => {
     if (pickerTarget === "sender") {
       const senderType = activeAccount?.type ?? "personal";
-      return Accounts.filter((a) => a.type === senderType && !a.archived);
+      return Accounts.filter((a) => a.type === senderType && !a.archived && !a.parentId);
     }
     if (pickerTarget === "recipient") {
       if (activeAccount?.type === "income") {
-        return Accounts.filter((a) => a.type === "personal" && !a.archived);
+        return Accounts.filter((a) => a.type === "personal" && !a.archived && !a.parentId);
       }
       if (activeAccount?.type === "personal") {
         return Accounts.filter(
-          (a) => !a.archived && a._id !== activeAccount._id,
+          (a) => !a.archived && !a.parentId && a._id !== activeAccount._id,
         );
       }
     }
@@ -118,15 +167,48 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
   };
 
   const handleSubmit = async () => {
+    // For multi-accounts, require sub-account selection
+    if (activeAccount?.isMultiAccount && !selectedSubAccount) {
+      Alert.alert("Select a sub-account", "Please choose which currency slot to send from.");
+      return;
+    }
+    if ((recipientAccount as any)?.isMultiAccount && !selectedRecipientSubAccount) {
+      Alert.alert("Select a sub-account", "Please choose which currency slot to receive into.");
+      return;
+    }
+
+    const senderBalance = effectiveSender?.balance ?? 0;
+    if (
+      (activeAccount?.type === "personal" || activeAccount?.isMultiAccount) &&
+      Number(transactionData.amount) > senderBalance
+    ) {
+      const senderName = activeAccount.isMultiAccount
+        ? `${activeAccount.name} (${selectedSubAccount?.currency})`
+        : activeAccount.name;
+      Alert.alert(
+        "Insufficient funds",
+        `Not enough balance in "${senderName}".\nAvailable: ${formatNumber(senderBalance)} ${getCurrencyMeta(effectiveSender?.currency).symbol}`,
+      );
+      return;
+    }
+
     try {
+      // Use sub-account as sender/recipient when multi-account
+      const actualSenderId = activeAccount?.isMultiAccount
+        ? selectedSubAccount?._id
+        : transactionData.senderId;
+      const actualRecipientId = (recipientAccount as any)?.isMultiAccount
+        ? selectedRecipientSubAccount?._id
+        : transactionData.recipientId;
+
       const icon =
         activeAccount?.type === "income"
           ? activeAccount.icon
           : recipientAccount?.icon || activeAccount?.icon;
       const response = await axios.post(`${URL}/transactions/addTransaction`, {
         ownerId: transactionData.ownerId,
-        senderId: transactionData.senderId,
-        recipientId: transactionData.recipientId,
+        senderId: actualSenderId,
+        recipientId: actualRecipientId,
         icon,
         comment: transactionData.comment,
         amount: transactionData.amount,
@@ -140,7 +222,11 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
         setMessage("");
       }, 2000);
       if (response.data.ok) {
-        setBalance();
+        // Pass sub-account ID as sender override when needed
+        setBalance(
+          activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
+          (recipientAccount as any)?.isMultiAccount ? selectedRecipientSubAccount?._id : undefined,
+        );
         setRecipientAccount({});
         navigation.navigate("Home", { screen: "Dashboard" });
       }
@@ -148,7 +234,6 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
       console.log(error);
     }
   };
-
 
   return (
     <View style={{ flex: 1, alignItems: "center" }}>
@@ -179,11 +264,20 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   color="white"
                 />
               </TouchableOpacity>
-              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
+              <Text
+                style={{
+                  ...caption1,
+                  color: colors.gray,
+                  fontWeight: font.bold,
+                }}
+              >
                 {activeAccount?.name}
               </Text>
-              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-                {formatNumber(activeAccount?.balance ?? 0)} {activeAccount?.currency}
+              <Text
+                style={{ ...caption1, color: "white", fontWeight: font.bold }}
+              >
+                {formatNumber(effectiveSender?.balance ?? activeAccount?.balance ?? 0)}{" "}
+                {getCurrencyMeta(effectiveSender?.currency ?? activeAccount?.currency).symbol}
               </Text>
             </View>
             <EvilIcons name="arrow-right" size={48} color="white" />
@@ -192,7 +286,10 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 onPress={() => setPickerTarget("recipient")}
                 style={[
                   accounts__add,
-                  { backgroundColor: recipientAccount?.icon?.color || colors.darkGray },
+                  {
+                    backgroundColor:
+                      recipientAccount?.icon?.color || colors.darkGray,
+                  },
                 ]}
               >
                 {recipientAccount?.icon ? (
@@ -205,15 +302,72 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   <FontAwesome5 name="question" size={24} color="white" />
                 )}
               </TouchableOpacity>
-              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
+              <Text
+                style={{
+                  ...caption1,
+                  color: colors.gray,
+                  fontWeight: font.bold,
+                }}
+              >
                 {recipientAccount?.name || "Recipient"}
               </Text>
-              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-                {recipientAccount?.balance != null ? formatNumber(recipientAccount.balance) : ""}
-                {" " + (recipientAccount?.currency || "")}
+              <Text
+                style={{ ...caption1, color: "white", fontWeight: font.bold }}
+              >
+                {recipientAccount?.balance != null
+                  ? formatNumber(recipientAccount.balance)
+                  : ""}
+                {" " +
+                  (getCurrencyMeta(recipientAccount?.currency).symbol || "")}
               </Text>
             </View>
           </View>
+
+          {/* Sub-account currency selector for multi-account sender */}
+          {activeAccount?.isMultiAccount && subAccounts.length > 0 && (
+            <View style={styles.subAccountRow}>
+              {subAccounts.map((sub) => (
+                <TouchableOpacity
+                  key={sub._id}
+                  style={[
+                    styles.subAccountChip,
+                    selectedSubAccount?._id === sub._id && styles.subAccountChipActive,
+                  ]}
+                  onPress={() => setSelectedSubAccount(sub)}
+                >
+                  <Text style={[styles.subAccountChipCurrency, selectedSubAccount?._id === sub._id && styles.subAccountChipTextActive]}>
+                    {getCurrencyMeta(sub.currency).symbol}
+                  </Text>
+                  <Text style={[styles.subAccountChipBalance, selectedSubAccount?._id === sub._id && styles.subAccountChipTextActive]}>
+                    {formatNumber(sub.balance ?? 0)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
+          {/* Sub-account currency selector for multi-account recipient */}
+          {(recipientAccount as any)?.isMultiAccount && recipientSubAccounts.length > 0 && (
+            <View style={styles.subAccountRow}>
+              {recipientSubAccounts.map((sub) => (
+                <TouchableOpacity
+                  key={sub._id}
+                  style={[
+                    styles.subAccountChip,
+                    selectedRecipientSubAccount?._id === sub._id && styles.subAccountChipActive,
+                  ]}
+                  onPress={() => setSelectedRecipientSubAccount(sub)}
+                >
+                  <Text style={[styles.subAccountChipCurrency, selectedRecipientSubAccount?._id === sub._id && styles.subAccountChipTextActive]}>
+                    {getCurrencyMeta(sub.currency).symbol}
+                  </Text>
+                  <Text style={[styles.subAccountChipBalance, selectedRecipientSubAccount?._id === sub._id && styles.subAccountChipTextActive]}>
+                    {formatNumber(sub.balance ?? 0)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           <Modal
             visible={pickerTarget !== null}
@@ -228,7 +382,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             >
               <View style={styles.pickerSheet}>
                 <Text style={styles.pickerTitle}>
-                  {pickerTarget === "sender" ? "Choose sender" : "Choose recipient"}
+                  {pickerTarget === "sender"
+                    ? "Choose sender"
+                    : "Choose recipient"}
                 </Text>
                 <ScrollView>
                   {pickerAccounts.map((item) => (
@@ -243,10 +399,17 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                             currentRecipientId &&
                             currentRecipientId !== item._id &&
                             (() => {
-                              const rec = Accounts.find((a) => a._id === currentRecipientId);
+                              const rec = Accounts.find(
+                                (a) => a._id === currentRecipientId,
+                              );
                               if (!rec) return false;
-                              if (item.type === "income") return rec.type === "personal";
-                              if (item.type === "personal") return rec.type === "expense" || rec.type === "personal";
+                              if (item.type === "income")
+                                return rec.type === "personal";
+                              if (item.type === "personal")
+                                return (
+                                  rec.type === "expense" ||
+                                  rec.type === "personal"
+                                );
                               return false;
                             })();
                           if (!recipientStillValid) {
@@ -255,7 +418,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                           setTransactionData((prev) => ({
                             ...prev,
                             senderId: item._id,
-                            recipientId: recipientStillValid ? prev.recipientId : undefined,
+                            recipientId: recipientStillValid
+                              ? prev.recipientId
+                              : undefined,
                             subcategory: "",
                           }));
                         } else {
@@ -267,11 +432,16 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                       <View
                         style={[
                           styles.pickerIcon,
-                          { backgroundColor: item.icon?.color || colors.darkGray },
+                          {
+                            backgroundColor:
+                              item.icon?.color || colors.darkGray,
+                          },
                         ]}
                       >
                         <MaterialCommunityIcons
-                          name={(item.icon?.icon_value || "wallet-outline") as any}
+                          name={
+                            (item.icon?.icon_value || "wallet-outline") as any
+                          }
                           size={22}
                           color="white"
                         />
@@ -293,9 +463,17 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             style={styles.dateButton}
             onPress={() => setShowDatePicker(true)}
           >
-            <MaterialCommunityIcons name="calendar" size={20} color={colors.primaryGreen} />
+            <MaterialCommunityIcons
+              name="calendar"
+              size={20}
+              color={colors.primaryGreen}
+            />
             <Text style={styles.dateText}>
-              {date.toLocaleDateString("en-EN", { year: "numeric", month: "long", day: "numeric" })}
+              {date.toLocaleDateString("en-EN", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -307,7 +485,10 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 setShowDatePicker(false);
                 if (selected) {
                   setDate(selected);
-                  setTransactionData((prev) => ({ ...prev, time: selected.toISOString() }));
+                  setTransactionData((prev) => ({
+                    ...prev,
+                    time: selected.toISOString(),
+                  }));
                 }
               }}
             />
@@ -322,21 +503,36 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             maxLength={80}
             selectionColor={colors.primaryGreen}
           />
-          <TextInput
-            style={{ ...input, width: "100%", color: "white" }}
-            onChangeText={(text) => handleChange(text, "amount")}
-            placeholderTextColor={colors.primaryGreen}
-            placeholder="Amount*"
-            keyboardType="decimal-pad"
-            clearButtonMode="while-editing"
-            maxLength={20}
-            selectionColor={colors.primaryGreen}
-          />
+          <View style={{ width: "100%", position: "relative" }}>
+            <TextInput
+              style={{ ...input, width: "100%", color: "white", paddingRight: 72 }}
+              onChangeText={(text) => handleChange(text, "amount")}
+              value={transactionData.amount === 0 ? "" : String(transactionData.amount)}
+              placeholderTextColor={colors.primaryGreen}
+              placeholder="Amount*"
+              keyboardType="decimal-pad"
+              clearButtonMode="while-editing"
+              maxLength={20}
+              selectionColor={colors.primaryGreen}
+            />
+            {(activeAccount?.type === "personal" || activeAccount?.isMultiAccount) &&
+              (effectiveSender?.balance ?? 0) > 0 && (
+              <TouchableOpacity
+                style={styles.allInBtn}
+                onPress={() =>
+                  setTransactionData((prev) => ({
+                    ...prev,
+                    amount: effectiveSender?.balance ?? 0,
+                  }))
+                }
+              >
+                <Text style={styles.allInText}>All in</Text>
+              </TouchableOpacity>
+            )}
+          </View>
           {isCrossCurrency && (
             <View style={styles.rateContainer}>
-              <Text style={styles.rateLabel}>
-                1 {senderCurrency} =
-              </Text>
+              <Text style={styles.rateLabel}>1 {senderCurrency} =</Text>
               <TextInput
                 style={styles.rateInput}
                 value={customRate}
@@ -350,7 +546,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
           )}
           {isCrossCurrency && transactionData.amount > 0 && (
             <Text style={styles.ratePreview}>
-              {formatNumber(transactionData.amount)} {senderCurrency} → {formatNumber(transactionData.amount * effectiveRate)} {recipientCurrency}
+              {formatNumber(transactionData.amount)} {senderCurrency} →{" "}
+              {formatNumber(transactionData.amount * effectiveRate)}{" "}
+              {recipientCurrency}
             </Text>
           )}
           {(() => {
@@ -358,11 +556,12 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
               activeAccount?.type === "personal" &&
               recipientAccount?.type === "expense";
             const expenseAccount =
-              activeAccount?.type === "income" || activeAccount?.type === "expense"
+              activeAccount?.type === "income" ||
+              activeAccount?.type === "expense"
                 ? activeAccount
                 : isExpenseRecipient
-                ? recipientAccount
-                : null;
+                  ? recipientAccount
+                  : null;
             if (!expenseAccount) return null;
             return (
               <>
@@ -370,7 +569,10 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 <ScrollView horizontal style={styles.subcats}>
                   <TouchableOpacity
                     onPress={() =>
-                      setTransactionData({ ...transactionData, subcategory: "" })
+                      setTransactionData({
+                        ...transactionData,
+                        subcategory: "",
+                      })
                     }
                     style={{
                       ...styles.subcat,
@@ -416,7 +618,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                 </ScrollView>
                 <Dialog.Container visible={addSubcatDialogVisible}>
                   <Dialog.Title>New Subcategory</Dialog.Title>
-                  <Dialog.Description>Enter subcategory name</Dialog.Description>
+                  <Dialog.Description>
+                    Enter subcategory name
+                  </Dialog.Description>
                   <Dialog.Input
                     value={newSubcatInput}
                     onChangeText={setNewSubcatInput}
@@ -429,7 +633,10 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
                   <Dialog.Button
                     label="Add"
                     onPress={async () => {
-                      if (newSubcatInput.trim().length > 0 && expenseAccount._id) {
+                      if (
+                        newSubcatInput.trim().length > 0 &&
+                        expenseAccount._id
+                      ) {
                         await addSubcategoryToAccount(
                           expenseAccount._id,
                           newSubcatInput.trim(),
@@ -443,7 +650,9 @@ const NewOperation = ({ navigation }: { navigation: any }) => {
             );
           })()}
 
-          {message ? <Text style={{ color: "white", marginTop: 8 }}>{message}</Text> : null}
+          {message ? (
+            <Text style={{ color: "white", marginTop: 8 }}>{message}</Text>
+          ) : null}
         </View>
       </ScrollView>
       <TouchableOpacity style={{ ...submit_button }} onPress={handleSubmit}>
@@ -549,6 +758,51 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
     fontWeight: "600",
+  },
+  subAccountRow: {
+    flexDirection: "row" as const,
+    flexWrap: "wrap" as const,
+    gap: 8,
+    width: "100%",
+    paddingVertical: 4,
+  },
+  subAccountChip: {
+    backgroundColor: colors.darkGray,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: "center" as const,
+    gap: 2,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  subAccountChipActive: {
+    borderColor: colors.primaryGreen,
+    backgroundColor: colors.primaryGreen + "22",
+  },
+  subAccountChipCurrency: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "700" as const,
+  },
+  subAccountChipBalance: {
+    color: colors.gray,
+    fontSize: 11,
+  },
+  subAccountChipTextActive: {
+    color: colors.primaryGreen,
+  },
+  allInBtn: {
+    position: "absolute",
+    right: 14,
+    top: 0,
+    bottom: 0,
+    justifyContent: "center",
+  },
+  allInText: {
+    color: colors.primaryGreen,
+    fontSize: 14,
+    fontWeight: "700",
   },
 });
 

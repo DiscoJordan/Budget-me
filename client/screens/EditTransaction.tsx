@@ -34,7 +34,8 @@ import { formatNumber } from "../utils/formatNumber";
 import { Account } from "../src/types";
 
 const EditTransaction = ({ navigation }: { navigation: any }) => {
-  const { activeTransaction, updateTransaction, deleteTransaction } = useContext(TransactionsContext);
+  const { activeTransaction, updateTransaction, deleteTransaction } =
+    useContext(TransactionsContext);
   const { accounts } = useContext(AccountsContext);
   const { rates } = useContext(CurrencyContext);
 
@@ -47,27 +48,35 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
     : accounts.find((a) => a._id === (activeTransaction?.recipientId as any));
 
   const [sender, setSender] = useState<Account | null>(initialSender ?? null);
-  const [recipient, setRecipient] = useState<Account | null>(initialRecipient ?? null);
+  const [recipient, setRecipient] = useState<Account | null>(
+    initialRecipient ?? null,
+  );
   const [amount, setAmount] = useState(String(activeTransaction?.amount ?? ""));
   const [comment, setComment] = useState(activeTransaction?.comment ?? "");
-  const [subcategory, setSubcategory] = useState(activeTransaction?.subcategory ?? "");
-  const [date, setDate] = useState(new Date(activeTransaction?.time ?? Date.now()));
+  const [subcategory, setSubcategory] = useState(
+    activeTransaction?.subcategory ?? "",
+  );
+  const [date, setDate] = useState(
+    new Date(activeTransaction?.time ?? Date.now()),
+  );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [message, setMessage] = useState("");
 
   const senderCurrency = sender?.currency ?? "USD";
   const recipientCurrency = recipient?.currency ?? "USD";
-  const isCrossCurrency = sender && recipient && senderCurrency !== recipientCurrency;
+  const isCrossCurrency =
+    sender && recipient && senderCurrency !== recipientCurrency;
 
   const autoRate = useMemo(() => {
-    if (!isCrossCurrency || !rates[senderCurrency] || !rates[recipientCurrency]) return 1;
+    if (!isCrossCurrency || !rates[senderCurrency] || !rates[recipientCurrency])
+      return 1;
     return rates[recipientCurrency] / rates[senderCurrency];
   }, [isCrossCurrency, rates, senderCurrency, recipientCurrency]);
 
   const [customRate, setCustomRate] = useState(
     activeTransaction?.rate != null && activeTransaction.rate !== 1
       ? String(activeTransaction.rate)
-      : ""
+      : "",
   );
 
   useEffect(() => {
@@ -76,22 +85,29 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
     }
   }, [isCrossCurrency, autoRate]);
 
-  const effectiveRate = isCrossCurrency ? (parseFloat(customRate) || autoRate) : 1;
+  const effectiveRate = isCrossCurrency
+    ? parseFloat(customRate) || autoRate
+    : 1;
 
   const availableAccounts = useMemo<Account[]>(() => [...accounts], [accounts]);
 
   const recipientCandidates = useMemo(() => {
     if (!sender) return availableAccounts;
-    if (sender.type === "income") return availableAccounts.filter((a) => a.type === "personal");
+    if (sender.type === "income")
+      return availableAccounts.filter((a) => a.type === "personal");
     if (sender.type === "personal")
-      return availableAccounts.filter((a) => a.type === "expense" || (a.type === "personal" && a._id !== sender._id));
+      return availableAccounts.filter(
+        (a) =>
+          a.type === "expense" ||
+          (a.type === "personal" && a._id !== sender._id),
+      );
     return [];
   }, [sender, availableAccounts]);
 
   const handleSave = async () => {
     if (!activeTransaction || !sender || !recipient) return;
     const icon =
-      sender.type === "income" ? sender.icon : recipient.icon ?? sender.icon;
+      sender.type === "income" ? sender.icon : (recipient.icon ?? sender.icon);
 
     const ok = await updateTransaction(activeTransaction._id, {
       senderId: sender._id,
@@ -127,6 +143,21 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
       },
     ]);
   };
+
+  useEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={handleDelete}>
+          <MaterialCommunityIcons
+            style={{ paddingRight: 20 }}
+            name="delete-sweep-outline"
+            size={24}
+            color="white"
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, activeTransaction]);
 
   const subcategorySource =
     sender?.type === "personal"
@@ -183,7 +214,10 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           <View style={styles.accountsRow}>
             <View style={account}>
               <TouchableOpacity
-                style={[accounts__add, { backgroundColor: sender?.icon?.color || "gray" }]}
+                style={[
+                  accounts__add,
+                  { backgroundColor: sender?.icon?.color || "gray" },
+                ]}
               >
                 <MaterialCommunityIcons
                   name={(sender?.icon?.icon_value || "wallet-outline") as any}
@@ -191,17 +225,28 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
                   color="white"
                 />
               </TouchableOpacity>
-              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
+              <Text
+                style={{
+                  ...caption1,
+                  color: colors.gray,
+                  fontWeight: font.bold,
+                }}
+              >
                 {sender?.name}
               </Text>
-              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
+              <Text
+                style={{ ...caption1, color: "white", fontWeight: font.bold }}
+              >
                 {formatNumber(sender?.balance ?? 0)} {senderCurrency}
               </Text>
             </View>
             <EvilIcons name="arrow-right" size={48} color="white" />
             <View style={account}>
               <TouchableOpacity
-                style={[accounts__add, { backgroundColor: recipient?.icon?.color || "gray" }]}
+                style={[
+                  accounts__add,
+                  { backgroundColor: recipient?.icon?.color || "gray" },
+                ]}
               >
                 {recipient?.icon ? (
                   <MaterialCommunityIcons
@@ -213,11 +258,21 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
                   <FontAwesome5 name="question" size={24} color="white" />
                 )}
               </TouchableOpacity>
-              <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
+              <Text
+                style={{
+                  ...caption1,
+                  color: colors.gray,
+                  fontWeight: font.bold,
+                }}
+              >
                 {recipient?.name || "Account"}
               </Text>
-              <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-                {recipient ? `${formatNumber(recipient.balance ?? 0)} ${recipientCurrency}` : ""}
+              <Text
+                style={{ ...caption1, color: "white", fontWeight: font.bold }}
+              >
+                {recipient
+                  ? `${formatNumber(recipient.balance ?? 0)} ${recipientCurrency}`
+                  : ""}
               </Text>
             </View>
           </View>
@@ -225,10 +280,21 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           <View style={green_line} />
 
           {/* Date */}
-          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <MaterialCommunityIcons name="calendar" size={20} color={colors.primaryGreen} />
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setShowDatePicker(true)}
+          >
+            <MaterialCommunityIcons
+              name="calendar"
+              size={20}
+              color={colors.primaryGreen}
+            />
             <Text style={styles.dateText}>
-              {date.toLocaleDateString("en-EN", { year: "numeric", month: "long", day: "numeric" })}
+              {date.toLocaleDateString("en-EN", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -285,7 +351,9 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           )}
           {isCrossCurrency && parseFloat(amount) > 0 && (
             <Text style={styles.ratePreview}>
-              {formatNumber(parseFloat(amount))} {senderCurrency} → {formatNumber(parseFloat(amount) * effectiveRate)} {recipientCurrency}
+              {formatNumber(parseFloat(amount))} {senderCurrency} →{" "}
+              {formatNumber(parseFloat(amount) * effectiveRate)}{" "}
+              {recipientCurrency}
             </Text>
           )}
 
@@ -303,9 +371,14 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
               <TouchableOpacity
                 key={subcat._id || subcat.id || subcat.subcategory}
                 onPress={() => setSubcategory(subcat.subcategory)}
-                style={[styles.subcat, { opacity: subcategory === subcat.subcategory ? 1 : 0.5 }]}
+                style={[
+                  styles.subcat,
+                  { opacity: subcategory === subcat.subcategory ? 1 : 0.5 },
+                ]}
               >
-                <Text style={body}>{subcat.subcategory.slice(0, 1).toUpperCase()}</Text>
+                <Text style={body}>
+                  {subcat.subcategory.slice(0, 1).toUpperCase()}
+                </Text>
                 <Text style={caption1}>{subcat.subcategory}</Text>
               </TouchableOpacity>
             ))}
@@ -327,14 +400,13 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
             </View>
           </View>
 
-          {message ? <Text style={{ color: colors.red, marginTop: 8 }}>{message}</Text> : null}
+          {message ? (
+            <Text style={{ color: colors.red, marginTop: 8 }}>{message}</Text>
+          ) : null}
         </View>
       </ScrollView>
 
       <View style={styles.bottomRow}>
-        <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
-          <MaterialCommunityIcons name="delete-outline" size={22} color="white" />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={submit_button_text}>Save</Text>
         </TouchableOpacity>
@@ -418,14 +490,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.primaryGreen,
     alignItems: "center" as const,
-    padding: 16,
-    borderRadius: 20,
-  },
-  deleteButton: {
-    width: 52,
-    backgroundColor: colors.red,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
     padding: 16,
     borderRadius: 20,
   },
