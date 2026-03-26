@@ -31,6 +31,7 @@ import { TransactionsContext } from "../context/TransactionsContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { formatNumber } from "../utils/formatNumber";
+import { parseNumber } from "../utils/parseNumber";
 import { Account } from "../src/types";
 
 const EditTransaction = ({ navigation }: { navigation: any }) => {
@@ -86,7 +87,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
   }, [isCrossCurrency, autoRate]);
 
   const effectiveRate = isCrossCurrency
-    ? parseFloat(customRate) || autoRate
+    ? parseNumber(customRate) || autoRate
     : 1;
 
   const availableAccounts = useMemo<Account[]>(() => [...accounts], [accounts]);
@@ -112,7 +113,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
     const ok = await updateTransaction(activeTransaction._id, {
       senderId: sender._id,
       recipientId: recipient._id,
-      amount: parseFloat(amount) || 0,
+      amount: parseNumber(amount) || 0,
       rate: effectiveRate,
       comment,
       subcategory,
@@ -349,10 +350,10 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
               <Text style={styles.rateLabel}>{recipientCurrency}</Text>
             </View>
           )}
-          {isCrossCurrency && parseFloat(amount) > 0 && (
+          {isCrossCurrency && parseNumber(amount) > 0 && (
             <Text style={styles.ratePreview}>
-              {formatNumber(parseFloat(amount))} {senderCurrency} →{" "}
-              {formatNumber(parseFloat(amount) * effectiveRate)}{" "}
+              {formatNumber(parseNumber(amount))} {senderCurrency} →{" "}
+              {formatNumber(parseNumber(amount) * effectiveRate)}{" "}
               {recipientCurrency}
             </Text>
           )}

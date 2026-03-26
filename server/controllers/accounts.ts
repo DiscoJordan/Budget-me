@@ -211,11 +211,13 @@ const setBalance = async (req: AuthRequest, res: Response): Promise<void> => {
     if (senderAccount.type === "income") {
       senderAccount.balance *= -1;
     }
+    senderAccount.balance = Math.round(senderAccount.balance * 100) / 100;
 
     recipientAccount.balance =
       recipientAccount.initialBalance +
       incomeRecepientAmount -
       expenseRecepientAmount;
+    recipientAccount.balance = Math.round(recipientAccount.balance * 100) / 100;
 
     await senderAccount.save();
     await recipientAccount.save();

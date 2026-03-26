@@ -2,6 +2,8 @@ import React, { useContext, useState } from "react";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
+import { DebtsContext } from "../context/DebtsContext";
+import { TransactionsContext } from "../context/TransactionsContext";
 import { getCurrencyMeta, formatCurrencyLabel } from "../utils/currencyInfo";
 import { Feather } from "@expo/vector-icons";
 import {
@@ -14,7 +16,7 @@ import {
   TextInput,
   ActivityIndicator,
   Switch,
-  SectionList,
+  Alert,
 } from "react-native";
 import {
   container,
@@ -31,9 +33,13 @@ function Settings() {
   const { currencies, mainCurrency, setMainCurrency, loading, lastFetchedAt } =
     useContext(CurrencyContext);
   const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
+  const { settings: debtSettings, setEnabled: setDebtEnabled } = useContext(DebtsContext);
+  const { deleteAllTransactions } = useContext(TransactionsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
 
   const expenseAccounts = accounts.filter((a) => a.type === "expense");
 
@@ -52,7 +58,7 @@ function Settings() {
   };
 
   return (
-    <View style={container}>
+    <View style={{ ...container, paddingBottom: 90 }}>
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
         style={setting_option}
@@ -88,6 +94,31 @@ function Settings() {
       >
         <Text style={styles.label}>Dashboard settings</Text>
         <Feather name="chevron-right" size={20} color={colors.gray} />
+      </TouchableOpacity>
+
+      <Text style={styles.sectionLabel} numberOfLines={1}>Debts</Text>
+
+      <View style={setting_option}>
+        <Text style={styles.label}>Enable debts</Text>
+        <Switch
+          value={debtSettings.enabled}
+          onValueChange={setDebtEnabled}
+          trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
+          thumbColor="white"
+        />
+      </View>
+
+      <Text style={styles.sectionLabel}>Danger zone</Text>
+
+      <TouchableOpacity
+        onPress={() => {
+          setDeleteInput("");
+          setDeleteConfirmVisible(true);
+        }}
+        style={setting_option}
+      >
+        <Text style={{ ...styles.label, color: colors.red }}>Reset all transactions</Text>
+        <Feather name="trash-2" size={20} color={colors.red} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={logout} style={setting_option}>
@@ -217,6 +248,59 @@ function Settings() {
           />
         </View>
       </Modal>
+
+      <Modal
+        visible={deleteConfirmVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setDeleteConfirmVisible(false)}
+      >
+        <View style={styles.deleteOverlay}>
+          <View style={styles.deleteSheet}>
+            <Text style={styles.deleteTitle}>Reset all transactions</Text>
+            <Text style={styles.deleteDesc}>
+              This will permanently delete all transactions and reset all account balances. This action cannot be undone.
+            </Text>
+            <Text style={styles.deleteDesc}>
+              Type <Text style={{ color: colors.red, fontWeight: "700" }}>Delete</Text> to confirm:
+            </Text>
+            <TextInput
+              style={styles.deleteInput}
+              value={deleteInput}
+              onChangeText={setDeleteInput}
+              placeholder="Delete"
+              placeholderTextColor={colors.darkGray}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <View style={styles.deleteActions}>
+              <TouchableOpacity
+                style={styles.deleteCancelBtn}
+                onPress={() => setDeleteConfirmVisible(false)}
+              >
+                <Text style={styles.deleteCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.deleteConfirmBtn,
+                  { opacity: deleteInput === "Delete" ? 1 : 0.4 },
+                ]}
+                disabled={deleteInput !== "Delete"}
+                onPress={async () => {
+                  setDeleteConfirmVisible(false);
+                  const ok = await deleteAllTransactions();
+                  Alert.alert(
+                    ok ? "Done" : "Error",
+                    ok ? "All transactions have been deleted." : "Failed to delete transactions.",
+                  );
+                }}
+              >
+                <Text style={styles.deleteConfirmText}>Delete all</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -336,6 +420,67 @@ const styles = StyleSheet.create({
   archiveName: {
     color: "white",
     fontSize: size.body,
+  },
+  deleteOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  deleteSheet: {
+    backgroundColor: colors.darkBlack,
+    borderRadius: 16,
+    padding: 24,
+    width: "100%",
+    gap: 12,
+  },
+  deleteTitle: {
+    color: "white",
+    fontSize: size.title3,
+    fontWeight: font.bold,
+  },
+  deleteDesc: {
+    color: colors.gray,
+    fontSize: size.body,
+    lineHeight: 20,
+  },
+  deleteInput: {
+    backgroundColor: colors.darkGray,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "white",
+    fontSize: size.body,
+  },
+  deleteActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+  },
+  deleteCancelBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: colors.darkGray,
+  },
+  deleteCancelText: {
+    color: "white",
+    fontSize: size.body,
+    fontWeight: font.semibold,
+  },
+  deleteConfirmBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderRadius: 10,
+    backgroundColor: colors.red,
+  },
+  deleteConfirmText: {
+    color: "white",
+    fontSize: size.body,
+    fontWeight: font.bold,
   },
 });
 

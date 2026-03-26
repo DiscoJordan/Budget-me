@@ -17,14 +17,16 @@ interface DropTarget {
 interface UseDragOperationOptions {
   setActiveAccount: (acc: Account | null) => void;
   setRecipientAccount: (acc: Partial<Account>) => void;
-  navigate: (screen: string) => void;
+  navigate: (screen: string, params?: Record<string, any>) => void;
 }
 
 export function isValidDrop(source: Account, target: Account): boolean {
   return (
     (source.type === "income" && target.type === "personal") ||
     (source.type === "personal" && target.type === "expense") ||
-    (source.type === "personal" && target.type === "personal" && source._id !== target._id)
+    (source.type === "personal" && target.type === "personal" && source._id !== target._id) ||
+    (source.type === "personal" && target.type === "debt") ||
+    (source.type === "debt" && target.type === "personal")
   );
 }
 
@@ -102,9 +104,21 @@ export function useDragOperation({
         if (current) {
           const target = getTargetAt(x, y);
           if (target && isValidDrop(current, target.account)) {
-            setActiveAccount(current);
-            setRecipientAccount(target.account);
-            navigate("New operation");
+            if (current._id === "__debts__") {
+              // Debts tile → personal: "borrow from someone" or "receive repayment"
+              setActiveAccount(null);
+              setRecipientAccount(target.account);
+              navigate("New operation", { debtMode: "borrow" });
+            } else if (target.account._id === "__debts__") {
+              // Personal → Debts tile: "lend to someone" or "repay someone"
+              setActiveAccount(current);
+              setRecipientAccount({});
+              navigate("New operation", { debtMode: "lend" });
+            } else {
+              setActiveAccount(current);
+              setRecipientAccount(target.account);
+              navigate("New operation");
+            }
           }
         }
         return null;

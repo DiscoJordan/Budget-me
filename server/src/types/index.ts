@@ -3,7 +3,7 @@ import { Request } from "express";
 
 // ─── Domain enums ────────────────────────────────────────────────────────────
 
-export type AccountType = "income" | "personal" | "expense";
+export type AccountType = "income" | "personal" | "expense" | "debt";
 
 // ─── Subdocument shapes ───────────────────────────────────────────────────────
 
