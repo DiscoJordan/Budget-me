@@ -89,6 +89,7 @@ const deleteTransaction = async (
         );
         account.balance = account.initialBalance + incomeAmount - expenseAmount;
         if (account.type === "income") account.balance *= -1;
+        account.balance = Math.round(account.balance * 100) / 100;
         await account.save();
       }
 
@@ -115,6 +116,7 @@ const recalcBalance = async (accountId: string, ownerId: string): Promise<void> 
   const expenseAmount = expenseTransactions.reduce((acc, t) => acc + t.amount, 0);
   account.balance = account.initialBalance + incomeAmount - expenseAmount;
   if (account.type === "income") account.balance *= -1;
+  account.balance = Math.round(account.balance * 100) / 100;
   await account.save();
 };
 
@@ -223,10 +225,40 @@ const getAllTransactions = async (
   }
 };
 
+const deleteAllTransactions = async (
+  req: AuthRequest,
+  res: Response
+): Promise<void> => {
+  try {
+    const { ownerId } = req.body as { ownerId: string };
+    if (!ownerId) {
+      res.status(400).send({ ok: false, data: "ownerId is required" });
+      return;
+    }
+
+    await Transactions.deleteMany({ ownerId });
+
+    // Reset all account balances to initialBalance
+    const accounts = await Accounts.find({ ownerId });
+    for (const account of accounts) {
+      account.balance = account.type === "income"
+        ? 0
+        : account.initialBalance ?? 0;
+      await account.save();
+    }
+
+    res.status(200).send({ ok: true, data: "All transactions deleted" });
+  } catch (error) {
+    const err = error as Error;
+    res.status(400).send({ ok: false, data: err.message });
+  }
+};
+
 export {
   addTransaction,
   getAllTransactions,
   getTransaction,
   deleteTransaction,
   updateTransaction,
+  deleteAllTransactions,
 };

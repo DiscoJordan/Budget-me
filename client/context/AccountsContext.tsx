@@ -216,7 +216,15 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   const getAccountsOfUser = async (): Promise<void> => {
     try {
       const response = await axios.get(`${URL}/accounts/getall/${user?.id}`);
-      setAccounts(response.data.data);
+      const fresh: Account[] = response.data.data;
+      setAccounts(fresh);
+
+      // Sync activeAccount with fresh data (e.g. after editing currency)
+      setActiveAccount((prev) => {
+        if (!prev) return prev;
+        const match = fresh.find((a) => a._id === prev._id);
+        return match ?? null;
+      });
     } catch (error) {
       console.log(error);
     }

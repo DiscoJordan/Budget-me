@@ -1,6 +1,19 @@
 // ─── Domain enums ─────────────────────────────────────────────────────────────
 
-export type AccountType = "income" | "personal" | "expense";
+export type AccountType = "income" | "personal" | "expense" | "debt";
+
+// ─── Debts feature settings ───────────────────────────────────────────────────
+
+export interface DebtsSettings {
+  enabled: boolean;
+  includeInPersonalBalance: boolean;
+}
+
+export interface DebtsContextType {
+  settings: DebtsSettings;
+  setEnabled: (v: boolean) => Promise<void>;
+  setIncludeInPersonalBalance: (v: boolean) => Promise<void>;
+}
 
 // ─── Subdocument shapes ───────────────────────────────────────────────────────
 
@@ -148,6 +161,7 @@ export interface TransactionsContextType {
     fields: Partial<Transaction & { senderId: string; recipientId: string }>,
   ) => Promise<boolean>;
   deleteTransaction: (id: string) => Promise<boolean>;
+  deleteAllTransactions: () => Promise<boolean>;
 }
 
 export interface CurrencyContextType {

@@ -39,8 +39,9 @@ import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Subcategory } from "../src/types";
 import { TransactionsContext } from "../context/TransactionsContext";
+import { parseNumber } from "../utils/parseNumber";
 
-function NewAccount({ navigation }: { navigation: any }) {
+function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
   const { login, user } = useContext(UsersContext);
   const {
     getAccountsOfUser,
@@ -99,7 +100,6 @@ function NewAccount({ navigation }: { navigation: any }) {
     ).length;
 
   useEffect(() => {
-    console.log(accountData, "accountData");
     if (accountData.icon) {
       setAccountData(accountData);
     } else {
@@ -109,7 +109,11 @@ function NewAccount({ navigation }: { navigation: any }) {
     if (!accountData.currency && type !== "edit") {
       setAccountData((prev) => ({ ...prev, currency: mainCurrency }));
     }
-    console.log("type: ", type);
+    // Apply forceType from navigation params (e.g. "debt" from Debts screen)
+    const forceType = route?.params?.forceType;
+    if (forceType && type !== "edit") {
+      setAccountData((prev) => ({ ...prev, type: forceType }));
+    }
   }, []);
 
   const handleSubmit = async (e: any) => {
@@ -143,7 +147,7 @@ function NewAccount({ navigation }: { navigation: any }) {
               });
             }
           }
-          getAccountsOfUser();
+          await getAccountsOfUser();
           navigation.navigate("Home", { screen: "Dashboard" });
         }
       } else {
@@ -153,8 +157,12 @@ function NewAccount({ navigation }: { navigation: any }) {
         setMessage(response.data.data);
         setTimeout(() => setMessage(""), 2000);
         if (response.data.ok) {
-          getAccountsOfUser();
-          navigation.navigate("Home", { screen: "Dashboard" });
+          await getAccountsOfUser();
+          if (accountData.type === "debt") {
+            navigation.goBack();
+          } else {
+            navigation.navigate("Home", { screen: "Dashboard" });
+          }
         }
       }
     } catch (error) {
@@ -209,28 +217,69 @@ function NewAccount({ navigation }: { navigation: any }) {
         }}
         keyboardShouldPersistTaps="handled"
       >
-      <View style={{ ...account }}>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Choose icon")}
-          style={{
-            ...accounts__add,
-            backgroundColor: accountData.icon.color,
-          }}
-        >
-          <MaterialCommunityIcons
-            name={
-              (accountData?.icon?.icon_value ||
-                activeAccount?.icon?.icon_value ||
-                "credit-card-outline") as any
-            }
-            size={24}
-            color="white"
-          />
-        </TouchableOpacity>
-        <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
-          Icon
-        </Text>
-      </View>
+      {accountData.type === "debt" ? (
+        <>
+          <View style={{ alignItems: "center", gap: 8 }}>
+            <View
+              style={{
+                ...accounts__add,
+                backgroundColor: accountData.icon.color,
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Text style={{ color: "white", fontSize: 28, fontWeight: "700" }}>
+                {(accountData.name || "?").charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
+              Color
+            </Text>
+          </View>
+          <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, width: "100%", paddingHorizontal: 10 }}>
+            {iconColors.map((color) => (
+              <TouchableOpacity
+                key={color}
+                onPress={() => setAccountData({ ...accountData, icon: { ...accountData.icon, color } })}
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: color,
+                  borderWidth: accountData.icon.color === color ? 4 : 0,
+                  borderColor: "white",
+                }}
+              />
+            ))}
+          </View>
+        </>
+      ) : (
+        <View style={{ ...account }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Choose icon")}
+            style={{
+              ...accounts__add,
+              backgroundColor: accountData.icon.color,
+            }}
+          >
+            <MaterialCommunityIcons
+              name={
+                (accountData?.icon?.icon_value ||
+                  activeAccount?.icon?.icon_value ||
+                  "credit-card-outline") as any
+              }
+              size={24}
+              color="white"
+            />
+          </TouchableOpacity>
+          <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
+            Icon
+          </Text>
+        </View>
+      )}
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "name")}
@@ -247,7 +296,7 @@ function NewAccount({ navigation }: { navigation: any }) {
         <TextInput
           style={styles.input}
           onChangeText={(text) =>
-            setAccountData({ ...accountData, balance: parseFloat(text) || 0 })
+            setAccountData({ ...accountData, balance: parseNumber(text) })
           }
           value={accountData.balance ? String(accountData.balance) : ""}
           placeholderTextColor={colors.primaryGreen}
@@ -364,7 +413,7 @@ function NewAccount({ navigation }: { navigation: any }) {
         </View>
       )}
 
-      {accountData.type !== "personal" && (
+      {accountData.type !== "personal" && accountData.type !== "debt" && (
         <>
           <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
           <ScrollView horizontal style={{ width: "100%" }}>
@@ -506,7 +555,7 @@ function NewAccount({ navigation }: { navigation: any }) {
                 return;
               }
 
-              const balance = parseFloat(pendingSubBalance) || 0;
+              const balance = parseNumber(pendingSubBalance);
               if (type === "edit" && activeAccount?._id) {
                 // create immediately when editing
                 await axios.post(`${URL}/accounts/addaccount`, {

@@ -52,6 +52,23 @@ export const TransactionsProvider = ({
     }
   };
 
+  const deleteAllTransactions = async (): Promise<boolean> => {
+    try {
+      const response = await axios.post(`${URL}/transactions/deleteAllTransactions`, {
+        ownerId: user?.id,
+      });
+      if (response.data.ok) {
+        setTransactions([]);
+        await getAccountsOfUser();
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  };
+
   const deleteTransaction = async (id: string): Promise<boolean> => {
     try {
       const response = await axios.post(`${URL}/transactions/deleteTransaction`, {
@@ -78,6 +95,7 @@ export const TransactionsProvider = ({
         setActiveTransaction,
         updateTransaction,
         deleteTransaction,
+        deleteAllTransactions,
       }}
     >
       {children}

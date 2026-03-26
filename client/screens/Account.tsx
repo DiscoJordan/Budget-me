@@ -5,7 +5,8 @@ import {
   TouchableOpacity,
   ScrollView,
 } from "react-native";
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useCallback } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   container,
   body,
@@ -58,7 +59,12 @@ function groupByDate(transactions: any[]): Record<string, any[]> {
 const Account = ({ navigation }: { navigation: any }) => {
   const { transactions, getTransactionsOfUser, setActiveTransaction } =
     useContext(TransactionsContext);
-  const { activeAccount, accounts } = useContext(AccountsContext);
+  const {
+    activeAccount,
+    accounts,
+    setActiveAccount,
+    setRecipientAccount,
+  } = useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
 
@@ -70,6 +76,18 @@ const Account = ({ navigation }: { navigation: any }) => {
   useEffect(() => {
     getTransactionsOfUser();
   }, []);
+
+  // Sync activeAccount with latest accounts data when screen regains focus
+  useFocusEffect(
+    useCallback(() => {
+      if (activeAccount) {
+        const fresh = accounts.find((a) => a._id === activeAccount._id);
+        if (fresh && fresh !== activeAccount) {
+          setActiveAccount(fresh);
+        }
+      }
+    }, [accounts, activeAccount]),
+  );
 
   // For multi-accounts, include all sub-account IDs in the filter
   const accountIds = activeAccount?.isMultiAccount
@@ -84,6 +102,8 @@ const Account = ({ navigation }: { navigation: any }) => {
       return accountIds.includes(senderId) || accountIds.includes(recipientId);
     if (activeAccount?.type === "expense")
       return accountIds.includes(recipientId);
+    if (activeAccount?.type === "debt")
+      return accountIds.includes(senderId) || accountIds.includes(recipientId);
     return false;
   });
 
@@ -95,8 +115,11 @@ const Account = ({ navigation }: { navigation: any }) => {
     0,
   );
   const outflows = transactionsOfAccount.reduce(
-    (acc, t) =>
-      accountIds.includes((t.senderId as any)?._id)
+    (acc, t) => {
+      const senderType = (t.senderId as any)?.type;
+      const recipientType = (t.recipientId as any)?.type;
+      if (senderType === "debt" || recipientType === "debt") return acc;
+      return accountIds.includes((t.senderId as any)?._id)
         ? acc +
           toMainCurrency(
             t.amount ?? 0,
@@ -104,12 +127,16 @@ const Account = ({ navigation }: { navigation: any }) => {
             rates,
             mainCurrency,
           )
-        : acc,
+        : acc;
+    },
     0,
   );
   const inflows = transactionsOfAccount.reduce(
-    (acc, t) =>
-      accountIds.includes((t.recipientId as any)?._id)
+    (acc, t) => {
+      const senderType = (t.senderId as any)?.type;
+      const recipientType = (t.recipientId as any)?.type;
+      if (senderType === "debt" || recipientType === "debt") return acc;
+      return accountIds.includes((t.recipientId as any)?._id)
         ? acc +
           toMainCurrency(
             (t.amount ?? 0) * (t.rate ?? 1),
@@ -117,7 +144,8 @@ const Account = ({ navigation }: { navigation: any }) => {
             rates,
             mainCurrency,
           )
-        : acc,
+        : acc;
+    },
     0,
   );
 
@@ -147,7 +175,35 @@ const Account = ({ navigation }: { navigation: any }) => {
           backgroundColor: colors.background,
         }}
       >
-        {activeAccount?.type !== "personal" && (
+        {activeAccount?.type === "debt" && (
+          <View style={styles.debtSummary}>
+            <View style={[styles.debtAvatarLarge, { backgroundColor: activeAccount.icon?.color || colors.darkGray }]}>
+              <Text style={styles.debtAvatarLetter}>
+                {activeAccount.name.charAt(0).toUpperCase()}
+              </Text>
+            </View>
+            <Text
+              style={{
+                ...largeTitle,
+                color:
+                  (activeAccount.balance ?? 0) >= 0 ? colors.green : colors.red,
+              }}
+            >
+              {(activeAccount.balance ?? 0) >= 0 ? "+" : ""}
+              {formatNumber(activeAccount.balance ?? 0)}{" "}
+              {getCurrencyMeta(activeAccount.currency).symbol}
+            </Text>
+            <Text style={{ ...body, color: colors.gray }}>
+              {(activeAccount.balance ?? 0) > 0
+                ? "Owes you"
+                : (activeAccount.balance ?? 0) < 0
+                ? "You owe"
+                : "Settled up"}
+            </Text>
+          </View>
+        )}
+
+        {activeAccount?.type !== "personal" && activeAccount?.type !== "debt" && (
           <View style={styles.summaryBlock}>
             <View style={{ gap: 8, alignItems: "center" }}>
               <Text style={{ ...body, color: colors.gray }}>
@@ -224,8 +280,37 @@ const Account = ({ navigation }: { navigation: any }) => {
           </>
         )}
 
+        {activeAccount?.type === "debt" && (
+          <View style={styles.debtActionsInline}>
+            <TouchableOpacity
+              style={[styles.debtBtn, { backgroundColor: colors.green }]}
+              onPress={() => {
+                setRecipientAccount(activeAccount);
+                setActiveAccount(null);
+                navigation.navigate("New operation", { debtMode: "lend" });
+              }}
+            >
+              <Text style={styles.debtBtnText}>
+                {(activeAccount.balance ?? 0) < 0 ? "Repay" : "Lend"}
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.debtBtn, { backgroundColor: colors.red }]}
+              onPress={() => {
+                setActiveAccount(activeAccount);
+                setRecipientAccount({});
+                navigation.navigate("New operation", { debtMode: "borrow" });
+              }}
+            >
+              <Text style={styles.debtBtnText}>
+                {(activeAccount.balance ?? 0) > 0 ? "Receive" : "Borrow"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View style={styles.listBlock}>
-          {transactionsOfAccount.length > 0 && activeAccount?.type !== "personal" && (
+          {transactionsOfAccount.length > 0 && activeAccount?.type !== "personal" && activeAccount?.type !== "debt" && (
             <>
               <Text style={body}> Subcategories</Text>
               <View>
@@ -267,14 +352,14 @@ const Account = ({ navigation }: { navigation: any }) => {
         )}
       </ScrollView>
 
-      {activeAccount?.type !== "expense" && (
+      {activeAccount?.type === "debt" ? null : activeAccount?.type !== "expense" ? (
         <TouchableOpacity
           style={submit_button}
           onPress={() => navigation.navigate("New operation")}
         >
           <Text style={submit_button_text}>New transaction</Text>
         </TouchableOpacity>
-      )}
+      ) : null}
     </View>
   );
 };
@@ -332,6 +417,41 @@ const styles = StyleSheet.create({
     justifyContent: "flex-start",
     alignItems: "flex-start",
     padding: 20,
+  },
+  debtSummary: {
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+  debtAvatarLarge: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 8,
+  },
+  debtAvatarLetter: {
+    color: "white",
+    fontSize: 28,
+    fontWeight: "700",
+  },
+  debtActionsInline: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    gap: 12,
+  },
+  debtBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  debtBtnText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "700",
   },
 });
 
