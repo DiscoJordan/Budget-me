@@ -55,6 +55,7 @@ export interface Account {
   isMultiAccount?: boolean;
   isMainSubAccount?: boolean;
   parentId?: string;
+  budgets?: Record<string, number>;
   /** Used locally in Dashboard to render "New account" placeholders */
   title?: string;
 }
