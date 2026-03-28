@@ -30,7 +30,7 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 function Settings() {
   const { logout } = useContext(UsersContext);
-  const { currencies, mainCurrency, setMainCurrency, loading, lastFetchedAt } =
+  const { currencies, rates, mainCurrency, setMainCurrency, loading, lastFetchedAt, refreshCurrencies } =
     useContext(CurrencyContext);
   const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
   const { settings: debtSettings, setEnabled: setDebtEnabled } =
@@ -181,14 +181,19 @@ function Settings() {
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Choose currency</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setModalVisible(false);
-                setSearch("");
-              }}
-            >
-              <Feather name="x" size={24} color="white" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+              <TouchableOpacity onPress={refreshCurrencies}>
+                <Feather name="refresh-cw" size={20} color={loading ? colors.gray : "white"} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => {
+                  setModalVisible(false);
+                  setSearch("");
+                }}
+              >
+                <Feather name="x" size={24} color="white" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TextInput
@@ -223,6 +228,11 @@ function Settings() {
                       {item}
                     </Text>
                     <Text style={styles.currencyName}>{meta.name}</Text>
+                    {item !== mainCurrency && rates[item] && rates[mainCurrency] && (
+                      <Text style={styles.currencyRate}>
+                        1 {mainCurrency} = {(rates[item] / rates[mainCurrency]).toFixed(4)} {item}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.currencyItemRight}>
                     <Text
@@ -382,6 +392,11 @@ const styles = StyleSheet.create({
   currencyName: {
     color: colors.gray,
     fontSize: size.footnote,
+  },
+  currencyRate: {
+    color: colors.primaryGreen,
+    fontSize: size.footnote,
+    marginTop: 2,
   },
   currencySymbol: {
     color: colors.gray,

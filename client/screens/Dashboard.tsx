@@ -76,6 +76,20 @@ function Dashboard({ navigation }: { navigation: any }) {
 
   const allBudgets = useMemo(() => getAllBudgetsFromAccounts(accounts), [accounts]);
 
+  const { incomeBudgetTotal, expenseBudgetTotal } = useMemo(() => {
+    let inc = 0;
+    let exp = 0;
+    for (const acc of accounts) {
+      const b = acc.budgets?.[periodType] ?? 0;
+      if (b > 0) {
+        const converted = toMainCurrency(b, acc.currency ?? "USD", rates, mainCurrency);
+        if (acc.type === "income") inc += converted;
+        else if (acc.type === "expense") exp += converted;
+      }
+    }
+    return { incomeBudgetTotal: inc, expenseBudgetTotal: exp };
+  }, [accounts, periodType, rates, mainCurrency]);
+
   const measureContainer = useCallback(() => {
     containerRef.current?.measure((_x, _y, _w, _h, _px, pageY) => {
       containerOffsetY.value = pageY;
@@ -450,10 +464,18 @@ function Dashboard({ navigation }: { navigation: any }) {
           <View style={accounts__block}>
             <View style={accounts__header}>
               <Text style={body}>Income</Text>
-              <Text style={body}>
-                {formatNumber(periodTotals.incomeTotal)}{" "}
-                {getCurrencyMeta(mainCurrency).symbol}
-              </Text>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={body}>
+                  {formatNumber(periodTotals.incomeTotal)}{" "}
+                  {getCurrencyMeta(mainCurrency).symbol}
+                </Text>
+                {incomeBudgetTotal > 0 && (
+                  <Text style={{ ...caption1, color: colors.gray }}>
+                    / {formatNumber(incomeBudgetTotal)}{" "}
+                    {getCurrencyMeta(mainCurrency).symbol}
+                  </Text>
+                )}
+              </View>
             </View>
             <View style={green_line} />
             <FlatList
@@ -489,10 +511,18 @@ function Dashboard({ navigation }: { navigation: any }) {
           <View style={accounts__block}>
             <View style={accounts__header}>
               <Text style={body}>Expenses</Text>
-              <Text style={body}>
-                {formatNumber(periodTotals.expenseTotal)}{" "}
-                {getCurrencyMeta(mainCurrency).symbol}
-              </Text>
+              <View style={{ alignItems: "flex-end" }}>
+                <Text style={body}>
+                  {formatNumber(periodTotals.expenseTotal)}{" "}
+                  {getCurrencyMeta(mainCurrency).symbol}
+                </Text>
+                {expenseBudgetTotal > 0 && (
+                  <Text style={{ ...caption1, color: colors.gray }}>
+                    / {formatNumber(expenseBudgetTotal)}{" "}
+                    {getCurrencyMeta(mainCurrency).symbol}
+                  </Text>
+                )}
+              </View>
             </View>
             <View style={green_line} />
             <FlatList
