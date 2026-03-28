@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useRef, useCallback } from "react";
+import React, { useContext, useMemo, useRef, useCallback, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   useAnimatedStyle,
@@ -39,6 +39,7 @@ import { Account } from "../src/types";
 import { getCurrencyMeta } from "../utils/currencyInfo";
 import DraggableAccountTile from "../components/DraggableAccountTile";
 import { useDragOperation } from "../hooks/useDragOperation";
+import { getAllBudgetsFromAccounts } from "../utils/budgetStorage";
 
 interface DashboardItem {
   _id: string;
@@ -69,9 +70,11 @@ function Dashboard({ navigation }: { navigation: any }) {
   const { settings: debtSettings } = useContext(DebtsContext);
   const { transactions, getTransactionsOfUser } =
     useContext(TransactionsContext);
-  const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
+  const { dateFrom, dateTo, periodType } = useContext(AccountingPeriodContext);
   const containerRef = useRef<View>(null);
   const containerOffsetY = useSharedValue(0); // shared value so useAnimatedStyle can read it
+
+  const allBudgets = useMemo(() => getAllBudgetsFromAccounts(accounts), [accounts]);
 
   const measureContainer = useCallback(() => {
     containerRef.current?.measure((_x, _y, _w, _h, _px, pageY) => {
@@ -320,6 +323,20 @@ function Dashboard({ navigation }: { navigation: any }) {
       );
     }
 
+    const accountBudget =
+      item.type === "income" || item.type === "expense"
+        ? (allBudgets[(item as Account)._id]?.[periodType] ?? 0)
+        : 0;
+    const periodAmt = periodAmounts.get(item._id) ?? 0;
+    const budgetColor =
+      accountBudget > 0
+        ? item.type === "income" && periodAmt >= accountBudget
+          ? colors.green
+          : item.type === "expense" && periodAmt >= accountBudget
+            ? colors.red
+            : "white"
+        : "white";
+
     const tileChildren = (
       <View style={account}>
         <View
@@ -340,7 +357,7 @@ function Dashboard({ navigation }: { navigation: any }) {
         >
           {item.name}
         </Text>
-        <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
+        <Text style={{ ...caption1, color: budgetColor, fontWeight: font.bold }}>
           {formatNumber(
             item._id === "__debts__"
               ? (item.balance ?? 0)
@@ -358,12 +375,21 @@ function Dashboard({ navigation }: { navigation: any }) {
                   )
                 : item.type === "personal"
                   ? (item as Account).balance
-                  : (periodAmounts.get(item._id) ?? 0),
+                  : periodAmt,
           )}{" "}
           {item.isMultiAccount
             ? mainCurrency
             : getCurrencyMeta(item.currency).symbol}
         </Text>
+        {(item.type === "income" || item.type === "expense") &&
+          accountBudget > 0 && (
+            <Text style={{ ...caption1, color: colors.gray }}>
+              / {formatNumber(accountBudget)}{" "}
+              {getCurrencyMeta(
+                item.isMultiAccount ? mainCurrency : item.currency,
+              ).symbol}
+            </Text>
+          )}
       </View>
     );
 

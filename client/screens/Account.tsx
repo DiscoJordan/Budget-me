@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
+  Modal,
 } from "react-native";
 import React, {
   useContext,
@@ -33,6 +34,7 @@ import { formatNumber } from "../utils/formatNumber";
 import { toMainCurrency } from "../utils/convertCurrency";
 import PeriodBarChart from "../components/PeriodBarChart";
 import { AccountingPeriodContext, computeRange } from "../context/AccountingPeriodContext";
+import { getBudgetFromAccount, setBudget } from "../utils/budgetStorage";
 import SubcategoryBar from "../components/account/SubcategoryBar";
 import DaySection from "../components/account/DaySection";
 import { getCurrencyMeta } from "../utils/currencyInfo";
@@ -74,7 +76,7 @@ const Account = ({ navigation }: { navigation: any }) => {
     useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
-  const { periodType, dateFrom, dateTo, offset: periodOffset } = useContext(AccountingPeriodContext);
+  const { periodType, dateFrom, dateTo, offset: periodOffset, headerLabel } = useContext(AccountingPeriodContext);
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -123,9 +125,18 @@ const Account = ({ navigation }: { navigation: any }) => {
   });
 
   const [search, setSearch] = useState("");
+  const [budget, setBudgetState] = useState(0);
+  const [budgetModalVisible, setBudgetModalVisible] = useState(false);
+  const [budgetInput, setBudgetInput] = useState("");
 
   const isIncomeOrExpense =
     activeAccount?.type === "income" || activeAccount?.type === "expense";
+
+  useEffect(() => {
+    if (activeAccount?._id && isIncomeOrExpense) {
+      setBudgetState(getBudgetFromAccount(activeAccount, periodType));
+    }
+  }, [activeAccount?._id, periodType]);
 
   // Filter by period for income/expense
   const periodFiltered = useMemo(() => {
@@ -351,6 +362,25 @@ const Account = ({ navigation }: { navigation: any }) => {
                   </Text>
                 )}
               </View>
+              <View style={{ gap: 4, alignItems: "center" }}>
+                <Text style={{ ...body, color: colors.gray }}>Budget</Text>
+                <Text style={{ ...title2 }}>
+                  {budget > 0
+                    ? `${formatNumber(budget)} ${getCurrencyMeta(mainCurrency).symbol}`
+                    : "Not set"}
+                </Text>
+                <TouchableOpacity
+                  accessibilityLabel="Change budget"
+                  onPress={() => {
+                    setBudgetInput(budget > 0 ? budget.toString() : "");
+                    setBudgetModalVisible(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: "700" }}>
+                    Change
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -369,6 +399,7 @@ const Account = ({ navigation }: { navigation: any }) => {
               currency={mainCurrency}
               rates={rates}
               mainCurrency={mainCurrency}
+              budget={budget}
             />
             <View style={styles.searchContainer}>
               <MaterialCommunityIcons
@@ -533,6 +564,51 @@ const Account = ({ navigation }: { navigation: any }) => {
           <Text style={submit_button_text}>New transaction</Text>
         </TouchableOpacity>
       ) : null}
+
+      <Modal
+        visible={budgetModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setBudgetModalVisible(false)}
+      >
+        <View style={styles.budgetOverlay}>
+          <View style={styles.budgetSheet}>
+            <Text style={styles.budgetTitle}>Budget for {headerLabel}</Text>
+            <TextInput
+              style={styles.budgetInput}
+              value={budgetInput}
+              onChangeText={setBudgetInput}
+              keyboardType="numeric"
+              placeholder="Enter amount"
+              placeholderTextColor={colors.gray}
+              autoFocus
+              accessibilityLabel="Budget amount input"
+            />
+            <View style={{ flexDirection: "row", gap: 12, marginTop: 16 }}>
+              <TouchableOpacity
+                style={styles.budgetCancel}
+                onPress={() => setBudgetModalVisible(false)}
+                accessibilityLabel="Cancel budget change"
+              >
+                <Text style={{ color: colors.gray, fontWeight: "700" }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.budgetSave}
+                onPress={() => {
+                  const val = parseFloat(budgetInput) || 0;
+                  setBudget(activeAccount!._id, periodType, val).then(() => {
+                    setBudgetState(val);
+                    setBudgetModalVisible(false);
+                  });
+                }}
+                accessibilityLabel="Save budget"
+              >
+                <Text style={{ color: "white", fontWeight: "700" }}>Save</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -540,8 +616,9 @@ const Account = ({ navigation }: { navigation: any }) => {
 const styles = StyleSheet.create({
   summaryBlock: {
     ...container,
-    justifyContent: "center",
-    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "flex-start",
     padding: 20,
   },
   balanceBlock: {
@@ -640,6 +717,48 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 16,
     fontWeight: "700",
+  },
+  budgetOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  budgetSheet: {
+    backgroundColor: colors.background,
+    borderRadius: 16,
+    padding: 24,
+    width: "80%",
+    alignItems: "center",
+  },
+  budgetTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  budgetInput: {
+    backgroundColor: colors.darkBlack,
+    color: "white",
+    fontSize: 18,
+    padding: 12,
+    borderRadius: 10,
+    width: "100%",
+    textAlign: "center",
+  },
+  budgetCancel: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: colors.darkGray,
+    alignItems: "center",
+  },
+  budgetSave: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: colors.primaryGreen,
+    alignItems: "center",
   },
 });
 
