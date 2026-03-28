@@ -2,17 +2,29 @@ import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { colors } from "../../styles/styles";
 import { Transaction } from "../../src/types";
+import { toMainCurrency } from "../../utils/convertCurrency";
+import { formatNumber } from "../../utils/formatNumber";
+import { getCurrencyMeta } from "../../utils/currencyInfo";
 
 interface Props {
   subcat: string;
   transactions: Transaction[];
   totalAmount: number;
   currency?: string;
+  rates?: Record<string, number>;
+  mainCurrency?: string;
 }
 
-export default function SubcategoryBar({ subcat, transactions, totalAmount, currency }: Props) {
-  const amountOfSubcat = transactions.reduce((acc, t) => acc + t.amount, 0);
-  const lineSize = ((amountOfSubcat / totalAmount) * 100).toFixed(1);
+export default function SubcategoryBar({ subcat, transactions, totalAmount, currency, rates, mainCurrency }: Props) {
+  const amountOfSubcat = transactions.reduce((acc, t) => {
+    if (rates && mainCurrency) {
+      return acc + toMainCurrency(t.amount ?? 0, t.currency ?? "USD", rates, mainCurrency);
+    }
+    return acc + t.amount;
+  }, 0);
+  const percentage = totalAmount > 0 ? ((amountOfSubcat / totalAmount) * 100) : 0;
+  const lineSize = percentage.toFixed(1);
+  const displayCurrency = mainCurrency ?? currency ?? "USD";
 
   return (
     <View style={styles.container}>
@@ -21,10 +33,10 @@ export default function SubcategoryBar({ subcat, transactions, totalAmount, curr
           {subcat.length > 0 ? subcat : "No subcategory"} {lineSize}%
         </Text>
         <Text style={styles.label}>
-          {amountOfSubcat.toLocaleString()} {currency}
+          {formatNumber(amountOfSubcat)} {getCurrencyMeta(displayCurrency).symbol}
         </Text>
       </View>
-      <View style={[styles.bar, { width: `${lineSize}%` as any }]} />
+      <View style={[styles.bar, { width: `${Math.min(Number(lineSize), 100)}%` as any }]} />
     </View>
   );
 }

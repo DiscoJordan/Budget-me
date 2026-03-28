@@ -180,7 +180,7 @@ function MyTabs() {
         component={History}
         options={{
           tabBarLabel: "History",
-          headerTitle: () => <PeriodHeader />,
+          headerTitle: "History",
         }}
       />
       <Tab.Screen

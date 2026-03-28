@@ -128,7 +128,14 @@ function Dashboard({ navigation }: { navigation: any }) {
   const debtTotalBalance = useMemo(
     () =>
       debtAccounts.reduce(
-        (sum, a) => sum + toMainCurrency(a.balance ?? 0, a.currency ?? mainCurrency, rates, mainCurrency),
+        (sum, a) =>
+          sum +
+          toMainCurrency(
+            a.balance ?? 0,
+            a.currency ?? mainCurrency,
+            rates,
+            mainCurrency,
+          ),
         0,
       ),
     [debtAccounts, rates, mainCurrency],
@@ -228,7 +235,12 @@ function Dashboard({ navigation }: { navigation: any }) {
     const personalTotal =
       Math.round(
         accounts
-          .filter((acc) => !acc.archived && (acc.type === "personal" || (acc.type === "debt" && debtSettings.includeInPersonalBalance)))
+          .filter(
+            (acc) =>
+              !acc.archived &&
+              (acc.type === "personal" ||
+                (acc.type === "debt" && debtSettings.includeInPersonalBalance)),
+          )
           .reduce(
             (sum, acc) =>
               sum +
@@ -281,7 +293,9 @@ function Dashboard({ navigation }: { navigation: any }) {
 
   const isDraggableItem = (item: DashboardItem): boolean =>
     item.title !== "New account" &&
-    (item.type === "income" || item.type === "personal" || item.type === "debt");
+    (item.type === "income" ||
+      item.type === "personal" ||
+      item.type === "debt");
 
   const renderItem = ({ item }: { item: DashboardItem }) => {
     if (item.title === "New account") {
@@ -331,20 +345,20 @@ function Dashboard({ navigation }: { navigation: any }) {
             item._id === "__debts__"
               ? (item.balance ?? 0)
               : item.isMultiAccount
-              ? (subAccountsByParent.get(item._id) ?? []).reduce(
-                  (sum, sub) =>
-                    sum +
-                    toMainCurrency(
-                      sub.balance ?? 0,
-                      sub.currency ?? "USD",
-                      rates,
-                      mainCurrency,
-                    ),
-                  0,
-                )
-              : item.type === "personal"
-              ? (item as Account).balance
-              : (periodAmounts.get(item._id) ?? 0),
+                ? (subAccountsByParent.get(item._id) ?? []).reduce(
+                    (sum, sub) =>
+                      sum +
+                      toMainCurrency(
+                        sub.balance ?? 0,
+                        sub.currency ?? "USD",
+                        rates,
+                        mainCurrency,
+                      ),
+                    0,
+                  )
+                : item.type === "personal"
+                  ? (item as Account).balance
+                  : (periodAmounts.get(item._id) ?? 0),
           )}{" "}
           {item.isMultiAccount
             ? mainCurrency
@@ -399,7 +413,6 @@ function Dashboard({ navigation }: { navigation: any }) {
     >
       <ScrollView
         style={{ backgroundColor: colors.background, padding: 20 }}
-        contentContainerStyle={{ paddingBottom: 90 }}
         scrollEnabled={!draggedAccount}
       >
         <View

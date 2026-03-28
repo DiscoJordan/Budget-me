@@ -59,7 +59,7 @@ function Login({ navigation }: { navigation: any }) {
 
   return (
     <View style={{ ...container, minHeight: "100%" }}>
-      <Text style={styles.h1}>Log Indd</Text>
+      <Text style={styles.h1}>Log In</Text>
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "username")}
