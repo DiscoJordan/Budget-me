@@ -16,6 +16,7 @@ interface PeriodBarChartProps {
   currency: string;
   rates: Record<string, number>;
   mainCurrency: string;
+  budget?: number;
 }
 
 interface BarItem {
@@ -201,6 +202,7 @@ export default function PeriodBarChart({
   barColor,
   rates,
   mainCurrency,
+  budget = 0,
 }: PeriodBarChartProps) {
   const [containerWidth, setContainerWidth] = useState(0);
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
@@ -340,6 +342,19 @@ export default function PeriodBarChart({
 
   return (
     <View style={styles.container} onLayout={onLayout}>
+      {budget > 0 && maxVisible > 0 && (
+        <View
+          style={[
+            styles.budgetLine,
+            {
+              bottom:
+                Math.min((budget / maxVisible) * BAR_MAX_HEIGHT, BAR_MAX_HEIGHT) + 12,
+            },
+          ]}
+        >
+          <View style={styles.budgetLineDash} />
+        </View>
+      )}
       <Animated.FlatList
         ref={listRef}
         data={bars}
@@ -392,5 +407,19 @@ const styles = StyleSheet.create({
   labelTextSelected: {
     color: colors.primaryGreen,
     fontWeight: "700",
+  },
+  budgetLine: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  budgetLineDash: {
+    height: 1,
+    backgroundColor: colors.gray,
+    flex: 1,
+    opacity: 0.5,
   },
 });

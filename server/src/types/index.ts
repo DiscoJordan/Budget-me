@@ -42,6 +42,7 @@ export interface IAccount extends Document {
   isMultiAccount?: boolean;
   isMainSubAccount?: boolean;
   parentId?: Types.ObjectId;
+  budgets?: Map<string, number>;
 }
 
 export interface ITransaction extends Document {
