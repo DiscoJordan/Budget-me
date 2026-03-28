@@ -1,5 +1,6 @@
-import React, { useContext, useEffect, useMemo } from "react";
-import { StyleSheet, Text, View, ScrollView } from "react-native";
+import React, { useContext, useEffect, useMemo, useState } from "react";
+import { StyleSheet, Text, View, ScrollView, TextInput } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
@@ -10,6 +11,7 @@ import { colors, body } from "../styles/styles";
 import { toMainCurrency } from "../utils/convertCurrency";
 import DaySection from "../components/account/DaySection";
 import FlowSummary from "../components/FlowSummary";
+import PeriodNavigator from "../components/PeriodNavigator";
 
 function groupByDate(transactions: any[]): Record<string, any[]> {
   return transactions.reduce(
@@ -54,6 +56,7 @@ function History({ navigation }: { navigation: any }) {
   const { accounts } = useContext(AccountsContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
+  const [search, setSearch] = useState("");
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -74,9 +77,32 @@ function History({ navigation }: { navigation: any }) {
     });
   }, [transactions, dateFrom, dateTo]);
 
+  const searched = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return filtered;
+    return filtered.filter((t) => {
+      const senderName = ((t.senderId as any)?.name ?? "").toLowerCase();
+      const recipientName = ((t.recipientId as any)?.name ?? "").toLowerCase();
+      const comment = (t.comment ?? "").toLowerCase();
+      const amount = t.amount.toString();
+      const subcategory = (t.subcategory ?? "").toLowerCase();
+      const date = new Date(t.time).toLocaleDateString();
+      const isoDate = new Date(t.time).toISOString().split("T")[0];
+      return (
+        senderName.includes(q) ||
+        recipientName.includes(q) ||
+        comment.includes(q) ||
+        amount.includes(q) ||
+        subcategory.includes(q) ||
+        date.includes(q) ||
+        isoDate.includes(q)
+      );
+    });
+  }, [filtered, search]);
+
   const { inflows, outflows } = calcFlows(filtered, rates, mainCurrency);
 
-  const grouped = groupByDate(filtered);
+  const grouped = groupByDate(searched);
   const sortedDates = Object.keys(grouped).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
@@ -94,12 +120,38 @@ function History({ navigation }: { navigation: any }) {
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 90 }}
       >
-        {filtered.length > 0 && (
-          <FlowSummary inflows={inflows} outflows={outflows} currency={mainCurrency} />
-        )}
+        <View style={styles.searchContainer}>
+          <MaterialCommunityIcons
+            name="magnify"
+            size={20}
+            color={colors.gray}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search transactions..."
+            placeholderTextColor={colors.gray}
+            value={search}
+            onChangeText={setSearch}
+            autoCorrect={false}
+          />
+        </View>
+        <FlowSummary
+          inflows={inflows}
+          outflows={outflows}
+          currency={mainCurrency}
+        />
 
-        {filtered.length === 0 ? (
-          <Text style={styles.empty}>No transactions for this period</Text>
+        <PeriodNavigator />
+
+        <Text style={styles.sectionTitle}>Operations</Text>
+
+        {searched.length === 0 ? (
+          <Text style={styles.empty}>
+            {search.trim()
+              ? "No matching transactions"
+              : "No transactions for this period"}
+          </Text>
         ) : (
           sortedDates.map((date) => (
             <DaySection
@@ -123,6 +175,32 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.darkBlack,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 10,
+  },
+  searchIcon: {
+    marginRight: 6,
+  },
+  sectionTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 4,
+  },
+  searchInput: {
+    flex: 1,
+    color: "white",
+    fontSize: 15,
+    paddingVertical: 10,
   },
   empty: {
     color: colors.gray,

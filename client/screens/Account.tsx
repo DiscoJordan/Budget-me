@@ -4,8 +4,16 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
+  TextInput,
 } from "react-native";
-import React, { useContext, useEffect, useCallback } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useCallback,
+  useState,
+  useMemo,
+} from "react";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   container,
@@ -23,10 +31,13 @@ import { Transaction } from "../src/types";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { formatNumber } from "../utils/formatNumber";
 import { toMainCurrency } from "../utils/convertCurrency";
+import PeriodBarChart from "../components/PeriodBarChart";
+import { AccountingPeriodContext, computeRange } from "../context/AccountingPeriodContext";
 import SubcategoryBar from "../components/account/SubcategoryBar";
 import DaySection from "../components/account/DaySection";
 import { getCurrencyMeta } from "../utils/currencyInfo";
 import FlowSummary from "../components/FlowSummary";
+import PeriodNavigator from "../components/PeriodNavigator";
 
 // Extend Number with legacy .format() used in this screen
 declare global {
@@ -59,14 +70,11 @@ function groupByDate(transactions: any[]): Record<string, any[]> {
 const Account = ({ navigation }: { navigation: any }) => {
   const { transactions, getTransactionsOfUser, setActiveTransaction } =
     useContext(TransactionsContext);
-  const {
-    activeAccount,
-    accounts,
-    setActiveAccount,
-    setRecipientAccount,
-  } = useContext(AccountsContext);
+  const { activeAccount, accounts, setActiveAccount, setRecipientAccount } =
+    useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
+  const { periodType, dateFrom, dateTo, offset: periodOffset } = useContext(AccountingPeriodContext);
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -91,8 +99,15 @@ const Account = ({ navigation }: { navigation: any }) => {
 
   // For multi-accounts, include all sub-account IDs in the filter
   const accountIds = activeAccount?.isMultiAccount
-    ? [activeAccount._id, ...accounts.filter((a) => a.parentId === activeAccount._id).map((a) => a._id)]
-    : activeAccount ? [activeAccount._id] : [];
+    ? [
+        activeAccount._id,
+        ...accounts
+          .filter((a) => a.parentId === activeAccount._id)
+          .map((a) => a._id),
+      ]
+    : activeAccount
+      ? [activeAccount._id]
+      : [];
 
   const transactionsOfAccount = transactions.filter((t) => {
     const senderId = (t.senderId as any)?._id;
@@ -107,53 +122,130 @@ const Account = ({ navigation }: { navigation: any }) => {
     return false;
   });
 
+  const [search, setSearch] = useState("");
+
+  const isIncomeOrExpense =
+    activeAccount?.type === "income" || activeAccount?.type === "expense";
+
+  // Filter by period for income/expense
+  const periodFiltered = useMemo(() => {
+    if (!isIncomeOrExpense || (!dateFrom && !dateTo))
+      return transactionsOfAccount;
+    return transactionsOfAccount.filter((t) => {
+      const time = new Date(t.time).getTime();
+      if (dateFrom && time < dateFrom.getTime()) return false;
+      if (dateTo && time > dateTo.getTime()) return false;
+      return true;
+    });
+  }, [transactionsOfAccount, dateFrom, dateTo, isIncomeOrExpense]);
+
+  // Search filter for income/expense
+  const searchFiltered = useMemo(() => {
+    if (!isIncomeOrExpense) return transactionsOfAccount;
+    const q = search.trim().toLowerCase();
+    if (!q) return periodFiltered;
+    return periodFiltered.filter((t) => {
+      const senderName = ((t.senderId as any)?.name ?? "").toLowerCase();
+      const recipientName = ((t.recipientId as any)?.name ?? "").toLowerCase();
+      const comment = (t.comment ?? "").toLowerCase();
+      const amount = t.amount.toString();
+      const subcategory = (t.subcategory ?? "").toLowerCase();
+      const date = new Date(t.time).toLocaleDateString();
+      const isoDate = new Date(t.time).toISOString().split("T")[0];
+      return (
+        senderName.includes(q) ||
+        recipientName.includes(q) ||
+        comment.includes(q) ||
+        amount.includes(q) ||
+        subcategory.includes(q) ||
+        date.includes(q) ||
+        isoDate.includes(q)
+      );
+    });
+  }, [periodFiltered, search, isIncomeOrExpense, transactionsOfAccount]);
+
+  // Use filtered list for display in income/expense, raw for others
+  const displayTransactions = isIncomeOrExpense
+    ? searchFiltered
+    : transactionsOfAccount;
+
   const accountCurrency = activeAccount?.currency ?? "USD";
-  const totalAmount = transactionsOfAccount.reduce(
+  const totalAmount = (
+    isIncomeOrExpense ? periodFiltered : transactionsOfAccount
+  ).reduce(
     (acc, t) =>
       acc +
       toMainCurrency(t.amount ?? 0, t.currency ?? "USD", rates, mainCurrency),
     0,
   );
-  const outflows = transactionsOfAccount.reduce(
-    (acc, t) => {
-      const senderType = (t.senderId as any)?.type;
-      const recipientType = (t.recipientId as any)?.type;
-      if (senderType === "debt" || recipientType === "debt") return acc;
-      return accountIds.includes((t.senderId as any)?._id)
-        ? acc +
+  // Previous period comparison for income/expense
+  const { prevTotal, daysInPeriod, prevDaysInPeriod } = useMemo(() => {
+    if (!isIncomeOrExpense || periodType === "all" || periodType === "custom") {
+      return { prevTotal: 0, daysInPeriod: daysInCurrentMonth(), prevDaysInPeriod: daysInCurrentMonth() };
+    }
+    const now = new Date();
+    const prev = computeRange(periodType, now, periodOffset - 1);
+    const curr = computeRange(periodType, now, periodOffset);
+
+    const currDays = curr.from && curr.to
+      ? Math.max(1, Math.round((curr.to.getTime() - curr.from.getTime()) / 86400000) + 1)
+      : daysInCurrentMonth();
+    const prevDays = prev.from && prev.to
+      ? Math.max(1, Math.round((prev.to.getTime() - prev.from.getTime()) / 86400000) + 1)
+      : daysInCurrentMonth();
+
+    let sum = 0;
+    if (prev.from && prev.to) {
+      for (const t of transactionsOfAccount) {
+        const time = new Date(t.time).getTime();
+        if (time >= prev.from.getTime() && time <= prev.to.getTime()) {
+          sum += toMainCurrency(t.amount ?? 0, t.currency ?? "USD", rates, mainCurrency);
+        }
+      }
+    }
+    return { prevTotal: sum, daysInPeriod: currDays, prevDaysInPeriod: prevDays };
+  }, [isIncomeOrExpense, periodType, periodOffset, transactionsOfAccount, rates, mainCurrency]);
+
+  const totalDiff = totalAmount - prevTotal;
+  const totalPctChange = prevTotal > 0 ? ((totalAmount - prevTotal) / prevTotal) * 100 : 0;
+  const dailyAvg = totalAmount / daysInPeriod;
+  const prevDailyAvg = prevTotal / prevDaysInPeriod;
+  const dailyDiff = dailyAvg - prevDailyAvg;
+
+  const outflows = transactionsOfAccount.reduce((acc, t) => {
+    const senderType = (t.senderId as any)?.type;
+    const recipientType = (t.recipientId as any)?.type;
+    if (senderType === "debt" || recipientType === "debt") return acc;
+    return accountIds.includes((t.senderId as any)?._id)
+      ? acc +
           toMainCurrency(
             t.amount ?? 0,
             t.currency ?? "USD",
             rates,
             mainCurrency,
           )
-        : acc;
-    },
-    0,
-  );
-  const inflows = transactionsOfAccount.reduce(
-    (acc, t) => {
-      const senderType = (t.senderId as any)?.type;
-      const recipientType = (t.recipientId as any)?.type;
-      if (senderType === "debt" || recipientType === "debt") return acc;
-      return accountIds.includes((t.recipientId as any)?._id)
-        ? acc +
+      : acc;
+  }, 0);
+  const inflows = transactionsOfAccount.reduce((acc, t) => {
+    const senderType = (t.senderId as any)?.type;
+    const recipientType = (t.recipientId as any)?.type;
+    if (senderType === "debt" || recipientType === "debt") return acc;
+    return accountIds.includes((t.recipientId as any)?._id)
+      ? acc +
           toMainCurrency(
             (t.amount ?? 0) * (t.rate ?? 1),
             (t.recipientId as any)?.currency ?? accountCurrency,
             rates,
             mainCurrency,
           )
-        : acc;
-    },
-    0,
-  );
+      : acc;
+  }, 0);
 
   const triggeredSubcategories = [
-    ...new Set(transactionsOfAccount.map((t) => t.subcategory)),
+    ...new Set((isIncomeOrExpense ? periodFiltered : transactionsOfAccount).map((t) => t.subcategory)),
   ];
 
-  const grouped = groupByDate(transactionsOfAccount);
+  const grouped = groupByDate(displayTransactions);
   const sortedDates = Object.keys(grouped).sort(
     (a, b) => new Date(b).getTime() - new Date(a).getTime(),
   );
@@ -177,7 +269,14 @@ const Account = ({ navigation }: { navigation: any }) => {
       >
         {activeAccount?.type === "debt" && (
           <View style={styles.debtSummary}>
-            <View style={[styles.debtAvatarLarge, { backgroundColor: activeAccount.icon?.color || colors.darkGray }]}>
+            <View
+              style={[
+                styles.debtAvatarLarge,
+                {
+                  backgroundColor: activeAccount.icon?.color || colors.darkGray,
+                },
+              ]}
+            >
               <Text style={styles.debtAvatarLetter}>
                 {activeAccount.name.charAt(0).toUpperCase()}
               </Text>
@@ -197,38 +296,97 @@ const Account = ({ navigation }: { navigation: any }) => {
               {(activeAccount.balance ?? 0) > 0
                 ? "Owes you"
                 : (activeAccount.balance ?? 0) < 0
-                ? "You owe"
-                : "Settled up"}
+                  ? "You owe"
+                  : "Settled up"}
             </Text>
           </View>
         )}
 
-        {activeAccount?.type !== "personal" && activeAccount?.type !== "debt" && (
-          <View style={styles.summaryBlock}>
-            <View style={{ gap: 8, alignItems: "center" }}>
-              <Text style={{ ...body, color: colors.gray }}>
-                {activeAccount?.type === "income" ? "Income" : "Expense"}
-              </Text>
-              <Text
-                style={{
-                  ...largeTitle,
-                  color:
-                    activeAccount?.type === "income"
-                      ? colors.green
-                      : colors.red,
-                }}
-              >
-                {totalAmount.format()} {getCurrencyMeta(mainCurrency).symbol}
-              </Text>
+        {activeAccount?.type !== "personal" &&
+          activeAccount?.type !== "debt" && (
+            <View style={styles.summaryBlock}>
+              <View style={{ gap: 4, alignItems: "center" }}>
+                <Text style={{ ...body, color: colors.gray }}>
+                  {activeAccount?.type === "income" ? "Income" : "Expense"}
+                </Text>
+                <Text
+                  style={{
+                    ...largeTitle,
+                    color:
+                      activeAccount?.type === "income"
+                        ? colors.green
+                        : colors.red,
+                  }}
+                >
+                  {totalAmount.format()} {getCurrencyMeta(mainCurrency).symbol}
+                </Text>
+                {isIncomeOrExpense && prevTotal > 0 && (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: totalDiff >= 0 ? colors.green : colors.red,
+                    }}
+                  >
+                    {totalDiff >= 0 ? "+" : ""}{totalPctChange.toFixed(1)}%
+                  </Text>
+                )}
+              </View>
+              <View style={{ gap: 4, alignItems: "center" }}>
+                <Text style={{ ...body, color: colors.gray }}>~A day</Text>
+                <Text style={{ ...title2 }}>
+                  {dailyAvg.format()}{" "}
+                  {getCurrencyMeta(mainCurrency).symbol}
+                </Text>
+                {isIncomeOrExpense && prevDailyAvg > 0 && (
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      fontWeight: "700",
+                      color: dailyDiff >= 0 ? colors.green : colors.red,
+                    }}
+                  >
+                    {dailyDiff >= 0 ? "+" : ""}{formatNumber(Math.round(dailyDiff * 100) / 100)}{" "}
+                    {getCurrencyMeta(mainCurrency).symbol}
+                  </Text>
+                )}
+              </View>
             </View>
-            <View style={{ gap: 8, alignItems: "center" }}>
-              <Text style={{ ...body, color: colors.gray }}>~A day</Text>
-              <Text style={{ ...title2 }}>
-                {(totalAmount / daysInCurrentMonth()).format()}{" "}
-                {getCurrencyMeta(mainCurrency).symbol}
-              </Text>
+          )}
+
+        {(activeAccount?.type === "income" ||
+          activeAccount?.type === "expense") && (
+          <>
+            <PeriodNavigator />
+            <PeriodBarChart
+              transactions={transactionsOfAccount}
+              periodType={periodType}
+              dateFrom={dateFrom}
+              dateTo={dateTo}
+              barColor={
+                activeAccount?.type === "income" ? colors.green : colors.red
+              }
+              currency={mainCurrency}
+              rates={rates}
+              mainCurrency={mainCurrency}
+            />
+            <View style={styles.searchContainer}>
+              <MaterialCommunityIcons
+                name="magnify"
+                size={20}
+                color={colors.gray}
+                style={{ marginRight: 6 }}
+              />
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search transactions..."
+                placeholderTextColor={colors.gray}
+                value={search}
+                onChangeText={setSearch}
+                autoCorrect={false}
+              />
             </View>
-          </View>
+          </>
         )}
 
         {activeAccount?.type === "personal" && (
@@ -244,7 +402,13 @@ const Account = ({ navigation }: { navigation: any }) => {
                         .filter((a) => a.parentId === activeAccount._id)
                         .reduce(
                           (sum, sub) =>
-                            sum + toMainCurrency(sub.balance ?? 0, sub.currency, rates, mainCurrency),
+                            sum +
+                            toMainCurrency(
+                              sub.balance ?? 0,
+                              sub.currency,
+                              rates,
+                              mainCurrency,
+                            ),
                           0,
                         ),
                     )}{" "}
@@ -276,7 +440,11 @@ const Account = ({ navigation }: { navigation: any }) => {
               )}
             </View>
 
-            <FlowSummary inflows={inflows} outflows={outflows} currency={mainCurrency} />
+            <FlowSummary
+              inflows={inflows}
+              outflows={outflows}
+              currency={mainCurrency}
+            />
           </>
         )}
 
@@ -310,28 +478,32 @@ const Account = ({ navigation }: { navigation: any }) => {
         )}
 
         <View style={styles.listBlock}>
-          {transactionsOfAccount.length > 0 && activeAccount?.type !== "personal" && activeAccount?.type !== "debt" && (
-            <>
-              <Text style={body}> Subcategories</Text>
-              <View>
-                {triggeredSubcategories.map((subcat) => (
-                  <SubcategoryBar
-                    key={subcat}
-                    subcat={subcat}
-                    transactions={transactionsOfAccount.filter(
-                      (t) => t.subcategory === subcat,
-                    )}
-                    totalAmount={totalAmount}
-                    currency={activeAccount?.currency}
-                  />
-                ))}
-              </View>
-            </>
-          )}
+          {(isIncomeOrExpense ? periodFiltered : transactionsOfAccount).length > 0 &&
+            activeAccount?.type !== "personal" &&
+            activeAccount?.type !== "debt" && (
+              <>
+                <Text style={body}> Subcategories</Text>
+                <View>
+                  {triggeredSubcategories.map((subcat) => (
+                    <SubcategoryBar
+                      key={subcat}
+                      subcat={subcat}
+                      transactions={(isIncomeOrExpense ? periodFiltered : transactionsOfAccount).filter(
+                        (t) => t.subcategory === subcat,
+                      )}
+                      totalAmount={totalAmount}
+                      currency={mainCurrency}
+                      rates={rates}
+                      mainCurrency={mainCurrency}
+                    />
+                  ))}
+                </View>
+              </>
+            )}
           <Text style={body}> List of operations</Text>
         </View>
 
-        {transactionsOfAccount.length > 0 ? (
+        {displayTransactions.length > 0 ? (
           sortedDates.map((date) => (
             <DaySection
               key={date}
@@ -346,13 +518,14 @@ const Account = ({ navigation }: { navigation: any }) => {
             />
           ))
         ) : (
-          <Text style={{ color: "white", paddingLeft: 20 }}>
-            No transactions for this period
+          <Text style={{ color: colors.gray, paddingLeft: 20, paddingTop: 8 }}>
+            {search.trim() ? "No matching transactions" : "No transactions for this period"}
           </Text>
         )}
       </ScrollView>
 
-      {activeAccount?.type === "debt" ? null : activeAccount?.type !== "expense" ? (
+      {activeAccount?.type === "debt" ? null : activeAccount?.type !==
+        "expense" ? (
         <TouchableOpacity
           style={submit_button}
           onPress={() => navigation.navigate("New operation")}
@@ -411,6 +584,21 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: 15,
     fontWeight: "700",
+  },
+  searchContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.darkBlack,
+    borderRadius: 10,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 10,
+  },
+  searchInput: {
+    flex: 1,
+    color: "white",
+    fontSize: 15,
+    paddingVertical: 10,
   },
   listBlock: {
     ...container,
