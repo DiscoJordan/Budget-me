@@ -46,7 +46,10 @@
       "Bash(rtk tsc:*)",
       "Bash(ls:*)",
       "Bash(rtk npx:*)",
-      "WebSearch"
+      "WebSearch",
+      "WebFetch(domain:www.exchangerate-api.com)",
+      "WebFetch(domain:open.er-api.com)",
+      "WebFetch(domain:api.coingecko.com)"
     ]
   }
 }

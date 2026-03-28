@@ -16,7 +16,7 @@ export const CurrencyContext = createContext<CurrencyContextType>(
 );
 
 const STORAGE_KEY = "currencies_cache";
-const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CurrenciesCache {
   rates: Record<string, number>;
@@ -43,20 +43,22 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [token]);
 
-  const fetchCurrencies = async () => {
+  const fetchCurrencies = async (force = false) => {
     setLoading(true);
     try {
-      const cached = await AsyncStorage.getItem(STORAGE_KEY);
-      if (cached) {
-        const parsed: CurrenciesCache = JSON.parse(cached);
-        if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) {
-          applyRates(parsed.rates, parsed.fetchedAt);
-          setLoading(false);
-          return;
+      if (!force) {
+        const cached = await AsyncStorage.getItem(STORAGE_KEY);
+        if (cached) {
+          const parsed: CurrenciesCache = JSON.parse(cached);
+          if (Date.now() - parsed.fetchedAt < CACHE_TTL_MS) {
+            applyRates(parsed.rates, parsed.fetchedAt);
+            setLoading(false);
+            return;
+          }
         }
       }
 
-      const response = await axios.get(`${URL}/currencies`);
+      const response = await axios.get(`${URL}/currencies${force ? "?force=1" : ""}`);
       if (response.data.ok) {
         const newCache: CurrenciesCache = {
           rates: response.data.rates,
@@ -71,6 +73,8 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+
+  const refreshCurrencies = () => fetchCurrencies(true);
 
   const applyRates = (
     ratesData: Record<string, number>,
@@ -108,6 +112,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         setMainCurrency,
         loading,
         lastFetchedAt,
+        refreshCurrencies,
       }}
     >
       {children}
