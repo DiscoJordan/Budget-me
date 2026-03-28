@@ -33,7 +33,8 @@ function Settings() {
   const { currencies, mainCurrency, setMainCurrency, loading, lastFetchedAt } =
     useContext(CurrencyContext);
   const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
-  const { settings: debtSettings, setEnabled: setDebtEnabled } = useContext(DebtsContext);
+  const { settings: debtSettings, setEnabled: setDebtEnabled } =
+    useContext(DebtsContext);
   const { deleteAllTransactions } = useContext(TransactionsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
@@ -96,8 +97,6 @@ function Settings() {
         <Feather name="chevron-right" size={20} color={colors.gray} />
       </TouchableOpacity>
 
-      <Text style={styles.sectionLabel} numberOfLines={1}>Debts</Text>
-
       <View style={setting_option}>
         <Text style={styles.label}>Enable debts</Text>
         <Switch
@@ -108,8 +107,6 @@ function Settings() {
         />
       </View>
 
-      <Text style={styles.sectionLabel}>Danger zone</Text>
-
       <TouchableOpacity
         onPress={() => {
           setDeleteInput("");
@@ -117,7 +114,9 @@ function Settings() {
         }}
         style={setting_option}
       >
-        <Text style={{ ...styles.label, color: colors.red }}>Reset all transactions</Text>
+        <Text style={{ ...styles.label, color: colors.red }}>
+          Reset all transactions
+        </Text>
         <Feather name="trash-2" size={20} color={colors.red} />
       </TouchableOpacity>
 
@@ -259,10 +258,15 @@ function Settings() {
           <View style={styles.deleteSheet}>
             <Text style={styles.deleteTitle}>Reset all transactions</Text>
             <Text style={styles.deleteDesc}>
-              This will permanently delete all transactions and reset all account balances. This action cannot be undone.
+              This will permanently delete all transactions and reset all
+              account balances. This action cannot be undone.
             </Text>
             <Text style={styles.deleteDesc}>
-              Type <Text style={{ color: colors.red, fontWeight: "700" }}>Delete</Text> to confirm:
+              Type{" "}
+              <Text style={{ color: colors.red, fontWeight: "700" }}>
+                Delete
+              </Text>{" "}
+              to confirm:
             </Text>
             <TextInput
               style={styles.deleteInput}
@@ -291,7 +295,9 @@ function Settings() {
                   const ok = await deleteAllTransactions();
                   Alert.alert(
                     ok ? "Done" : "Error",
-                    ok ? "All transactions have been deleted." : "Failed to delete transactions.",
+                    ok
+                      ? "All transactions have been deleted."
+                      : "Failed to delete transactions.",
                   );
                 }}
               >

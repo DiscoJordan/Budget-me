@@ -8,9 +8,9 @@ import {
   TextInput,
   TouchableOpacity,
   ScrollView,
-  FlatList,
   StyleSheet,
   Alert,
+  Modal,
 } from "react-native";
 import {
   container,
@@ -18,8 +18,6 @@ import {
   green_line,
   account,
   accounts__add,
-  accounts__body,
-  accounts__block,
   body,
   input,
   submit_button_text,
@@ -62,6 +60,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
   );
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [message, setMessage] = useState("");
+  const [pickerTarget, setPickerTarget] = useState<"sender" | "recipient" | null>(null);
 
   const senderCurrency = sender?.currency ?? "USD";
   const recipientCurrency = recipient?.currency ?? "USD";
@@ -92,18 +91,47 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
 
   const availableAccounts = useMemo<Account[]>(() => [...accounts], [accounts]);
 
-  const recipientCandidates = useMemo(() => {
-    if (!sender) return availableAccounts;
-    if (sender.type === "income")
-      return availableAccounts.filter((a) => a.type === "personal");
-    if (sender.type === "personal")
+
+  const pickerAccounts = useMemo(() => {
+    if (pickerTarget === "sender") {
+      const senderType = sender?.type ?? "personal";
       return availableAccounts.filter(
-        (a) =>
-          a.type === "expense" ||
-          (a.type === "personal" && a._id !== sender._id),
+        (a) => a.type === senderType && !a.archived && !a.parentId,
       );
+    }
+    if (pickerTarget === "recipient") {
+      if (sender?.type === "income") {
+        return availableAccounts.filter(
+          (a) => a.type === "personal" && !a.archived && !a.parentId,
+        );
+      }
+      if (sender?.type === "personal") {
+        return availableAccounts.filter(
+          (a) =>
+            !a.archived &&
+            !a.parentId &&
+            a._id !== sender._id &&
+            (a.type === "expense" || a.type === "personal" || a.type === "debt"),
+        );
+      }
+      if (sender?.type === "debt") {
+        return availableAccounts.filter(
+          (a) => a.type === "personal" && !a.archived && !a.parentId,
+        );
+      }
+    }
     return [];
-  }, [sender, availableAccounts]);
+  }, [pickerTarget, sender, availableAccounts]);
+
+  const showSubcategories = useMemo(() => {
+    if (!sender || !recipient) return false;
+    const isPersonalToPersonal =
+      sender.type === "personal" && recipient.type === "personal";
+    const isDebtPersonal =
+      (sender.type === "debt" && recipient.type === "personal") ||
+      (sender.type === "personal" && recipient.type === "debt");
+    return !isPersonalToPersonal && !isDebtPersonal;
+  }, [sender, recipient]);
 
   const handleSave = async () => {
     if (!activeTransaction || !sender || !recipient) return;
@@ -165,37 +193,6 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
       ? recipient?.subcategories
       : sender?.subcategories;
 
-  const renderAccountItem = ({ item }: { item: Account }) => (
-    <View style={account}>
-      <TouchableOpacity
-        onPress={() => {
-          setRecipient(item);
-          setSubcategory("");
-        }}
-        style={[
-          accounts__add,
-          {
-            backgroundColor: item.icon?.color || "gray",
-            borderWidth: recipient?._id === item._id ? 2 : 0,
-            borderColor: colors.primaryGreen,
-          },
-        ]}
-      >
-        <MaterialCommunityIcons
-          name={(item.icon?.icon_value || "wallet-outline") as any}
-          size={24}
-          color="white"
-        />
-      </TouchableOpacity>
-      <Text style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}>
-        {item.name}
-      </Text>
-      <Text style={{ ...caption1, color: "white", fontWeight: font.bold }}>
-        {formatNumber(item.balance ?? 0)} {item.currency}
-      </Text>
-    </View>
-  );
-
   if (!activeTransaction) {
     return (
       <View style={[container, { padding: 20 }]}>
@@ -215,6 +212,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           <View style={styles.accountsRow}>
             <View style={account}>
               <TouchableOpacity
+                onPress={() => setPickerTarget("sender")}
                 style={[
                   accounts__add,
                   { backgroundColor: sender?.icon?.color || "gray" },
@@ -244,6 +242,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
             <EvilIcons name="arrow-right" size={48} color="white" />
             <View style={account}>
               <TouchableOpacity
+                onPress={() => setPickerTarget("recipient")}
                 style={[
                   accounts__add,
                   { backgroundColor: recipient?.icon?.color || "gray" },
@@ -359,47 +358,104 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           )}
 
           {/* Subcategory */}
-          <Text style={body}> Subcategory</Text>
-          <ScrollView horizontal style={styles.subcats}>
+          {showSubcategories && (
+            <>
+              <Text style={body}> Subcategory</Text>
+              <ScrollView horizontal style={styles.subcats}>
+                <TouchableOpacity
+                  onPress={() => setSubcategory("")}
+                  style={[styles.subcat, { opacity: subcategory === "" ? 1 : 0.5 }]}
+                >
+                  <Text style={body}>?</Text>
+                  <Text style={caption1}>Without</Text>
+                </TouchableOpacity>
+                {subcategorySource?.map((subcat) => (
+                  <TouchableOpacity
+                    key={subcat._id || subcat.id || subcat.subcategory}
+                    onPress={() => setSubcategory(subcat.subcategory)}
+                    style={[
+                      styles.subcat,
+                      { opacity: subcategory === subcat.subcategory ? 1 : 0.5 },
+                    ]}
+                  >
+                    <Text style={body}>
+                      {subcat.subcategory.slice(0, 1).toUpperCase()}
+                    </Text>
+                    <Text style={caption1}>{subcat.subcategory}</Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </>
+          )}
+
+          {/* Account picker modal */}
+          <Modal
+            visible={pickerTarget !== null}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setPickerTarget(null)}
+          >
             <TouchableOpacity
-              onPress={() => setSubcategory("")}
-              style={[styles.subcat, { opacity: subcategory === "" ? 1 : 0.5 }]}
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={() => setPickerTarget(null)}
             >
-              <Text style={body}>?</Text>
-              <Text style={caption1}>Without</Text>
-            </TouchableOpacity>
-            {subcategorySource?.map((subcat) => (
-              <TouchableOpacity
-                key={subcat._id || subcat.id || subcat.subcategory}
-                onPress={() => setSubcategory(subcat.subcategory)}
-                style={[
-                  styles.subcat,
-                  { opacity: subcategory === subcat.subcategory ? 1 : 0.5 },
-                ]}
-              >
-                <Text style={body}>
-                  {subcat.subcategory.slice(0, 1).toUpperCase()}
+              <View style={styles.pickerSheet}>
+                <Text style={styles.pickerTitle}>
+                  {pickerTarget === "sender" ? "Choose sender" : "Choose recipient"}
                 </Text>
-                <Text style={caption1}>{subcat.subcategory}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <View style={green_line} />
-
-          {/* Recipient picker */}
-          <View style={{ minWidth: "100%" }}>
-            <View style={accounts__block}>
-              <FlatList
-                scrollEnabled={false}
-                style={accounts__body}
-                data={recipientCandidates}
-                renderItem={renderAccountItem}
-                keyExtractor={(item) => item._id}
-                numColumns={5}
-              />
-            </View>
-          </View>
+                <ScrollView>
+                  {pickerAccounts.map((item) => (
+                    <TouchableOpacity
+                      key={item._id}
+                      style={styles.pickerRow}
+                      onPress={() => {
+                        if (pickerTarget === "sender") {
+                          setSender(item);
+                          // Check if current recipient is still valid for new sender
+                          if (recipient) {
+                            const valid =
+                              recipient._id !== item._id &&
+                              ((item.type === "income" && recipient.type === "personal") ||
+                                (item.type === "personal" &&
+                                  (recipient.type === "expense" ||
+                                    recipient.type === "personal" ||
+                                    recipient.type === "debt")) ||
+                                (item.type === "debt" && recipient.type === "personal"));
+                            if (!valid) setRecipient(null);
+                          }
+                          setSubcategory("");
+                        } else {
+                          setRecipient(item);
+                          setSubcategory("");
+                        }
+                        setPickerTarget(null);
+                      }}
+                    >
+                      <View
+                        style={[
+                          styles.pickerIcon,
+                          { backgroundColor: item.icon?.color || colors.darkGray },
+                        ]}
+                      >
+                        <MaterialCommunityIcons
+                          name={(item.icon?.icon_value || "wallet-outline") as any}
+                          size={22}
+                          color="white"
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.pickerName}>{item.name}</Text>
+                        <Text style={styles.pickerBalance}>
+                          {formatNumber(item.balance ?? 0)} {item.currency}
+                        </Text>
+                      </View>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </TouchableOpacity>
+          </Modal>
 
           {message ? (
             <Text style={{ color: colors.red, marginTop: 8 }}>{message}</Text>
@@ -477,6 +533,48 @@ const styles = StyleSheet.create({
     backgroundColor: colors.darkGray,
   },
   subcats: {},
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  pickerSheet: {
+    backgroundColor: colors.background,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: "60%",
+  },
+  pickerTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    marginBottom: 16,
+  },
+  pickerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+  },
+  pickerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  pickerName: {
+    color: "white",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  pickerBalance: {
+    color: colors.gray,
+    fontSize: 13,
+  },
   bottomRow: {
     flexDirection: "row",
     position: "absolute",
