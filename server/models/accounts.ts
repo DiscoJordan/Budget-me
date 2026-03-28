@@ -17,6 +17,7 @@ const accountSchema = new Schema<IAccount>({
   balance: { type: Number, required: true, default: 0 },
   initialBalance: { type: Number, required: true, default: 0 },
   currency: { type: String, required: true, default: "USD" },
+  budgets: { type: Map, of: Number, default: {} },
   time: { type: Date, default: Date.now },
   archived: { type: Boolean, default: false },
   isMultiAccount: { type: Boolean, default: false },
