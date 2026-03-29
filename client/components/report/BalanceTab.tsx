@@ -1,7 +1,7 @@
 import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { View, Text, StyleSheet, Dimensions, Switch, TouchableOpacity, Alert } from "react-native";
 import Svg, { Path, Line, Text as SvgText, Defs, LinearGradient, Stop, Rect, ClipPath } from "react-native-svg";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import InsightCard from "./InsightCard";
 import { ReportData } from "../../hooks/useReportData";
 import { formatNumber } from "../../utils/formatNumber";
@@ -13,14 +13,16 @@ const screenWidth = Dimensions.get("window").width;
 interface Props {
   data: ReportData;
   currency: string;
+  includeDebt: boolean;
+  onToggleDebt: (v: boolean) => void;
 }
 
-function BalanceLineChart({ points }: { points: ReportData["balanceLine"] }) {
+function BalanceLineChart({ points, currencySymbol }: { points: ReportData["balanceLine"]; currencySymbol: string }) {
   const chartWidth = screenWidth - 72;
   const chartHeight = 180;
   const topPad = 20;
   const bottomPad = 28;
-  const leftPad = 48;
+  const leftPad = 56;
   const rightPad = 8;
   const drawW = chartWidth - leftPad - rightPad;
   const drawH = chartHeight - topPad - bottomPad;
@@ -91,9 +93,7 @@ function BalanceLineChart({ points }: { points: ReportData["balanceLine"] }) {
             fill={colors.gray}
             fontSize={9}
             textAnchor="end"
-          >
-            {yl.label}
-          </SvgText>
+          >{`${yl.label}${currencySymbol}`}</SvgText>
         </React.Fragment>
       ))}
 
@@ -126,7 +126,7 @@ function BalanceLineChart({ points }: { points: ReportData["balanceLine"] }) {
   );
 }
 
-export default function BalanceTab({ data, currency }: Props) {
+export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }: Props) {
   const sym = getCurrencyMeta(currency).symbol;
   const { balanceLine, accountBalances } = data;
 
@@ -141,10 +141,10 @@ export default function BalanceTab({ data, currency }: Props) {
         <View style={styles.chartCard}>
           <Text style={styles.chartTitle}>Balance trend</Text>
           <Text style={styles.chartSubtitle}>
-            Running total of personal account balances over time
+            Your total personal accounts balance at the end of each day (in {sym})
           </Text>
           <View style={{ alignItems: "center" }}>
-            <BalanceLineChart points={balanceLine} />
+            <BalanceLineChart points={balanceLine} currencySymbol={sym} />
           </View>
         </View>
       )}
@@ -165,8 +165,40 @@ export default function BalanceTab({ data, currency }: Props) {
         />
       </View>
 
-      <Text style={styles.sectionTitle}>Accounts</Text>
-      {accountBalances.map(({ account, balance }) => (
+      <View style={styles.debtToggleRow}>
+        <View style={styles.debtToggleLabelRow}>
+          <Text style={styles.debtToggleLabel}>Include debts in balance</Text>
+          <TouchableOpacity
+            onPress={() => Alert.alert(
+              "Include debts in balance",
+              "When ON, debt accounts appear in the balance chart, total, and account list. This toggle is synced with Edit Debts and Dashboard.",
+            )}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Feather name="info" size={14} color={colors.gray} />
+          </TouchableOpacity>
+        </View>
+        <Switch
+          value={includeDebt}
+          onValueChange={onToggleDebt}
+          trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
+          thumbColor="white"
+        />
+      </View>
+
+      <View style={styles.sectionTitleRow}>
+        <Text style={styles.sectionTitle}>Accounts</Text>
+        <TouchableOpacity
+          onPress={() => Alert.alert(
+            "Account balances",
+            "White number — current balance.\nGreen/red number — net change during this period (all money in minus all money out).",
+          )}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+          <Feather name="info" size={14} color={colors.gray} />
+        </TouchableOpacity>
+      </View>
+      {accountBalances.map(({ account, balance, periodChange }) => (
         <View key={account._id} style={styles.accRow}>
           <View style={styles.accLeft}>
             <View
@@ -186,9 +218,16 @@ export default function BalanceTab({ data, currency }: Props) {
               <Text style={styles.accCurrency}>{account.currency}</Text>
             </View>
           </View>
-          <Text style={[styles.accBalance, balance < 0 && { color: "#FF5959" }]}>
-            {formatNumber(balance)} {sym}
-          </Text>
+          <View style={styles.accRight}>
+            <Text style={[styles.accBalance, balance < 0 && { color: "#FF5959" }]}>
+              {formatNumber(balance)} {sym}
+            </Text>
+            {periodChange !== 0 && (
+              <Text style={[styles.accChange, { color: periodChange >= 0 ? "#44FFBC" : "#FF5959" }]}>
+                {periodChange >= 0 ? "+" : ""}{formatNumber(periodChange)} {sym}
+              </Text>
+            )}
+          </View>
         </View>
       ))}
 
@@ -221,6 +260,31 @@ const styles = StyleSheet.create({
   },
   insights: {
     gap: 6,
+  },
+  debtToggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: colors.darkBlack,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  debtToggleLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  debtToggleLabel: {
+    color: "white",
+    fontSize: size.footnote,
+    fontWeight: font.semibold as any,
+  },
+  sectionTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 4,
   },
   sectionTitle: {
     color: "white",
@@ -259,10 +323,18 @@ const styles = StyleSheet.create({
     color: colors.gray,
     fontSize: 11,
   },
+  accRight: {
+    alignItems: "flex-end",
+  },
   accBalance: {
     color: "white",
     fontSize: size.footnote,
     fontWeight: font.bold as any,
+  },
+  accChange: {
+    fontSize: 11,
+    fontWeight: font.semibold as any,
+    marginTop: 2,
   },
   empty: {
     color: colors.gray,
