@@ -5,6 +5,7 @@ import { AccountsContext } from "../context/AccountsContext";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
+import { DebtsContext } from "../context/DebtsContext";
 import PeriodNavigator from "../components/PeriodNavigator";
 import ReportTabBar, { ReportTab } from "../components/report/ReportTabBar";
 import AccountFilterModal from "../components/report/AccountFilterModal";
@@ -20,6 +21,7 @@ function Report() {
   const { transactions } = useContext(TransactionsContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { dateFrom, dateTo, periodType, offset } = useContext(AccountingPeriodContext);
+  const { settings, setIncludeInPersonalBalance } = useContext(DebtsContext);
 
   const [activeTab, setActiveTab] = useState<ReportTab>("expense");
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
@@ -44,6 +46,7 @@ function Report() {
     mainCurrency,
     periodType,
     offset,
+    settings.includeInPersonalBalance,
   );
 
   const renderTab = () => {
@@ -55,7 +58,14 @@ function Report() {
       case "overview":
         return <OverviewTab data={data} currency={mainCurrency} />;
       case "balance":
-        return <BalanceTab data={data} currency={mainCurrency} />;
+        return (
+          <BalanceTab
+            data={data}
+            currency={mainCurrency}
+            includeDebt={settings.includeInPersonalBalance}
+            onToggleDebt={setIncludeInPersonalBalance}
+          />
+        );
     }
   };
 

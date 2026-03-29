@@ -50,7 +50,8 @@
       "WebFetch(domain:www.exchangerate-api.com)",
       "WebFetch(domain:open.er-api.com)",
       "WebFetch(domain:api.coingecko.com)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(find C:UsersГлебWebstormProjectsBudget-meclientscreens -name *Account* -o -name *account*)"
     ]
   }
 }

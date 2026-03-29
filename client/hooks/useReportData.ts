@@ -54,7 +54,7 @@ export interface ReportData {
   subPeriodBars: SubPeriodBar[];
   dayStats: DayStat[];
   balanceLine: BalancePoint[];
-  accountBalances: { account: Account; balance: number }[];
+  accountBalances: { account: Account; balance: number; periodChange: number }[];
   inflows: number;
   outflows: number;
   insights: Insights;
@@ -137,6 +137,7 @@ export function useReportData(
   mainCurrency: string,
   periodType: PeriodType,
   offset: number,
+  includeDebtInBalance: boolean = false,
 ): ReportData {
   return useMemo(() => {
     const accMap = new Map<string, Account>();
@@ -255,64 +256,115 @@ export function useReportData(
     const dayStats = Array.from(dayMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
     // Balance line (cumulative personal balance by day)
-    const personalAccounts = accounts.filter((a) => a.type === "personal" && !excludedIds.has(a._id));
+    // Strategy: start from current known balances and work backwards using transactions
+    const personalAccounts = accounts.filter((a) =>
+      (a.type === "personal" || (a.type === "debt" && includeDebtInBalance)) && !excludedIds.has(a._id),
+    );
     let balanceLine: BalancePoint[] = [];
     if (dateFrom && dateTo) {
-      // Get all personal transactions sorted by date
-      const personalTrans = transactions
-        .filter((t) => {
-          const time = new Date(t.time).getTime();
-          return time <= dateTo.getTime();
-        })
-        .sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
+      const personalIds = new Set(personalAccounts.map((a) => a._id));
 
-      // Start from initial balances
-      const balances = new Map<string, number>();
-      personalAccounts.forEach((a) => balances.set(a._id, a.initialBalance ?? 0));
+      // Current total balance (in main currency)
+      const nowTotal = personalAccounts.reduce(
+        (s, a) => s + toMainCurrency(a.balance, a.currency, rates, mainCurrency), 0,
+      );
 
-      // Process all transactions up to period end, snapshot daily within period
-      const dailyTotals = new Map<string, number>();
-      let currentTotal = personalAccounts.reduce((s, a) => s + toMainCurrency(a.initialBalance ?? 0, a.currency, rates, mainCurrency), 0);
+      // Get all transactions affecting personal accounts, sorted newest first
+      const allTrans = transactions
+        .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
-      personalTrans.forEach((t) => {
+      // Build daily net changes for personal accounts within and after the period
+      // We'll walk backwards from current balance
+      const dailyChanges = new Map<string, number>();
+      allTrans.forEach((t) => {
         const sid = typeof t.senderId === "string" ? t.senderId : t.senderId._id;
         const rid = typeof t.recipientId === "string" ? t.recipientId : t.recipientId._id;
-        const converted = toMainCurrency(t.amount, t.currency, rates, mainCurrency);
-        const convertedRate = toMainCurrency(t.amount * t.rate, t.currency, rates, mainCurrency);
-
-        if (balances.has(rid)) currentTotal += convertedRate;
-        if (balances.has(sid)) currentTotal -= converted;
-
         const date = formatDate(new Date(t.time));
-        if (new Date(t.time) >= dateFrom) {
-          dailyTotals.set(date, currentTotal);
+
+        let delta = 0;
+        // Money INTO a personal account — recipient receives amount*rate in recipient's currency
+        if (personalIds.has(rid)) {
+          const recipientAcc = accMap.get(rid);
+          const recipientCurrency = recipientAcc?.currency ?? mainCurrency;
+          delta += toMainCurrency(t.amount * t.rate, recipientCurrency, rates, mainCurrency);
+        }
+        // Money OUT of a personal account — sender loses amount in sender's currency (t.currency)
+        if (personalIds.has(sid)) {
+          delta -= toMainCurrency(t.amount, t.currency, rates, mainCurrency);
+        }
+        if (delta !== 0) {
+          dailyChanges.set(date, (dailyChanges.get(date) ?? 0) + delta);
         }
       });
 
-      // Fill in days
-      const d = new Date(dateFrom);
-      let lastVal = currentTotal;
-      const firstEntry = Array.from(dailyTotals.entries()).sort((a, b) => a[0].localeCompare(b[0]))[0];
-      if (!firstEntry) {
-        // No transactions in period, flat line
-        balanceLine = [
-          { date: formatDate(dateFrom), value: Math.round(currentTotal * 100) / 100 },
-          { date: formatDate(dateTo), value: Math.round(currentTotal * 100) / 100 },
-        ];
-      } else {
-        while (d <= dateTo) {
-          const key = formatDate(d);
-          if (dailyTotals.has(key)) lastVal = dailyTotals.get(key)!;
-          balanceLine.push({ date: key, value: Math.round(lastVal * 100) / 100 });
-          d.setDate(d.getDate() + 1);
+      // Get sorted unique dates from today backwards
+      const today = formatDate(new Date());
+      const periodStart = formatDate(dateFrom);
+      const periodEnd = formatDate(dateTo);
+
+      // Calculate balance at end of each day by walking backwards from now
+      const dayBalances = new Map<string, number>();
+      let runningBalance = nowTotal;
+      dayBalances.set(today, runningBalance);
+
+      // Walk backwards from today through all days
+      const allDates = Array.from(dailyChanges.keys()).sort((a, b) => b.localeCompare(a));
+      // Also include today if not present
+      const cursor = new Date();
+      while (formatDate(cursor) >= periodStart) {
+        const key = formatDate(cursor);
+        dayBalances.set(key, runningBalance);
+        // The change on this day was added, so to get balance BEFORE this day,
+        // we subtract this day's change
+        if (dailyChanges.has(key)) {
+          runningBalance -= dailyChanges.get(key)!;
         }
+        cursor.setDate(cursor.getDate() - 1);
+      }
+
+      // Build the balance line for the period
+      const d = new Date(dateFrom);
+      while (d <= dateTo) {
+        const key = formatDate(d);
+        const val = dayBalances.get(key);
+        if (val !== undefined) {
+          balanceLine.push({ date: key, value: Math.round(val * 100) / 100 });
+        }
+        d.setDate(d.getDate() + 1);
+      }
+
+      // If we have no points, flat line at current balance
+      if (balanceLine.length === 0) {
+        balanceLine = [
+          { date: periodStart, value: Math.round(nowTotal * 100) / 100 },
+          { date: periodEnd, value: Math.round(nowTotal * 100) / 100 },
+        ];
       }
     }
 
-    // Account balances
+    // Account balances + period change per account
+    // Use period-filtered transactions (not excluded-filtered) for accurate per-account deltas
+    const accountPeriodDeltas = new Map<string, number>();
+    const balanceAccountIds = new Set(personalAccounts.map((a) => a._id));
+    filtered.forEach((t) => {
+      const sid = typeof t.senderId === "string" ? t.senderId : t.senderId._id;
+      const rid = typeof t.recipientId === "string" ? t.recipientId : t.recipientId._id;
+      if (balanceAccountIds.has(rid)) {
+        const recipientAcc = accMap.get(rid);
+        const recipientCurrency = recipientAcc?.currency ?? mainCurrency;
+        const val = toMainCurrency(t.amount * t.rate, recipientCurrency, rates, mainCurrency);
+        accountPeriodDeltas.set(rid, (accountPeriodDeltas.get(rid) ?? 0) + val);
+      }
+      if (balanceAccountIds.has(sid)) {
+        const val = toMainCurrency(t.amount, t.currency, rates, mainCurrency);
+        accountPeriodDeltas.set(sid, (accountPeriodDeltas.get(sid) ?? 0) - val);
+      }
+    });
+
     const accountBalances = personalAccounts.map((a) => ({
       account: a,
       balance: toMainCurrency(a.balance, a.currency, rates, mainCurrency),
+      periodChange: Math.round((accountPeriodDeltas.get(a._id) ?? 0) * 100) / 100,
     })).sort((a, b) => b.balance - a.balance);
 
     // Previous period for comparison
@@ -431,5 +483,5 @@ export function useReportData(
       outflows: totalExpense,
       insights,
     };
-  }, [transactions, accounts, dateFrom, dateTo, excludedIds, rates, mainCurrency, periodType, offset]);
+  }, [transactions, accounts, dateFrom, dateTo, excludedIds, rates, mainCurrency, periodType, offset, includeDebtInBalance]);
 }
