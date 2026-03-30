@@ -127,6 +127,7 @@ export interface AccountsContextType {
   accounts: Account[];
   setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
   getAccountsOfUser: () => Promise<void>;
+  loading: boolean;
   setActiveAccount: React.Dispatch<React.SetStateAction<Account | null>>;
   activeAccount: Account | null;
   setBalance: (senderIdOverride?: string, recipientIdOverride?: string) => Promise<void>;
@@ -153,6 +154,7 @@ export interface TransactionsContextType {
   transactions: Transaction[];
   setTransactions: React.Dispatch<React.SetStateAction<Transaction[]>>;
   getTransactionsOfUser: () => Promise<void>;
+  loading: boolean;
   activeTransaction: Transaction | null;
   setActiveTransaction: React.Dispatch<
     React.SetStateAction<Transaction | null>
