@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View, ScrollView, TextInput } from "react-native";
+import { StyleSheet, Text, View, ScrollView, TextInput, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { UsersContext } from "../context/UsersContext";
@@ -52,10 +52,10 @@ function calcFlows(
 }
 
 function History({ navigation }: { navigation: any }) {
-  const { transactions, getTransactionsOfUser, setActiveTransaction } =
+  const { transactions, getTransactionsOfUser, setActiveTransaction, loading: transactionsLoading } =
     useContext(TransactionsContext);
   const { user } = useContext(UsersContext);
-  const { accounts } = useContext(AccountsContext);
+  const { accounts, loading: accountsLoading } = useContext(AccountsContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
   const [search, setSearch] = useState("");
@@ -124,6 +124,11 @@ function History({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.screen}>
+      {(accountsLoading || transactionsLoading) && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color={colors.primaryGreen} />
+        </View>
+      )}
       <ScrollView
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 90 }}
@@ -183,6 +188,13 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   searchContainer: {
     flexDirection: "row",
