@@ -183,7 +183,7 @@ function Dashboard({ navigation }: { navigation: any }) {
       currency: mainCurrency,
       icon: { color: colors.primaryGreen, icon_value: "handshake-outline" },
     }),
-    [debtTotalBalance, mainCurrency],
+    [debtTotalBalance, mainCurrency, t],
   );
 
   const Accounts = useMemo<DashboardItem[]>(

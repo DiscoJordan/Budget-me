@@ -1,45 +1,46 @@
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import be from "./locales/be.json";
+import de from "./locales/de.json";
 import en from "./locales/en.json";
-import ru from "./locales/ru.json";
-import pl from "./locales/pl.json";
 import es from "./locales/es.json";
 import fr from "./locales/fr.json";
-import de from "./locales/de.json";
 import it from "./locales/it.json";
-import ua from "./locales/ua.json";
+import pl from "./locales/pl.json";
 import pt from "./locales/pt.json";
-import be from "./locales/be.json";
+import ru from "./locales/ru.json";
+import ua from "./locales/ua.json";
 
 const LANG_KEY = "app_language";
 
-export const resources = { en, ru, pl, es, fr, de, it, ua, pt, be } as const;
+export const resources = { be, de, en, es, fr, it, pl, pt, ru, ua } as const;
 export type LangCode = keyof typeof resources;
 export const LANGUAGES: { code: LangCode; label: string }[] = [
+  { code: "be", label: "Беларуская" },
+  { code: "de", label: "Deutsch" },
   { code: "en", label: "English" },
-  { code: "ru", label: "Русский" },
-  { code: "pl", label: "Polski" },
   { code: "es", label: "Español" },
   { code: "fr", label: "Français" },
-  { code: "de", label: "Deutsch" },
   { code: "it", label: "Italiano" },
-  { code: "ua", label: "Українська" },
+  { code: "pl", label: "Polski" },
   { code: "pt", label: "Português" },
-  { code: "be", label: "Беларуская" },
+  { code: "ru", label: "Русский" },
+  { code: "ua", label: "Українська" },
 ];
 
 i18n.use(initReactI18next).init({
   resources: {
+    be: { translation: be },
+    de: { translation: de },
     en: { translation: en },
-    ru: { translation: ru },
-    pl: { translation: pl },
     es: { translation: es },
     fr: { translation: fr },
-    de: { translation: de },
     it: { translation: it },
-    ua: { translation: ua },
+    pl: { translation: pl },
     pt: { translation: pt },
+    ru: { translation: ru },
+    ua: { translation: ua },
   },
   lng: "en",
   fallbackLng: "en",
