@@ -16,11 +16,13 @@ export const TransactionsProvider = ({
   children,
 }: TransactionsProviderProps) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
   const { user } = useContext(UsersContext);
   const { getAccountsOfUser } = useContext(AccountsContext);
 
   const getTransactionsOfUser = async (): Promise<void> => {
+    setLoading(true);
     try {
       const response = await axios.get(
         `${URL}/transactions/getall/${user?.id}`
@@ -29,6 +31,8 @@ export const TransactionsProvider = ({
     } catch (error) {
       const err = error as Error;
       console.log(err.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,6 +95,7 @@ export const TransactionsProvider = ({
         transactions,
         setTransactions,
         getTransactionsOfUser,
+        loading,
         activeTransaction,
         setActiveTransaction,
         updateTransaction,

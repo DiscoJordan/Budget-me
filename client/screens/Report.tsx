@@ -1,5 +1,5 @@
 import React, { useContext, useState, useCallback } from "react";
-import { ScrollView, View, TouchableOpacity, StyleSheet } from "react-native";
+import { ScrollView, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
 import { TransactionsContext } from "../context/TransactionsContext";
@@ -17,8 +17,8 @@ import { useReportData } from "../hooks/useReportData";
 import { colors } from "../styles/styles";
 
 function Report() {
-  const { accounts } = useContext(AccountsContext);
-  const { transactions } = useContext(TransactionsContext);
+  const { accounts, loading: accountsLoading } = useContext(AccountsContext);
+  const { transactions, loading: transactionsLoading } = useContext(TransactionsContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { dateFrom, dateTo, periodType, offset } = useContext(AccountingPeriodContext);
   const { settings, setIncludeInPersonalBalance } = useContext(DebtsContext);
@@ -71,6 +71,11 @@ function Report() {
 
   return (
     <View style={styles.screen}>
+      {(accountsLoading || transactionsLoading) && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color={colors.primaryGreen} />
+        </View>
+      )}
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.content}
@@ -114,6 +119,13 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   scroll: {
     flex: 1,

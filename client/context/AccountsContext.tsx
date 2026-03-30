@@ -21,6 +21,7 @@ interface AccountsProviderProps {
 
 export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [type, setType] = useState<string>("");
   const { user } = useContext(UsersContext);
   const [activeAccount, setActiveAccount] = useState<Account | null>(null);
@@ -214,6 +215,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   }, [type]);
 
   const getAccountsOfUser = async (): Promise<void> => {
+    setLoading(true);
     try {
       const response = await axios.get(`${URL}/accounts/getall/${user?.id}`);
       const fresh: Account[] = response.data.data;
@@ -227,6 +229,8 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
       });
     } catch (error) {
       console.log(error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -305,6 +309,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         accounts,
         setAccounts,
         getAccountsOfUser,
+        loading,
         setActiveAccount,
         activeAccount,
         setBalance,
