@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
@@ -63,7 +64,7 @@ const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
 ];
 
 export default function Debts({ navigation }: { navigation: any }) {
-  const { accounts, setActiveAccount, setType } = useContext(AccountsContext);
+  const { accounts, setActiveAccount, setType, loading: accountsLoading } = useContext(AccountsContext);
   const { settings } = useContext(DebtsContext);
   const { mainCurrency } = useContext(CurrencyContext);
   const { t } = useTranslation();
@@ -105,6 +106,11 @@ export default function Debts({ navigation }: { navigation: any }) {
 
   return (
     <View style={styles.screen}>
+      {accountsLoading && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color={colors.primaryGreen} />
+        </View>
+      )}
       <View style={styles.tabBar}>
         {TAB_KEYS.map((tk) => (
           <TouchableOpacity
@@ -174,6 +180,13 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
   },
   emptyScreen: {
     flex: 1,

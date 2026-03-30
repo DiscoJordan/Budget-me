@@ -21,6 +21,7 @@ import {
   FlatList,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
 } from "react-native";
 import {
   container,
@@ -71,12 +72,13 @@ function Dashboard({ navigation }: { navigation: any }) {
     setType,
     setAccountData,
     randomColor,
+    loading: accountsLoading,
   } = useContext(AccountsContext);
   const { t } = useTranslation();
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { settings: debtSettings } = useContext(DebtsContext);
-  const { transactions, getTransactionsOfUser } =
+  const { transactions, getTransactionsOfUser, loading: transactionsLoading } =
     useContext(TransactionsContext);
   const { dateFrom, dateTo, periodType } = useContext(AccountingPeriodContext);
   const containerRef = useRef<View>(null);
@@ -471,6 +473,11 @@ function Dashboard({ navigation }: { navigation: any }) {
       style={{ flex: 1, overflow: "visible" }}
       onLayout={measureContainer}
     >
+      {(accountsLoading || transactionsLoading) && (
+        <View style={styles.loaderOverlay}>
+          <ActivityIndicator size="large" color={colors.primaryGreen} />
+        </View>
+      )}
       <ScrollView
         style={{ backgroundColor: colors.background, padding: 20 }}
         scrollEnabled={!draggedAccount}
@@ -585,6 +592,13 @@ function Dashboard({ navigation }: { navigation: any }) {
 
 const styles = StyleSheet.create({
   container,
+  loaderOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.background,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
   floatingIconOuter: {
     position: "absolute",
     left: 0,
