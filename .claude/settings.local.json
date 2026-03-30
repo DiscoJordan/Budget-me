@@ -51,7 +51,8 @@
       "WebFetch(domain:open.er-api.com)",
       "WebFetch(domain:api.coingecko.com)",
       "Bash(npm ls:*)",
-      "Bash(find C:UsersГлебWebstormProjectsBudget-meclientscreens -name *Account* -o -name *account*)"
+      "Bash(find C:UsersГлебWebstormProjectsBudget-meclientscreens -name *Account* -o -name *account*)",
+      "Bash(rtk npm:*)"
     ]
   }
 }

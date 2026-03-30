@@ -1,4 +1,6 @@
-import React, { createContext, useState, useMemo } from 'react';
+import React, { createContext, useState, useMemo, useEffect } from 'react';
+import i18n from '../i18n';
+import { getLocale, formatDayMonth, formatMonthYear } from '../utils/formatDate';
 
 export type PeriodType = 'week' | 'month' | 'quarter' | 'half-year' | 'year' | 'all' | 'custom';
 
@@ -20,21 +22,6 @@ export interface AccountingPeriodContextType {
 export const AccountingPeriodContext = createContext<AccountingPeriodContextType>(
   {} as AccountingPeriodContextType
 );
-
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
-const SHORT_MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-function fmt(date: Date): string {
-  const d = date.getDate().toString().padStart(2, '0');
-  const m = SHORT_MONTHS[date.getMonth()];
-  return `${d} ${m}`;
-}
 
 export function computeRange(type: PeriodType, now: Date, offset: number = 0): { from: Date | null; to: Date | null } {
   const y = now.getFullYear();
@@ -90,13 +77,13 @@ function computeLabel(
   to: Date | null,
 ): string {
   switch (type) {
-    case 'month': return from ? `${MONTHS[from.getMonth()]} ${from.getFullYear()}` : '';
+    case 'month': return from ? formatMonthYear(from) : '';
     case 'year': return from ? from.getFullYear().toString() : '';
-    case 'all': return 'All period';
+    case 'all': return i18n.t('period.allPeriod');
     case 'custom':
-      return from && to ? `${fmt(from)} – ${fmt(to)}` : 'Custom';
+      return from && to ? `${formatDayMonth(from)} – ${formatDayMonth(to)}` : i18n.t('period.selectPeriod');
     default:
-      return from && to ? `${fmt(from)} – ${fmt(to)}` : '';
+      return from && to ? `${formatDayMonth(from)} – ${formatDayMonth(to)}` : '';
   }
 }
 
@@ -105,6 +92,13 @@ export function AccountingPeriodProvider({ children }: { children: React.ReactNo
   const [customFrom, setCustomFrom] = useState<Date | null>(null);
   const [customTo, setCustomTo] = useState<Date | null>(null);
   const [offset, setOffset] = useState(0);
+  const [, setLang] = useState(i18n.language);
+
+  useEffect(() => {
+    const handler = (lng: string) => setLang(lng);
+    i18n.on('languageChanged', handler);
+    return () => i18n.off('languageChanged', handler);
+  }, []);
 
   const now = useMemo(() => new Date(), []);
 

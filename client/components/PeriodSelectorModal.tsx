@@ -14,24 +14,27 @@ import {
   AccountingPeriodContext,
   PeriodType,
 } from "../context/AccountingPeriodContext";
+import { useTranslation } from "react-i18next";
 import { colors } from "../styles/styles";
+import { formatDateShort } from "../utils/formatDate";
 
 interface Props {
   visible: boolean;
   onClose: () => void;
 }
 
-const PERIODS: { type: PeriodType; label: string }[] = [
-  { type: "week", label: "Week (last 7 days)" },
-  { type: "month", label: "Month" },
-  { type: "quarter", label: "Quarter" },
-  { type: "half-year", label: "Half a year" },
-  { type: "year", label: "Year" },
-  { type: "all", label: "All period" },
-  { type: "custom", label: "Select period" },
+const PERIOD_KEYS: { type: PeriodType; key: string }[] = [
+  { type: "week", key: "period.week" },
+  { type: "month", key: "period.month" },
+  { type: "quarter", key: "period.quarter" },
+  { type: "half-year", key: "period.halfYear" },
+  { type: "year", key: "period.year" },
+  { type: "all", key: "period.allPeriod" },
+  { type: "custom", key: "period.selectPeriod" },
 ];
 
 export default function PeriodSelectorModal({ visible, onClose }: Props) {
+  const { t } = useTranslation();
   const { periodType, setPeriodType, setCustomRange, customFrom, customTo } =
     useContext(AccountingPeriodContext);
 
@@ -84,12 +87,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
     }
   };
 
-  const fmtDate = (d: Date) =>
-    d.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    });
+  const fmtDate = (d: Date) => formatDateShort(d);
 
   return (
     <Modal
@@ -107,8 +105,9 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
       <View style={styles.sheet}>
         {!showCustom ? (
           <>
-            <Text style={styles.title}>Accounting period</Text>
-            {PERIODS.map(({ type, label }) => {
+            <Text style={styles.title}>{t("period.accountingPeriod")}</Text>
+            {PERIOD_KEYS.map(({ type, key }) => {
+              const label = t(key);
               const isActive = periodType === type;
               return (
                 <TouchableOpacity
@@ -131,7 +130,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
           </>
         ) : (
           <>
-            <Text style={styles.title}>Select period</Text>
+            <Text style={styles.title}>{t("period.selectPeriod")}</Text>
 
             <View style={styles.dateRow}>
               <TouchableOpacity
@@ -142,7 +141,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
                     : undefined
                 }
               >
-                <Text style={styles.dateTileLabel}>From</Text>
+                <Text style={styles.dateTileLabel}>{t("period.from")}</Text>
                 <Text style={styles.dateTileValue}>{fmtDate(localFrom)}</Text>
               </TouchableOpacity>
 
@@ -154,7 +153,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
                     : undefined
                 }
               >
-                <Text style={styles.dateTileLabel}>To</Text>
+                <Text style={styles.dateTileLabel}>{t("period.to")}</Text>
                 <Text style={styles.dateTileValue}>{fmtDate(localTo)}</Text>
               </TouchableOpacity>
             </View>
@@ -162,7 +161,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
             {/* iOS: always-visible spinners */}
             {Platform.OS === "ios" && (
               <>
-                <Text style={styles.pickerLabel}>From</Text>
+                <Text style={styles.pickerLabel}>{t("period.from")}</Text>
                 <DateTimePicker
                   value={localFrom}
                   mode="date"
@@ -173,7 +172,7 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
                   onChange={(e, d) => onDateChange(e, d, "from")}
                   style={styles.picker}
                 />
-                <Text style={styles.pickerLabel}>To</Text>
+                <Text style={styles.pickerLabel}>{t("period.to")}</Text>
                 <DateTimePicker
                   value={localTo}
                   mode="date"
@@ -214,13 +213,13 @@ export default function PeriodSelectorModal({ visible, onClose }: Props) {
                 onPress={() => setShowCustom(false)}
                 style={styles.backBtn}
               >
-                <Text style={styles.backText}>Back</Text>
+                <Text style={styles.backText}>{t("common.back")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleApplyCustom}
                 style={styles.applyBtn}
               >
-                <Text style={styles.applyText}>Apply</Text>
+                <Text style={styles.applyText}>{t("common.apply")}</Text>
               </TouchableOpacity>
             </View>
           </>

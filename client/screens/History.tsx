@@ -1,4 +1,5 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, View, ScrollView, TextInput } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TransactionsContext } from "../context/TransactionsContext";
@@ -57,6 +58,7 @@ function History({ navigation }: { navigation: any }) {
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { dateFrom, dateTo } = useContext(AccountingPeriodContext);
   const [search, setSearch] = useState("");
+  const { t } = useTranslation();
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -129,7 +131,7 @@ function History({ navigation }: { navigation: any }) {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search transactions..."
+            placeholder={t("history.searchTransactions")}
             placeholderTextColor={colors.gray}
             value={search}
             onChangeText={setSearch}
@@ -144,13 +146,13 @@ function History({ navigation }: { navigation: any }) {
 
         <PeriodNavigator />
 
-        <Text style={styles.sectionTitle}>Operations</Text>
+        <Text style={styles.sectionTitle}>{t("history.operations")}</Text>
 
         {searched.length === 0 ? (
           <Text style={styles.empty}>
             {search.trim()
-              ? "No matching transactions"
-              : "No transactions for this period"}
+              ? t("history.noMatchingTransactions")
+              : t("history.noTransactionsForPeriod")}
           </Text>
         ) : (
           sortedDates.map((date) => (

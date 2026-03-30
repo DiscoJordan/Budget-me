@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import { useTranslation } from "react-i18next";
 import {
   StyleSheet,
   Text,
@@ -32,6 +33,7 @@ interface RegistrationFormData {
 
 function Registration({ navigation }: { navigation: any }) {
   const { login } = useContext(UsersContext);
+  const { t } = useTranslation();
   const [message, setMessage] = useState<string>("");
   const [userData, setUserData] = useState<RegistrationFormData>({
     username: "",
@@ -66,13 +68,13 @@ function Registration({ navigation }: { navigation: any }) {
 
   return (
     <View style={{ ...container, minHeight: "100%" }}>
-      <Text style={styles.h1}>Sign up</Text>
+      <Text style={styles.h1}>{t("auth.signUp")}</Text>
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "username")}
         inlineImageLeft="search_icon"
         placeholderTextColor={colors.primaryGreen}
-        placeholder="Username*"
+        placeholder={t("auth.username")}
         textContentType="username"
         clearButtonMode={"while-editing"}
         maxLength={20}
@@ -84,7 +86,7 @@ function Registration({ navigation }: { navigation: any }) {
         inlineImageLeft="search_icon"
         style={styles.input}
         placeholderTextColor={colors.primaryGreen}
-        placeholder="Email*"
+        placeholder={t("auth.email")}
         textContentType="emailAddress"
         clearButtonMode={"while-editing"}
         maxLength={20}
@@ -93,7 +95,7 @@ function Registration({ navigation }: { navigation: any }) {
       <TextInput
         onChangeText={(text) => handleChange(text, "password")}
         style={styles.input}
-        placeholder="Password*"
+        placeholder={t("auth.password")}
         placeholderTextColor={colors.primaryGreen}
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
@@ -102,7 +104,7 @@ function Registration({ navigation }: { navigation: any }) {
       <TextInput
         onChangeText={(text) => handleChange(text, "password2")}
         style={styles.input}
-        placeholder="Repeat password*"
+        placeholder={t("auth.repeatPassword")}
         placeholderTextColor={colors.primaryGreen}
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
@@ -110,12 +112,12 @@ function Registration({ navigation }: { navigation: any }) {
       />
 
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
-        <Text style={styles.submit_button_text}>Create account</Text>
+        <Text style={styles.submit_button_text}>{t("auth.createAccount")}</Text>
       </TouchableOpacity>
       <Text style={caption1}>
-        Have an account?{" "}
+        {t("auth.haveAccount")}
         <Text style={styles.green} onPress={() => navigation.navigate("Login")}>
-          Log In
+          {t("auth.logIn")}
         </Text>
       </Text>
       {message ? <Text style={{ color: "white" }}>{message}</Text> : null}

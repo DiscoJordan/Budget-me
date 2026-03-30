@@ -1,4 +1,6 @@
 import React, { useContext, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { LANGUAGES, setLanguage } from "../i18n";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
@@ -29,6 +31,7 @@ import {
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 function Settings() {
+  const { t, i18n } = useTranslation();
   const { logout } = useContext(UsersContext);
   const { currencies, rates, mainCurrency, setMainCurrency, loading, lastFetchedAt, refreshCurrencies } =
     useContext(CurrencyContext);
@@ -38,9 +41,13 @@ function Settings() {
   const { deleteAllTransactions } = useContext(TransactionsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
+
+  const currentLanguageLabel =
+    LANGUAGES.find((l) => l.code === i18n.language)?.label ?? i18n.language;
 
   const expenseAccounts = accounts.filter((a) => a.type === "expense");
 
@@ -64,7 +71,7 @@ function Settings() {
         onPress={() => setModalVisible(true)}
         style={setting_option}
       >
-        <Text style={styles.label}>Main currency</Text>
+        <Text style={styles.label}>{t("settings.mainCurrency")}</Text>
         <View style={styles.currencyRow}>
           {loading ? (
             <ActivityIndicator color="white" size="small" />
@@ -83,9 +90,9 @@ function Settings() {
       </TouchableOpacity>
 
       <View style={setting_option}>
-        <Text style={styles.label}>Currency rates last updated</Text>
+        <Text style={styles.label}>{t("settings.currencyRatesUpdated")}</Text>
         <Text style={styles.currencyValue}>
-          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : "Never"}
+          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : t("common.never")}
         </Text>
       </View>
 
@@ -93,12 +100,12 @@ function Settings() {
         onPress={() => setDashboardSettingsOpen(true)}
         style={setting_option}
       >
-        <Text style={styles.label}>Dashboard settings</Text>
+        <Text style={styles.label}>{t("settings.dashboardSettings")}</Text>
         <Feather name="chevron-right" size={20} color={colors.gray} />
       </TouchableOpacity>
 
       <View style={setting_option}>
-        <Text style={styles.label}>Enable debts</Text>
+        <Text style={styles.label}>{t("settings.enableDebts")}</Text>
         <Switch
           value={debtSettings.enabled}
           onValueChange={setDebtEnabled}
@@ -108,6 +115,22 @@ function Settings() {
       </View>
 
       <TouchableOpacity
+        onPress={() => setLanguageModalVisible(true)}
+        style={setting_option}
+      >
+        <Text style={styles.label}>{t("settings.language")}</Text>
+        <View style={styles.currencyRow}>
+          <Text style={styles.currencyValue}>{currentLanguageLabel}</Text>
+          <Feather
+            name="chevron-right"
+            size={20}
+            color={colors.gray}
+            style={{ marginLeft: 8 }}
+          />
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity
         onPress={() => {
           setDeleteInput("");
           setDeleteConfirmVisible(true);
@@ -115,13 +138,13 @@ function Settings() {
         style={setting_option}
       >
         <Text style={{ ...styles.label, color: colors.red }}>
-          Reset all transactions
+          {t("settings.resetAllTransactions")}
         </Text>
         <Feather name="trash-2" size={20} color={colors.red} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={logout} style={setting_option}>
-        <Text style={subheadline}>Log out</Text>
+        <Text style={subheadline}>{t("settings.logOut")}</Text>
         <Feather name="log-out" size={24} color="white" />
       </TouchableOpacity>
 
@@ -132,12 +155,12 @@ function Settings() {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Dashboard settings</Text>
+            <Text style={styles.modalTitle}>{t("settings.dashboardSettings")}</Text>
             <TouchableOpacity onPress={() => setDashboardSettingsOpen(false)}>
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.sectionLabel}>Expense accounts</Text>
+          <Text style={styles.sectionLabel}>{t("settings.expenseAccounts")}</Text>
           <FlatList
             data={expenseAccounts}
             keyExtractor={(item) => item._id}
@@ -180,7 +203,7 @@ function Settings() {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Choose currency</Text>
+            <Text style={styles.modalTitle}>{t("settings.chooseCurrency")}</Text>
             <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
               <TouchableOpacity onPress={refreshCurrencies}>
                 <Feather name="refresh-cw" size={20} color={loading ? colors.gray : "white"} />
@@ -198,7 +221,7 @@ function Settings() {
 
           <TextInput
             style={styles.search}
-            placeholder="Search..."
+            placeholder={t("common.search")}
             placeholderTextColor={colors.gray}
             value={search}
             onChangeText={setSearch}
@@ -266,17 +289,16 @@ function Settings() {
       >
         <View style={styles.deleteOverlay}>
           <View style={styles.deleteSheet}>
-            <Text style={styles.deleteTitle}>Reset all transactions</Text>
+            <Text style={styles.deleteTitle}>{t("settings.resetTitle")}</Text>
             <Text style={styles.deleteDesc}>
-              This will permanently delete all transactions and reset all
-              account balances. This action cannot be undone.
+              {t("settings.resetDescription")}
             </Text>
             <Text style={styles.deleteDesc}>
-              Type{" "}
+              {t("settings.typeToConfirm")}
               <Text style={{ color: colors.red, fontWeight: "700" }}>
                 Delete
-              </Text>{" "}
-              to confirm:
+              </Text>
+              {t("settings.toConfirm")}
             </Text>
             <TextInput
               style={styles.deleteInput}
@@ -292,7 +314,7 @@ function Settings() {
                 style={styles.deleteCancelBtn}
                 onPress={() => setDeleteConfirmVisible(false)}
               >
-                <Text style={styles.deleteCancelText}>Cancel</Text>
+                <Text style={styles.deleteCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -304,17 +326,61 @@ function Settings() {
                   setDeleteConfirmVisible(false);
                   const ok = await deleteAllTransactions();
                   Alert.alert(
-                    ok ? "Done" : "Error",
+                    ok ? t("common.done") : t("common.error"),
                     ok
-                      ? "All transactions have been deleted."
-                      : "Failed to delete transactions.",
+                      ? t("settings.allDeleted")
+                      : t("settings.deleteFailed"),
                   );
                 }}
               >
-                <Text style={styles.deleteConfirmText}>Delete all</Text>
+                <Text style={styles.deleteConfirmText}>{t("settings.deleteAll")}</Text>
               </TouchableOpacity>
             </View>
           </View>
+        </View>
+      </Modal>
+
+      <Modal
+        visible={languageModalVisible}
+        animationType="slide"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <View style={styles.modal}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{t("settings.language")}</Text>
+            <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+              <Feather name="x" size={24} color="white" />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={LANGUAGES}
+            keyExtractor={(item) => item.code}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={[
+                  styles.currencyItem,
+                  item.code === i18n.language && styles.currencyItemActive,
+                ]}
+                onPress={() => {
+                  setLanguage(item.code);
+                  setLanguageModalVisible(false);
+                }}
+                accessibilityLabel={item.label}
+              >
+                <Text
+                  style={[
+                    styles.currencyCode,
+                    item.code === i18n.language && styles.currencyItemTextActive,
+                  ]}
+                >
+                  {item.label}
+                </Text>
+                {item.code === i18n.language && (
+                  <Feather name="check" size={18} color={colors.primaryGreen} />
+                )}
+              </TouchableOpacity>
+            )}
+          />
         </View>
       </Modal>
     </View>

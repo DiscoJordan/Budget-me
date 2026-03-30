@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import DonutBreakdown from "./DonutBreakdown";
 import InsightCard from "./InsightCard";
 import { ReportData } from "../../hooks/useReportData";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function ExpenseTab({ data, currency }: Props) {
+  const { t } = useTranslation();
   const sym = getCurrencyMeta(currency).symbol;
   const { insights } = data;
 
@@ -21,71 +23,71 @@ export default function ExpenseTab({ data, currency }: Props) {
         data={data.expenseBreakdown}
         total={data.totalExpense}
         currency={currency}
-        label="Expenses"
+        label={t("reportExpense.expenses")}
       />
 
       <View style={styles.insights}>
         {insights.biggestExpense && (
           <InsightCard
             icon="arrow-top-right"
-            label={`Biggest: ${insights.biggestExpense.name}`}
+            label={t("reportExpense.biggest", { name: insights.biggestExpense.name })}
             value={`${formatNumber(insights.biggestExpense.amount)} ${sym}`}
-            hint="The expense category where you spent the most money during this period."
+            hint={t("reportExpense.biggestHint")}
           />
         )}
         {insights.biggestTransaction && (
           <InsightCard
             icon="cash-remove"
-            label={`Biggest txn: ${insights.biggestTransaction.name}`}
+            label={t("reportExpense.biggestTxn", { name: insights.biggestTransaction.name })}
             value={`${formatNumber(insights.biggestTransaction.amount)} ${sym}`}
-            hint={`Your single largest expense transaction this period, made on ${insights.biggestTransaction.date}.`}
+            hint={t("reportExpense.biggestTxnHint", { date: insights.biggestTransaction.date })}
           />
         )}
         <InsightCard
           icon="calendar-today"
-          label="Daily average"
+          label={t("reportExpense.dailyAverage")}
           value={`${formatNumber(insights.dailyAvgExpense)} ${sym}`}
-          hint="Total expenses divided by the number of days in this period. Shows how much you spend per day on average."
+          hint={t("reportExpense.dailyAvgHint")}
         />
         {insights.avgTransactionSize > 0 && (
           <InsightCard
             icon="cash"
-            label="Avg transaction"
+            label={t("reportExpense.avgTransaction")}
             value={`${formatNumber(insights.avgTransactionSize)} ${sym}`}
-            hint="Average size of a single expense transaction. Total expenses divided by number of expense transactions."
+            hint={t("reportExpense.avgTransactionHint")}
           />
         )}
         {insights.highestSpendDay && (
           <InsightCard
             icon="fire"
-            label={`Peak spend: ${insights.highestSpendDay.date}`}
+            label={t("reportExpense.peakSpend", { date: insights.highestSpendDay.date })}
             value={`${formatNumber(insights.highestSpendDay.amount)} ${sym}`}
             valueColor="#FF5959"
-            hint="The single day when you spent the most money. Only counts days that had at least one transaction."
+            hint={t("reportExpense.peakSpendHint")}
           />
         )}
         {insights.mostActiveCategory && (
           <InsightCard
             icon="repeat"
-            label={`Most frequent: ${insights.mostActiveCategory.name}`}
+            label={t("reportExpense.mostFrequent", { name: insights.mostActiveCategory.name })}
             value={`${insights.mostActiveCategory.count} txns`}
-            hint="The expense category with the most transactions (not necessarily the highest total amount)."
+            hint={t("reportExpense.mostFrequentHint")}
           />
         )}
         {insights.expenseChange !== null && (
           <InsightCard
             icon="chart-line-variant"
-            label="vs previous period"
+            label={t("reportExpense.vsPrevPeriod")}
             value={`${insights.expenseChange > 0 ? "+" : ""}${insights.expenseChange.toFixed(1)}%`}
             valueColor={insights.expenseChange > 0 ? "#FF5959" : "#44FFBC"}
-            hint="How your expenses changed compared to the previous period. Red (+) means you spent more, green (-) means less."
+            hint={t("reportExpense.vsPrevPeriodHint")}
           />
         )}
         <InsightCard
           icon="counter"
-          label="Transactions"
-          value={`${insights.totalTransactions} in ${insights.daysWithTransactions} days`}
-          hint="Total number of transactions and how many unique days had at least one transaction."
+          label={t("reportExpense.transactions")}
+          value={t("reportExpense.transactionsValue", { count: insights.totalTransactions, days: insights.daysWithTransactions })}
+          hint={t("reportExpense.transactionsHint")}
         />
       </View>
     </View>

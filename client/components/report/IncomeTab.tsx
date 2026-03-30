@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import DonutBreakdown from "./DonutBreakdown";
 import InsightCard from "./InsightCard";
 import { ReportData } from "../../hooks/useReportData";
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export default function IncomeTab({ data, currency }: Props) {
+  const { t } = useTranslation();
   const sym = getCurrencyMeta(currency).symbol;
   const { insights } = data;
 
@@ -21,47 +23,47 @@ export default function IncomeTab({ data, currency }: Props) {
         data={data.incomeBreakdown}
         total={data.totalIncome}
         currency={currency}
-        label="Income"
+        label={t("reportIncome.income")}
       />
 
       <View style={styles.insights}>
         {insights.topIncome && (
           <InsightCard
             icon="star"
-            label={`Top source: ${insights.topIncome.name}`}
+            label={t("reportIncome.topSource", { name: insights.topIncome.name })}
             value={`${formatNumber(insights.topIncome.amount)} ${sym}`}
-            hint="The income source that brought in the most money during this period."
+            hint={t("reportIncome.topSourceHint")}
           />
         )}
         <InsightCard
           icon="calendar-today"
-          label="Daily average"
+          label={t("reportIncome.dailyAverage")}
           value={`${formatNumber(insights.dailyAvgIncome)} ${sym}`}
-          hint="Total income divided by the number of days in this period."
+          hint={t("reportIncome.dailyAvgHint")}
         />
         {insights.incomeChange !== null && (
           <InsightCard
             icon="chart-line-variant"
-            label="vs previous period"
+            label={t("reportIncome.vsPrevPeriod")}
             value={`${insights.incomeChange > 0 ? "+" : ""}${insights.incomeChange.toFixed(1)}%`}
             valueColor={insights.incomeChange > 0 ? "#44FFBC" : "#FF5959"}
-            hint="How your income changed compared to the previous period. Green (+) means you earned more."
+            hint={t("reportIncome.vsPrevPeriodHint")}
           />
         )}
         {insights.savingsRate !== 0 && (
           <InsightCard
             icon="piggy-bank"
-            label="Savings rate"
+            label={t("reportIncome.savingsRate")}
             value={`${insights.savingsRate.toFixed(1)}%`}
             valueColor={insights.savingsRate >= 0 ? "#44FFBC" : "#FF5959"}
-            hint="Percentage of income you kept after expenses. Calculated as (Income - Expenses) / Income * 100."
+            hint={t("reportIncome.savingsRateHint")}
           />
         )}
         <InsightCard
           icon="counter"
-          label="Income days"
+          label={t("reportIncome.incomeDays")}
           value={`${insights.daysWithTransactions}`}
-          hint="Number of unique days that had at least one income or expense transaction."
+          hint={t("reportIncome.incomeDaysHint")}
         />
       </View>
     </View>

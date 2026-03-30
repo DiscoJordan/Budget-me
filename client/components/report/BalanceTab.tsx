@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions, Switch, TouchableOpacity, Alert } from "react-native";
+import { useTranslation } from "react-i18next";
 import Svg, { Path, Line, Text as SvgText, Defs, LinearGradient, Stop, Rect, ClipPath } from "react-native-svg";
 import { MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import InsightCard from "./InsightCard";
@@ -127,6 +128,7 @@ function BalanceLineChart({ points, currencySymbol }: { points: ReportData["bala
 }
 
 export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }: Props) {
+  const { t } = useTranslation();
   const sym = getCurrencyMeta(currency).symbol;
   const { balanceLine, accountBalances } = data;
 
@@ -139,9 +141,9 @@ export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }
     <View style={styles.container}>
       {balanceLine.length > 1 && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Balance trend</Text>
+          <Text style={styles.chartTitle}>{t("reportBalance.balanceTrend")}</Text>
           <Text style={styles.chartSubtitle}>
-            Your total personal accounts balance at the end of each day (in {sym})
+            {t("reportBalance.balanceSubtitle", { symbol: sym })}
           </Text>
           <View style={{ alignItems: "center" }}>
             <BalanceLineChart points={balanceLine} currencySymbol={sym} />
@@ -152,26 +154,26 @@ export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }
       <View style={styles.insights}>
         <InsightCard
           icon="wallet"
-          label="Total balance"
+          label={t("reportBalance.totalBalance")}
           value={`${formatNumber(totalBalance)} ${sym}`}
-          hint="Sum of all personal account balances converted to your main currency."
+          hint={t("reportBalance.totalBalanceHint")}
         />
         <InsightCard
           icon="swap-vertical"
-          label="Period change"
+          label={t("reportBalance.periodChange")}
           value={`${balanceChange >= 0 ? "+" : ""}${formatNumber(balanceChange)} ${sym}`}
           valueColor={balanceChange >= 0 ? "#44FFBC" : "#FF5959"}
-          hint="How your total balance changed from the start to the end of this period."
+          hint={t("reportBalance.periodChangeHint")}
         />
       </View>
 
       <View style={styles.debtToggleRow}>
         <View style={styles.debtToggleLabelRow}>
-          <Text style={styles.debtToggleLabel}>Include debts in balance</Text>
+          <Text style={styles.debtToggleLabel}>{t("reportBalance.includeDebts")}</Text>
           <TouchableOpacity
             onPress={() => Alert.alert(
-              "Include debts in balance",
-              "When ON, debt accounts appear in the balance chart, total, and account list. This toggle is synced with Edit Debts and Dashboard.",
+              t("reportBalance.includeDebts"),
+              t("reportBalance.includeDebtsHint"),
             )}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
@@ -187,11 +189,11 @@ export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }
       </View>
 
       <View style={styles.sectionTitleRow}>
-        <Text style={styles.sectionTitle}>Accounts</Text>
+        <Text style={styles.sectionTitle}>{t("reportBalance.accounts")}</Text>
         <TouchableOpacity
           onPress={() => Alert.alert(
-            "Account balances",
-            "White number — current balance.\nGreen/red number — net change during this period (all money in minus all money out).",
+            t("reportBalance.accounts"),
+            t("reportBalance.accountBalancesHint"),
           )}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -232,7 +234,7 @@ export default function BalanceTab({ data, currency, includeDebt, onToggleDebt }
       ))}
 
       {accountBalances.length === 0 && (
-        <Text style={styles.empty}>No personal accounts</Text>
+        <Text style={styles.empty}>{t("reportBalance.noPersonalAccounts")}</Text>
       )}
     </View>
   );

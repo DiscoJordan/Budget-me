@@ -1,4 +1,5 @@
 import React, { useContext, useMemo, useRef, useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useFocusEffect } from "@react-navigation/native";
 import Animated, {
   useAnimatedStyle,
@@ -65,6 +66,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     setAccountData,
     randomColor,
   } = useContext(AccountsContext);
+  const { t } = useTranslation();
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { settings: debtSettings } = useContext(DebtsContext);
@@ -162,7 +164,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     () => ({
       _id: "__debts__",
       type: "debt",
-      name: "Debts",
+      name: t("accountTypes.debt"),
       balance: debtTotalBalance,
       currency: mainCurrency,
       icon: { color: colors.primaryGreen, icon_value: "handshake-outline" },
@@ -463,7 +465,7 @@ function Dashboard({ navigation }: { navigation: any }) {
         >
           <View style={accounts__block}>
             <View style={accounts__header}>
-              <Text style={body}>Income</Text>
+              <Text style={body}>{t("accountTypes.income")}</Text>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={body}>
                   {formatNumber(periodTotals.incomeTotal)}{" "}
@@ -489,7 +491,7 @@ function Dashboard({ navigation }: { navigation: any }) {
           </View>
           <View style={accounts__block}>
             <View style={accounts__header}>
-              <Text style={body}>Personal</Text>
+              <Text style={body}>{t("accountTypes.personal")}</Text>
               <Text style={body}>
                 {formatNumber(periodTotals.personalNet)}{" "}
                 {getCurrencyMeta(mainCurrency).symbol}
@@ -510,7 +512,7 @@ function Dashboard({ navigation }: { navigation: any }) {
           </View>
           <View style={accounts__block}>
             <View style={accounts__header}>
-              <Text style={body}>Expenses</Text>
+              <Text style={body}>{t("accountTypes.expenses")}</Text>
               <View style={{ alignItems: "flex-end" }}>
                 <Text style={body}>
                   {formatNumber(periodTotals.expenseTotal)}{" "}

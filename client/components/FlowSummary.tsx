@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { colors } from "../styles/styles";
 import { formatNumber } from "../utils/formatNumber";
 import { getCurrencyMeta } from "../utils/currencyInfo";
@@ -16,25 +17,26 @@ function netColor(net: number): string {
 }
 
 export default function FlowSummary({ inflows, outflows, currency }: Props) {
+  const { t } = useTranslation();
   const net = inflows - outflows;
   const symbol = getCurrencyMeta(currency).symbol;
 
   return (
     <View style={styles.row}>
       <View style={styles.card}>
-        <Text style={styles.label}>Inflows</Text>
+        <Text style={styles.label}>{t("flow.inflows")}</Text>
         <Text style={[styles.amount, { color: colors.green }]}>
           +{formatNumber(inflows)} {symbol}
         </Text>
       </View>
       <View style={[styles.card, styles.cardCenter]}>
-        <Text style={styles.label}>Net</Text>
+        <Text style={styles.label}>{t("flow.net")}</Text>
         <Text style={[styles.amount, { color: netColor(net) }]}>
           {formatNumber(net)} {symbol}
         </Text>
       </View>
       <View style={styles.card}>
-        <Text style={styles.label}>Outflows</Text>
+        <Text style={styles.label}>{t("flow.outflows")}</Text>
         <Text style={[styles.amount, { color: colors.red }]}>
           -{formatNumber(outflows)} {symbol}
         </Text>

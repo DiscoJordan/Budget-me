@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import uuid from "react-native-uuid";
 import Dialog from "react-native-dialog";
 import {
@@ -37,6 +38,7 @@ import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 function EditIcon({ navigation }: { navigation: any }) {
+  const { t } = useTranslation();
   const {
     getAccountsOfUser,
     activeAccount,
@@ -153,7 +155,7 @@ function EditIcon({ navigation }: { navigation: any }) {
       </ScrollView>
 
       <TouchableOpacity style={submit_button} onPress={handleSubmit}>
-        <Text style={styles.submit_button_text}>Save Icon</Text>
+        <Text style={styles.submit_button_text}>{t("nav.saveIcon")}</Text>
       </TouchableOpacity>
     </View>
   );

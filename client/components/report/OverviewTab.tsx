@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, Dimensions } from "react-native";
+import { useTranslation } from "react-i18next";
 import Svg, { Rect, Text as SvgText, Line } from "react-native-svg";
 import FlowSummary from "../FlowSummary";
 import InsightCard from "./InsightCard";
@@ -88,6 +89,7 @@ function OverviewBarChart({ bars }: { bars: ReportData["subPeriodBars"] }) {
 }
 
 export default function OverviewTab({ data, currency }: Props) {
+  const { t } = useTranslation();
   const sym = getCurrencyMeta(currency).symbol;
   const { insights, subPeriodBars } = data;
   const hasData = subPeriodBars.some((b) => b.income > 0 || b.expense > 0);
@@ -102,9 +104,9 @@ export default function OverviewTab({ data, currency }: Props) {
 
       {hasData && subPeriodBars.length > 0 && (
         <View style={styles.chartCard}>
-          <Text style={styles.chartTitle}>Income vs Expense</Text>
+          <Text style={styles.chartTitle}>{t("reportOverview.incomeVsExpense")}</Text>
           <Text style={styles.chartSubtitle}>
-            Green bars = income, Red bars = expense per sub-period
+            {t("reportOverview.chartSubtitle")}
           </Text>
           <View style={{ alignItems: "center" }}>
             <OverviewBarChart bars={subPeriodBars} />
@@ -112,11 +114,11 @@ export default function OverviewTab({ data, currency }: Props) {
           <View style={styles.legend}>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: "#44FFBC" }]} />
-              <Text style={styles.legendText}>Income</Text>
+              <Text style={styles.legendText}>{t("reportOverview.incomeLegend")}</Text>
             </View>
             <View style={styles.legendItem}>
               <View style={[styles.legendDot, { backgroundColor: "#FF5959" }]} />
-              <Text style={styles.legendText}>Expense</Text>
+              <Text style={styles.legendText}>{t("reportOverview.expenseLegend")}</Text>
             </View>
           </View>
         </View>
@@ -125,71 +127,71 @@ export default function OverviewTab({ data, currency }: Props) {
       <View style={styles.insights}>
         <InsightCard
           icon="piggy-bank"
-          label="Savings rate"
+          label={t("reportOverview.savingsRate")}
           value={`${insights.savingsRate.toFixed(1)}%`}
           valueColor={insights.savingsRate >= 0 ? "#44FFBC" : "#FF5959"}
-          hint="Percentage of income saved after expenses. Calculated as (Income - Expenses) / Income * 100."
+          hint={t("reportOverview.savingsRateHint")}
         />
         <InsightCard
           icon="calendar-today"
-          label="Avg daily expense"
+          label={t("reportOverview.avgDailyExpense")}
           value={`${formatNumber(insights.dailyAvgExpense)} ${sym}`}
-          hint="Total expenses divided by the number of days in this period."
+          hint={t("reportOverview.avgDailyExpenseHint")}
         />
         <InsightCard
           icon="calendar-today"
-          label="Avg daily income"
+          label={t("reportOverview.avgDailyIncome")}
           value={`${formatNumber(insights.dailyAvgIncome)} ${sym}`}
-          hint="Total income divided by the number of days in this period."
+          hint={t("reportOverview.avgDailyIncomeHint")}
         />
         {insights.expenseChange !== null && (
           <InsightCard
             icon="chart-line-variant"
-            label="Expense vs prev period"
+            label={t("reportOverview.expenseVsPrev")}
             value={`${insights.expenseChange > 0 ? "+" : ""}${insights.expenseChange.toFixed(1)}%`}
             valueColor={insights.expenseChange > 0 ? "#FF5959" : "#44FFBC"}
-            hint="How your total expenses changed compared to the previous period of the same type. Positive means you spent more."
+            hint={t("reportOverview.expenseVsPrevHint")}
           />
         )}
         {insights.incomeChange !== null && (
           <InsightCard
             icon="chart-line-variant"
-            label="Income vs prev period"
+            label={t("reportOverview.incomeVsPrev")}
             value={`${insights.incomeChange > 0 ? "+" : ""}${insights.incomeChange.toFixed(1)}%`}
             valueColor={insights.incomeChange > 0 ? "#44FFBC" : "#FF5959"}
-            hint="How your total income changed compared to the previous period. Positive means you earned more."
+            hint={t("reportOverview.incomeVsPrevHint")}
           />
         )}
         {insights.bestDay && (
           <InsightCard
             icon="thumb-up"
-            label={`Best day: ${insights.bestDay.date}`}
+            label={t("reportOverview.bestDay", { date: insights.bestDay.date })}
             value={`+${formatNumber(insights.bestDay.net)} ${sym}`}
             valueColor="#44FFBC"
-            hint="The day with the highest net gain (income minus expenses). Only counts days that had transactions."
+            hint={t("reportOverview.bestDayHint")}
           />
         )}
         {insights.worstDay && (
           <InsightCard
             icon="thumb-down"
-            label={`Worst day: ${insights.worstDay.date}`}
+            label={t("reportOverview.worstDay", { date: insights.worstDay.date })}
             value={`${formatNumber(insights.worstDay.net)} ${sym}`}
             valueColor="#FF5959"
-            hint="The day with the lowest net result (income minus expenses). Only counts days that had transactions."
+            hint={t("reportOverview.worstDayHint")}
           />
         )}
         <InsightCard
           icon="scale-balance"
-          label="Net result"
+          label={t("reportOverview.netResult")}
           value={`${data.inflows >= data.outflows ? "+" : ""}${formatNumber(data.inflows - data.outflows)} ${sym}`}
           valueColor={data.inflows >= data.outflows ? "#44FFBC" : "#FF5959"}
-          hint="Total income minus total expenses for this period. Positive means you saved money."
+          hint={t("reportOverview.netResultHint")}
         />
         <InsightCard
           icon="counter"
-          label="Total transactions"
+          label={t("reportOverview.totalTransactions")}
           value={`${insights.totalTransactions}`}
-          hint="Number of income and expense transactions in this period (excludes transfers between personal accounts)."
+          hint={t("reportOverview.totalTransactionsHint")}
         />
       </View>
     </View>

@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../styles/styles";
 import { Transaction } from "../../src/types";
 import { toMainCurrency } from "../../utils/convertCurrency";
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export default function SubcategoryBar({ subcat, transactions, totalAmount, currency, rates, mainCurrency }: Props) {
+  const { t } = useTranslation();
   const amountOfSubcat = transactions.reduce((acc, t) => {
     if (rates && mainCurrency) {
       return acc + toMainCurrency(t.amount ?? 0, t.currency ?? "USD", rates, mainCurrency);
@@ -30,7 +32,7 @@ export default function SubcategoryBar({ subcat, transactions, totalAmount, curr
     <View style={styles.container}>
       <View style={styles.row}>
         <Text style={styles.label}>
-          {subcat.length > 0 ? subcat : "No subcategory"} {lineSize}%
+          {subcat.length > 0 ? subcat : t("account.noSubcategory")} {lineSize}%
         </Text>
         <Text style={styles.label}>
           {formatNumber(amountOfSubcat)} {getCurrencyMeta(displayCurrency).symbol}

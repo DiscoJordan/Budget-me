@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from "react-native";
+import { useTranslation } from "react-i18next";
 import Svg, { Circle, G, Rect, Text as SvgText } from "react-native-svg";
 import { Feather } from "@expo/vector-icons";
 import { colors, font, size } from "../../styles/styles";
@@ -189,6 +190,7 @@ function HorizontalBars({ data, total, currency }: { data: AccountBreakdown[]; t
 }
 
 export default function DonutBreakdown({ data, total, currency, label }: Props) {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<"donut" | "bars">("donut");
 
   return (
@@ -227,7 +229,7 @@ export default function DonutBreakdown({ data, total, currency, label }: Props) 
       )}
 
       {data.length === 0 && (
-        <Text style={styles.empty}>No data for this period</Text>
+        <Text style={styles.empty}>{t("report.noDataForPeriod")}</Text>
       )}
     </View>
   );

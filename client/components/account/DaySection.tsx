@@ -1,10 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
+import { useTranslation } from "react-i18next";
 import { colors } from "../../styles/styles";
 import { Transaction } from "../../src/types";
 import { toMainCurrency } from "../../utils/convertCurrency";
 import TransactionRow from "./TransactionRow";
 import { getCurrencyMeta } from "../../utils/currencyInfo";
+import { formatDateLong } from "../../utils/formatDate";
 
 interface Props {
   date: string;
@@ -17,16 +19,6 @@ interface Props {
   onTransactionPress?: (transaction: Transaction) => void;
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const options: Intl.DateTimeFormatOptions = {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    weekday: "long",
-  };
-  return date.toLocaleDateString("en-EN", options);
-}
 
 function getDayTotal(
   transactions: Transaction[],
@@ -63,12 +55,13 @@ export default function DaySection({
   accounts,
   onTransactionPress,
 }: Props) {
+  useTranslation(); // re-render on language change
   const total = getDayTotal(transactions, rates, mainCurrency, activeAccountId);
 
   return (
     <View>
       <View style={styles.day}>
-        <Text style={styles.dayText}>{formatDate(date)}</Text>
+        <Text style={styles.dayText}>{formatDateLong(new Date(date))}</Text>
         <Text style={styles.dayText}>
           {total > 0 ? "+" : ""}
           {total.toLocaleString()} {getCurrencyMeta(currency).symbol}

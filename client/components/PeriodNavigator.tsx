@@ -1,11 +1,13 @@
 import React, { useContext, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { AccountingPeriodContext } from '../context/AccountingPeriodContext';
 import PeriodSelectorModal from './PeriodSelectorModal';
 import { colors } from '../styles/styles';
 
 export default function PeriodNavigator() {
+  const { t } = useTranslation();
   const { headerLabel, shiftPeriod, canShift } = useContext(AccountingPeriodContext);
   const [modalVisible, setModalVisible] = useState(false);
 
@@ -16,7 +18,7 @@ export default function PeriodNavigator() {
           <TouchableOpacity
             onPress={() => shiftPeriod(-1)}
             style={styles.arrow}
-            accessibilityLabel="Previous period"
+            accessibilityLabel={t("period.previousPeriod")}
           >
             <MaterialCommunityIcons name="chevron-left" size={28} color={colors.primaryGreen} />
           </TouchableOpacity>
@@ -27,7 +29,7 @@ export default function PeriodNavigator() {
         <TouchableOpacity
           onPress={() => setModalVisible(true)}
           style={styles.labelButton}
-          accessibilityLabel="Select accounting period"
+          accessibilityLabel={t("period.selectAccountingPeriod")}
         >
           <Text style={styles.label}>{headerLabel}</Text>
           <MaterialCommunityIcons name="chevron-down" size={16} color={colors.primaryGreen} />
@@ -37,7 +39,7 @@ export default function PeriodNavigator() {
           <TouchableOpacity
             onPress={() => shiftPeriod(1)}
             style={styles.arrow}
-            accessibilityLabel="Next period"
+            accessibilityLabel={t("period.nextPeriod")}
           >
             <MaterialCommunityIcons name="chevron-right" size={28} color={colors.primaryGreen} />
           </TouchableOpacity>
