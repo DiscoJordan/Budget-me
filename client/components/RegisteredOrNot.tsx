@@ -73,12 +73,16 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 
   React.useEffect(() => {
     if (tabWidth.value > 0) {
-      translateX.value = withTiming(tabWidth.value * state.index, { duration: 300 });
+      translateX.value = withTiming(tabWidth.value * state.index, {
+        duration: 300,
+      });
     }
   }, [state.index]);
 
   const bubbleAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value + (tabWidth.value - BUBBLE_SIZE) / 2 }],
+    transform: [
+      { translateX: translateX.value + (tabWidth.value - BUBBLE_SIZE) / 2 },
+    ],
   }));
 
   const useLiquidGlass = isLiquidGlassAvailable();
@@ -131,15 +135,25 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               accessibilityRole="button"
               accessibilityState={focused ? { selected: true } : {}}
               onPress={() => {
-                const event = navigation.emit({ type: "tabPress", target: route.key, canPreventDefault: true });
+                const event = navigation.emit({
+                  type: "tabPress",
+                  target: route.key,
+                  canPreventDefault: true,
+                });
                 if (!focused && !event.defaultPrevented) {
                   navigation.navigate(route.name);
                 }
               }}
-              onLongPress={() => navigation.emit({ type: "tabLongPress", target: route.key })}
+              onLongPress={() =>
+                navigation.emit({ type: "tabLongPress", target: route.key })
+              }
               style={tabStyles.tab}
             >
-              <MaterialCommunityIcons name={iconName as any} size={24} color={color} />
+              <MaterialCommunityIcons
+                name={iconName as any}
+                size={24}
+                color={color}
+              />
               <Text style={[tabStyles.tabLabel, { color }]}>{label}</Text>
             </TouchableOpacity>
           );
@@ -277,124 +291,138 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
     const count = transactions.filter(
       (tran) =>
         (tran?.senderId as any)?._id === activeAccount?._id ||
-        (tran?.recipientId as any)?._id === activeAccount?._id
+        (tran?.recipientId as any)?._id === activeAccount?._id,
     ).length;
-    Alert.alert(
-      t("nav.deleteAccount"),
-      t("nav.deleteAccountMsg", { count }),
-      [
-        { text: t("common.cancel"), style: "destructive", onPress: () => {} },
-        {
-          text: t("common.delete"),
-          onPress: () => deleteAccount(navigation),
-        },
-      ]
-    );
+    Alert.alert(t("nav.deleteAccount"), t("nav.deleteAccountMsg", { count }), [
+      { text: t("common.cancel"), style: "destructive", onPress: () => {} },
+      {
+        text: t("common.delete"),
+        onPress: () => deleteAccount(navigation),
+      },
+    ]);
   };
 
   return (
     <AccountingPeriodProvider>
-    <GestureHandlerRootView style={{ flex: 1 }}>
-    <NavigationContainer>
-      <Stack.Navigator
-        id={undefined}
-        screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: colors.darkBlack,
-            elevation: 0,
-            shadowOpacity: 0,
-            borderBottomWidth: 0,
-          },
-          headerTintColor: "#fff",
-          headerTitleStyle: {
-            fontWeight: "bold",
-          },
-        }}
-      >
-        {user ? (
-          <>
-            <Stack.Screen
-              name="Home"
-              component={MyTabs}
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen
-              name="Add new account"
-              component={NewAccount}
-              options={({ navigation }: { navigation: any }) => ({
-                title: activeAccount?.name
-                  ? t("newAccount.editAccount", { name: activeAccount.name })
-                  : t("newAccount.newAccount"),
-                headerRight: activeAccount?.name
-                  ? () => (
-                      <TouchableOpacity onPress={() => createAlert(navigation)}>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <NavigationContainer>
+          <Stack.Navigator
+            id={undefined}
+            screenOptions={{
+              headerShown: true,
+              headerStyle: {
+                backgroundColor: colors.darkBlack,
+                elevation: 0,
+                shadowOpacity: 0,
+                borderBottomWidth: 0,
+              },
+              headerTintColor: "#fff",
+              headerTitleStyle: {
+                fontWeight: "bold",
+              },
+            }}
+          >
+            {user ? (
+              <>
+                <Stack.Screen
+                  name="Home"
+                  component={MyTabs}
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="Add new account"
+                  component={NewAccount}
+                  options={({ navigation }: { navigation: any }) => ({
+                    title: activeAccount?.name
+                      ? t("newAccount.editAccount", {
+                          name: activeAccount.name,
+                        })
+                      : t("newAccount.newAccount"),
+                    headerRight: activeAccount?.name
+                      ? () => (
+                          <TouchableOpacity
+                            onPress={() => createAlert(navigation)}
+                          >
+                            <MaterialCommunityIcons
+                              style={{ paddingRight: 20 }}
+                              name="delete-sweep-outline"
+                              size={24}
+                              color="white"
+                            />
+                          </TouchableOpacity>
+                        )
+                      : undefined,
+                  })}
+                />
+                <Stack.Screen
+                  options={({ navigation }: { navigation: any }) => ({
+                    title: activeAccount?.name,
+                    headerRight: () => (
+                      <TouchableOpacity
+                        onPress={() =>
+                          navigation.navigate("Add new account", {
+                            type: "edit",
+                          })
+                        }
+                      >
                         <MaterialCommunityIcons
                           style={{ paddingRight: 20 }}
-                          name="delete-sweep-outline"
+                          name="pencil-outline"
                           size={24}
                           color="white"
                         />
                       </TouchableOpacity>
-                    )
-                  : undefined,
-              })}
-            />
-            <Stack.Screen
-              options={({ navigation }: { navigation: any }) => ({
-                title: activeAccount?.name,
-                headerRight: () => (
-                  <TouchableOpacity
-                    onPress={() =>
-                      navigation.navigate("Add new account", { type: "edit" })
-                    }
-                  >
-                    <MaterialCommunityIcons
-                      style={{ paddingRight: 20 }}
-                      name="pencil-outline"
-                      size={24}
-                      color="white"
-                    />
-                  </TouchableOpacity>
-                ),
-              })}
-              name="Account"
-              component={Account}
-            />
-            <Stack.Screen name="Settings" component={Settings} options={{ title: t("tabs.settings") }} />
-            <Stack.Screen
-              name="Debts"
-              component={Debts}
-              options={{ title: t("nav.debtsScreen") }}
-            />
-            <Stack.Screen
-              name="Edit Debts"
-              component={EditDebts}
-              options={{ title: t("nav.editDebts") }}
-            />
-            <Stack.Group screenOptions={{ presentation: "modal" }}>
-              <Stack.Screen name="New operation" component={NewOperation} />
-              <Stack.Screen name="Edit transaction" component={EditTransaction} options={{ title: t("nav.editTransaction") }} />
-              <Stack.Screen name="Choose icon" component={EditIcon} options={{ title: t("nav.chooseIcon") }} />
-            </Stack.Group>
-          </>
-        ) : (
-          <>
-            <Stack.Screen
-              options={{ headerShown: false }}
-              name="Registration"
-              component={Registration}
-            />
-            <Stack.Screen
-              options={{ headerShown: false }}
-              name="Login"
-              component={Login}
-            />
-          </>
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
-    </GestureHandlerRootView>
+                    ),
+                  })}
+                  name="Account"
+                  component={Account}
+                />
+                <Stack.Screen
+                  name="Settings"
+                  component={Settings}
+                  options={{ title: t("tabs.settings") }}
+                />
+                <Stack.Screen
+                  name="Debts"
+                  component={Debts}
+                  options={{ title: t("nav.debtsScreen") }}
+                />
+                <Stack.Screen
+                  name="Edit Debts"
+                  component={EditDebts}
+                  options={{ title: t("nav.editDebts") }}
+                />
+                <Stack.Group screenOptions={{ presentation: "modal" }}>
+                  <Stack.Screen name="New operation" component={NewOperation} />
+                  <Stack.Screen
+                    name="Edit transaction"
+                    component={EditTransaction}
+                    options={{ title: t("nav.editTransaction") }}
+                  />
+                  <Stack.Screen
+                    name="Choose icon"
+                    component={EditIcon}
+                    options={{ title: t("nav.chooseIcon") }}
+                  />
+                </Stack.Group>
+              </>
+            ) : (
+              <>
+                <Stack.Screen
+                  options={{ headerShown: false }}
+                  name="Registration"
+                  component={Registration}
+                />
+                <Stack.Screen
+                  options={{ headerShown: false }}
+                  name="Login"
+                  component={Login}
+                />
+              </>
+            )}
+          </Stack.Navigator>
+        </NavigationContainer>
+      </GestureHandlerRootView>
     </AccountingPeriodProvider>
   );
 };
