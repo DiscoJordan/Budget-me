@@ -41,6 +41,7 @@ import DaySection from "../components/account/DaySection";
 import { getCurrencyMeta } from "../utils/currencyInfo";
 import FlowSummary from "../components/FlowSummary";
 import PeriodNavigator from "../components/PeriodNavigator";
+import { getLocale } from "../utils/formatDate";
 
 // Extend Number with legacy .format() used in this screen
 declare global {
@@ -163,7 +164,12 @@ const Account = ({ navigation }: { navigation: any }) => {
       const comment = (t.comment ?? "").toLowerCase();
       const amount = t.amount.toString();
       const subcategory = (t.subcategory ?? "").toLowerCase();
-      const date = new Date(t.time).toLocaleDateString();
+      const dateObj = new Date(t.time);
+      const dateStr = dateObj.toLocaleDateString(getLocale(), {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
       const isoDate = new Date(t.time).toISOString().split("T")[0];
       return (
         senderName.includes(q) ||
@@ -171,7 +177,7 @@ const Account = ({ navigation }: { navigation: any }) => {
         comment.includes(q) ||
         amount.includes(q) ||
         subcategory.includes(q) ||
-        date.includes(q) ||
+        dateStr.includes(q) ||
         isoDate.includes(q)
       );
     });

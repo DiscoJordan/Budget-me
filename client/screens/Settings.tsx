@@ -1,6 +1,7 @@
 import React, { useContext, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { LANGUAGES, setLanguage } from "../i18n";
+import { getLocale } from "../utils/formatDate";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
@@ -92,7 +93,9 @@ function Settings() {
       <View style={setting_option}>
         <Text style={styles.label}>{t("settings.currencyRatesUpdated")}</Text>
         <Text style={styles.currencyValue}>
-          {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : t("common.never")}
+          {lastFetchedAt
+            ? new Date(lastFetchedAt).toLocaleString(getLocale())
+            : t("common.never")}
         </Text>
       </View>
 

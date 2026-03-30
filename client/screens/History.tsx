@@ -10,6 +10,7 @@ import { CurrencyContext } from "../context/CurrencyContext";
 import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
 import { colors, body } from "../styles/styles";
 import { toMainCurrency } from "../utils/convertCurrency";
+import { getLocale } from "../utils/formatDate";
 import DaySection from "../components/account/DaySection";
 import FlowSummary from "../components/FlowSummary";
 import PeriodNavigator from "../components/PeriodNavigator";
@@ -88,7 +89,12 @@ function History({ navigation }: { navigation: any }) {
       const comment = (t.comment ?? "").toLowerCase();
       const amount = t.amount.toString();
       const subcategory = (t.subcategory ?? "").toLowerCase();
-      const date = new Date(t.time).toLocaleDateString();
+      const dateObj = new Date(t.time);
+      const dateStr = dateObj.toLocaleDateString(getLocale(), {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      });
       const isoDate = new Date(t.time).toISOString().split("T")[0];
       return (
         senderName.includes(q) ||
@@ -96,7 +102,7 @@ function History({ navigation }: { navigation: any }) {
         comment.includes(q) ||
         amount.includes(q) ||
         subcategory.includes(q) ||
-        date.includes(q) ||
+        dateStr.includes(q) ||
         isoDate.includes(q)
       );
     });

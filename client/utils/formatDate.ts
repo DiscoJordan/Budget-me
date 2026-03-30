@@ -3,6 +3,7 @@ import i18n from "../i18n";
 const LOCALE_MAP: Record<string, string> = {
   en: "en-GB",
   ru: "ru-RU",
+  pl: "pl-PL",
 };
 
 export function getLocale(): string {
