@@ -1,4 +1,5 @@
 import React, { useState, useContext } from "react";
+import { useTranslation } from "react-i18next";
 import {
   StyleSheet,
   Text,
@@ -29,6 +30,7 @@ interface LoginFormData {
 
 function Login({ navigation }: { navigation: any }) {
   const { login } = useContext(UsersContext);
+  const { t } = useTranslation();
   const [message, setMessage] = useState<string>("");
   const [userData, setUserData] = useState<LoginFormData>({
     username: "",
@@ -59,13 +61,13 @@ function Login({ navigation }: { navigation: any }) {
 
   return (
     <View style={{ ...container, minHeight: "100%" }}>
-      <Text style={styles.h1}>Log In</Text>
+      <Text style={styles.h1}>{t("auth.logIn")}</Text>
       <TextInput
         style={styles.input}
         onChangeText={(text) => handleChange(text, "username")}
         inlineImageLeft="search_icon"
         placeholderTextColor={colors.primaryGreen}
-        placeholder="Username*"
+        placeholder={t("auth.username")}
         textContentType="username"
         clearButtonMode={"while-editing"}
         maxLength={20}
@@ -75,7 +77,7 @@ function Login({ navigation }: { navigation: any }) {
       <TextInput
         onChangeText={(text) => handleChange(text, "password")}
         style={styles.input}
-        placeholder="Password*"
+        placeholder={t("auth.password")}
         placeholderTextColor={colors.primaryGreen}
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
@@ -83,15 +85,15 @@ function Login({ navigation }: { navigation: any }) {
       />
 
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
-        <Text style={styles.submit_button_text}>Log In</Text>
+        <Text style={styles.submit_button_text}>{t("auth.logIn")}</Text>
       </TouchableOpacity>
       <Text style={caption1}>
-        Dont have an account?{" "}
+        {t("auth.noAccount")}
         <Text
           style={styles.green}
           onPress={() => navigation.navigate("Registration")}
         >
-          Sign Up
+          {t("auth.signUp")}
         </Text>
       </Text>
       {message ? <Text>{message}</Text> : null}

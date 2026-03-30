@@ -12,6 +12,7 @@ const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CRYPTO_IDS: Record<string, string> = {
   BTC: "bitcoin",
   ETH: "ethereum",
+  TON: "toncoin",
   USDT: "tether",
   BNB: "binancecoin",
   XRP: "ripple",
@@ -27,7 +28,6 @@ const CRYPTO_IDS: Record<string, string> = {
   HYPE: "hyperliquid",
   XMR: "monero",
   LEO: "leo-token",
-  TON: "the-open-network",
   XAUT: "tether-gold",
   DOT: "polkadot",
   AVAX: "avalanche-2",
@@ -61,8 +61,7 @@ async function fetchCryptoRates(): Promise<Record<string, number>> {
 const getCurrencies = async (req: Request, res: Response): Promise<void> => {
   try {
     const now = Date.now();
-    const force = req.query.force === "1";
-    if (!force && cache && now - cache.fetchedAt < CACHE_TTL_MS) {
+    if (cache && now - cache.fetchedAt < CACHE_TTL_MS) {
       res.json({ ok: true, base: cache.base, rates: cache.rates });
       return;
     }

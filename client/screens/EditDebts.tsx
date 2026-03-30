@@ -24,6 +24,7 @@ import {
 } from "../styles/styles";
 import { formatNumber } from "../utils/formatNumber";
 import { getCurrencyMeta } from "../utils/currencyInfo";
+import { useTranslation } from "react-i18next";
 
 const PERSON_COLORS = [
   "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4", "#FFEAA7",
@@ -40,6 +41,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
   const { user } = useContext(UsersContext);
   const { settings, setIncludeInPersonalBalance } = useContext(DebtsContext);
   const { mainCurrency } = useContext(CurrencyContext);
+  const { t } = useTranslation();
 
   const [name, setName] = useState("");
   const [adding, setAdding] = useState(false);
@@ -54,7 +56,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
     if (!trimmed) return;
 
     if (debtAccounts.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) {
-      Alert.alert("Already exists", `"${trimmed}" is already in your list.`);
+      Alert.alert(t("debts.alreadyExists"), `"${trimmed}" is already in your list.`);
       return;
     }
 
@@ -73,7 +75,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
       setAdding(false);
     } catch (e) {
       console.log(e);
-      Alert.alert("Error", "Could not add person.");
+      Alert.alert("Error", t("debts.couldNotAdd"));
     }
   };
 
@@ -84,7 +86,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
     >
       {/* Toggle */}
       <View style={setting_option}>
-        <Text style={styles.label}>Include in personal balance</Text>
+        <Text style={styles.label}>{t("debts.includeInBalance")}</Text>
         <Switch
           value={settings.includeInPersonalBalance}
           onValueChange={setIncludeInPersonalBalance}
@@ -94,7 +96,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
       </View>
 
       {/* People */}
-      <Text style={styles.sectionLabel}>People</Text>
+      <Text style={styles.sectionLabel}>{t("debts.people")}</Text>
 
       {debtAccounts.map((acc) => {
         const bal = acc.balance ?? 0;
@@ -129,7 +131,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
                     { color: isPositive ? colors.green : colors.red },
                   ]}
                 >
-                  {isPositive ? "Owes you" : "You owe"}{" "}
+                  {isPositive ? t("account.owesYou") : t("account.youOwe")}{" "}
                   {formatNumber(Math.abs(bal))} {symbol}
                 </Text>
               )}
@@ -148,7 +150,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
         <View style={styles.addForm}>
           <TextInput
             style={styles.addInput}
-            placeholder="Person name"
+            placeholder={t("debts.personName")}
             placeholderTextColor={colors.gray}
             value={name}
             onChangeText={setName}
@@ -161,14 +163,14 @@ export default function EditDebts({ navigation }: { navigation: any }) {
               style={styles.addCancel}
               onPress={() => { setAdding(false); setName(""); }}
             >
-              <Text style={styles.addCancelText}>Cancel</Text>
+              <Text style={styles.addCancelText}>{t("common.cancel")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.addConfirm, !name.trim() && { opacity: 0.4 }]}
               onPress={handleAddPerson}
               disabled={!name.trim()}
             >
-              <Text style={styles.addConfirmText}>Add</Text>
+              <Text style={styles.addConfirmText}>{t("common.add")}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -182,7 +184,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
             size={20}
             color={colors.primaryGreen}
           />
-          <Text style={styles.addBtnText}>Add person</Text>
+          <Text style={styles.addBtnText}>{t("debts.addPerson")}</Text>
         </TouchableOpacity>
       )}
     </ScrollView>

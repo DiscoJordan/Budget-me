@@ -1,4 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDateLong } from "../utils/formatDate";
 import Dialog from "react-native-dialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { URL } from "../config";
@@ -45,6 +47,7 @@ const NewOperation = ({
   navigation: any;
   route?: any;
 }) => {
+  const { t } = useTranslation();
   const debtMode = route?.params?.debtMode as "lend" | "borrow" | undefined;
   const [message, setMessage] = React.useState<string>("");
   const [date, setDate] = useState(new Date());
@@ -251,8 +254,8 @@ const NewOperation = ({
     // For multi-accounts, require sub-account selection
     if (activeAccount?.isMultiAccount && !selectedSubAccount) {
       Alert.alert(
-        "Select a sub-account",
-        "Please choose which currency slot to send from.",
+        t("transaction.selectSubAccount"),
+        t("transaction.chooseSendFrom"),
       );
       return;
     }
@@ -261,14 +264,16 @@ const NewOperation = ({
       !selectedRecipientSubAccount
     ) {
       Alert.alert(
-        "Select a sub-account",
-        "Please choose which currency slot to receive into.",
+        t("transaction.selectSubAccount"),
+        t("transaction.chooseReceiveInto"),
       );
       return;
     }
 
     const senderBalance = effectiveSender?.balance ?? 0;
+    const isLendingToDebt = (recipientAccount as any)?.type === "debt";
     if (
+      !isLendingToDebt &&
       (activeAccount?.type === "personal" || activeAccount?.isMultiAccount) &&
       parseNumber(transactionData.amount) > senderBalance
     ) {
@@ -276,8 +281,12 @@ const NewOperation = ({
         ? `${activeAccount.name} (${selectedSubAccount?.currency})`
         : activeAccount.name;
       Alert.alert(
-        "Insufficient funds",
-        `Not enough balance in "${senderName}".\nAvailable: ${formatNumber(senderBalance)} ${getCurrencyMeta(effectiveSender?.currency).symbol}`,
+        t("transaction.insufficientFunds"),
+        t("transaction.insufficientFundsMsg", {
+          name: senderName,
+          amount: formatNumber(senderBalance),
+          symbol: getCurrencyMeta(effectiveSender?.currency).symbol,
+        }),
       );
       return;
     }
@@ -407,7 +416,7 @@ const NewOperation = ({
                   fontWeight: font.bold,
                 }}
               >
-                {recipientAccount?.name || "Recipient"}
+                {recipientAccount?.name || t("transaction.recipient")}
               </Text>
               <Text
                 style={{ ...caption1, color: "white", fontWeight: font.bold }}
@@ -510,18 +519,18 @@ const NewOperation = ({
                   {debtMode === "lend" &&
                   pickerTarget === "recipient" &&
                   !recipientAccount?._id
-                    ? "Select person"
+                    ? t("transaction.selectPerson")
                     : debtMode === "borrow" &&
                         pickerTarget === "sender" &&
                         !activeAccount
-                      ? "Select person"
+                      ? t("transaction.selectPerson")
                       : debtMode && pickerTarget === "sender"
-                        ? "From which wallet?"
+                        ? t("transaction.fromWhichWallet")
                         : debtMode && pickerTarget === "recipient"
-                          ? "To which wallet?"
+                          ? t("transaction.toWhichWallet")
                           : pickerTarget === "sender"
-                            ? "Choose sender"
-                            : "Choose recipient"}
+                            ? t("transaction.chooseSender")
+                            : t("transaction.chooseRecipient")}
                 </Text>
                 <ScrollView>
                   {pickerAccounts.map((item) => (
@@ -609,11 +618,7 @@ const NewOperation = ({
               color={colors.primaryGreen}
             />
             <Text style={styles.dateText}>
-              {date.toLocaleDateString("en-EN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {formatDateLong(date)}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -637,7 +642,7 @@ const NewOperation = ({
             style={{ ...input, width: "100%", color: "white" }}
             onChangeText={(text) => handleChange(text, "comment")}
             placeholderTextColor={colors.primaryGreen}
-            placeholder="Comment*"
+            placeholder={t("transaction.comment_required")}
             textContentType="none"
             clearButtonMode="while-editing"
             maxLength={80}
@@ -658,7 +663,7 @@ const NewOperation = ({
                   : String(transactionData.amount)
               }
               placeholderTextColor={colors.primaryGreen}
-              placeholder="Amount*"
+              placeholder={t("transaction.amount")}
               keyboardType="decimal-pad"
               clearButtonMode="while-editing"
               maxLength={20}
@@ -666,26 +671,11 @@ const NewOperation = ({
             />
             {(() => {
               const isDebtSender = activeAccount?.type === "debt";
-              const isDebtRecipient = recipientAccount?.type === "debt";
-              const isDebtFlow = isDebtSender || isDebtRecipient;
-              const showButton =
-                (activeAccount?.type === "personal" ||
-                  activeAccount?.type === "debt" ||
-                  activeAccount?.isMultiAccount) &&
-                (isDebtFlow
-                  ? (isDebtSender ? (effectiveSender?.balance ?? 0) : (recipientAccount?.balance ?? 0)) !== 0
-                  : (effectiveSender?.balance ?? 0) > 0);
+              const showButton = isDebtSender && Math.abs(effectiveSender?.balance ?? 0) !== 0;
 
               if (!showButton) return null;
 
-              const debtBalance = isDebtSender
-                ? Math.abs(effectiveSender?.balance ?? 0)
-                : Math.abs(recipientAccount?.balance ?? 0);
-
-              // Convert debt amount to sender currency if currencies differ
-              const allDebtAmount = isDebtRecipient && effectiveRate > 0
-                ? Math.round((debtBalance / effectiveRate) * 100) / 100
-                : debtBalance;
+              const allDebtAmount = Math.abs(effectiveSender?.balance ?? 0);
 
               return (
                 <TouchableOpacity
@@ -693,13 +683,11 @@ const NewOperation = ({
                   onPress={() =>
                     setTransactionData((prev) => ({
                       ...prev,
-                      amount: isDebtFlow ? allDebtAmount : (effectiveSender?.balance ?? 0),
+                      amount: allDebtAmount,
                     }))
                   }
                 >
-                  <Text style={styles.allInText}>
-                    {isDebtFlow ? "All debt" : "All"}
-                  </Text>
+                  <Text style={styles.allInText}>{t("transaction.allDebt")}</Text>
                 </TouchableOpacity>
               );
             })()}
@@ -739,7 +727,7 @@ const NewOperation = ({
             if (!expenseAccount) return null;
             return (
               <>
-                <Text style={body}> Subcategory</Text>
+                <Text style={body}> {t("transaction.subcategory")}</Text>
                 <ScrollView horizontal style={styles.subcats}>
                   <TouchableOpacity
                     onPress={() =>
@@ -754,7 +742,7 @@ const NewOperation = ({
                     }}
                   >
                     <Text style={body}>?</Text>
-                    <Text style={caption1}>Without</Text>
+                    <Text style={caption1}>{t("common.without")}</Text>
                   </TouchableOpacity>
                   {expenseAccount.subcategories?.map((subcat) => (
                     <TouchableOpacity
@@ -787,13 +775,13 @@ const NewOperation = ({
                     style={styles.subcat}
                   >
                     <Text style={body}>+</Text>
-                    <Text style={caption1}>Add</Text>
+                    <Text style={caption1}>{t("common.add")}</Text>
                   </TouchableOpacity>
                 </ScrollView>
                 <Dialog.Container visible={addSubcatDialogVisible}>
-                  <Dialog.Title>New Subcategory</Dialog.Title>
+                  <Dialog.Title>{t("transaction.newSubcategory")}</Dialog.Title>
                   <Dialog.Description>
-                    Enter subcategory name
+                    {t("transaction.enterSubcategoryName")}
                   </Dialog.Description>
                   <Dialog.Input
                     value={newSubcatInput}
@@ -801,11 +789,11 @@ const NewOperation = ({
                     autoFocus
                   />
                   <Dialog.Button
-                    label="Cancel"
+                    label={t("common.cancel")}
                     onPress={() => setAddSubcatDialogVisible(false)}
                   />
                   <Dialog.Button
-                    label="Add"
+                    label={t("common.add")}
                     onPress={async () => {
                       if (
                         newSubcatInput.trim().length > 0 &&
@@ -830,7 +818,7 @@ const NewOperation = ({
         </View>
       </ScrollView>
       <TouchableOpacity style={{ ...submit_button }} onPress={handleSubmit}>
-        <Text style={submit_button_text}>Save</Text>
+        <Text style={submit_button_text}>{t("common.save")}</Text>
       </TouchableOpacity>
     </View>
   );

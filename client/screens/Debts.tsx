@@ -13,6 +13,7 @@ import { CurrencyContext } from "../context/CurrencyContext";
 import { colors, body, font, size } from "../styles/styles";
 import { formatNumber } from "../utils/formatNumber";
 import { getCurrencyMeta } from "../utils/currencyInfo";
+import { useTranslation } from "react-i18next";
 import type { Account } from "../src/types";
 
 type Tab = "owe_me" | "i_owe" | "all";
@@ -26,6 +27,7 @@ function DebtTile({
   mainCurrency: string;
   onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const rawBal = account.balance ?? 0;
   const bal = Math.round(rawBal * 100) / 100;
   const isPositive = bal > 0;
@@ -43,7 +45,7 @@ function DebtTile({
         <Text style={styles.tileName}>{account.name}</Text>
         {!isZero && (
           <Text style={[styles.tileHint, { color: isPositive ? colors.green : colors.red }]}>
-            {isPositive ? "Owes you" : "You owe"}
+            {isPositive ? t("account.owesYou") : t("account.youOwe")}
           </Text>
         )}
       </View>
@@ -54,16 +56,17 @@ function DebtTile({
   );
 }
 
-const TABS: { key: Tab; label: string }[] = [
-  { key: "owe_me", label: "Owe me" },
-  { key: "i_owe", label: "I owe" },
-  { key: "all", label: "All" },
+const TAB_KEYS: { key: Tab; i18nKey: string }[] = [
+  { key: "owe_me", i18nKey: "debts.oweMe" },
+  { key: "i_owe", i18nKey: "debts.iOwe" },
+  { key: "all", i18nKey: "debts.all" },
 ];
 
 export default function Debts({ navigation }: { navigation: any }) {
   const { accounts, setActiveAccount, setType } = useContext(AccountsContext);
   const { settings } = useContext(DebtsContext);
   const { mainCurrency } = useContext(CurrencyContext);
+  const { t } = useTranslation();
   const [tab, setTab] = useState<Tab>("all");
 
   useEffect(() => {
@@ -92,9 +95,9 @@ export default function Debts({ navigation }: { navigation: any }) {
     return (
       <View style={styles.emptyScreen}>
         <MaterialCommunityIcons name="handshake-outline" size={56} color={colors.gray} />
-        <Text style={styles.emptyTitle}>Debts are disabled</Text>
+        <Text style={styles.emptyTitle}>{t("debts.debtsDisabled")}</Text>
         <Text style={styles.emptyHint}>
-          Go to Settings → Debts to enable tracking of money you lend or borrow.
+          {t("debts.debtsDisabledHint")}
         </Text>
       </View>
     );
@@ -103,14 +106,14 @@ export default function Debts({ navigation }: { navigation: any }) {
   return (
     <View style={styles.screen}>
       <View style={styles.tabBar}>
-        {TABS.map((t) => (
+        {TAB_KEYS.map((tk) => (
           <TouchableOpacity
-            key={t.key}
-            style={[styles.tab, tab === t.key && styles.tabActive]}
-            onPress={() => setTab(t.key)}
+            key={tk.key}
+            style={[styles.tab, tab === tk.key && styles.tabActive]}
+            onPress={() => setTab(tk.key)}
           >
-            <Text style={[styles.tabLabel, tab === t.key && styles.tabLabelActive]}>
-              {t.label}
+            <Text style={[styles.tabLabel, tab === tk.key && styles.tabLabelActive]}>
+              {t(tk.i18nKey)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -125,32 +128,29 @@ export default function Debts({ navigation }: { navigation: any }) {
               color={colors.gray}
               style={{ marginBottom: 8 }}
             />
-            <Text style={styles.hintTitle}>How debts work</Text>
+            <Text style={styles.hintTitle}>{t("debts.howDebtsWork")}</Text>
             <Text style={styles.hintText}>
-              Each person you lend to or borrow from is a{" "}
-              <Text style={styles.hintBold}>Debt account</Text>.
+              {t("debts.eachPersonHint")}
+              <Text style={styles.hintBold}>{t("debts.debtAccount")}</Text>.
             </Text>
             <View style={styles.hintRow}>
               <MaterialCommunityIcons name="arrow-right" size={16} color={colors.primaryGreen} />
               <Text style={styles.hintText}>
-                <Text style={styles.hintBold}>Personal → Debt</Text>: you lend
-                money (balance goes up, they owe you)
+                <Text style={styles.hintBold}>{t("debts.personalToDebt")}</Text>: {t("debts.lendMoney")}
               </Text>
             </View>
             <View style={styles.hintRow}>
               <MaterialCommunityIcons name="arrow-left" size={16} color={colors.red} />
               <Text style={styles.hintText}>
-                <Text style={styles.hintBold}>Debt → Personal</Text>: you borrow
-                or receive repayment (balance goes down)
+                <Text style={styles.hintBold}>{t("debts.debtToPersonal")}</Text>: {t("debts.borrowMoney")}
               </Text>
             </View>
             <Text style={[styles.hintText, { marginTop: 12 }]}>
-              Tap <Text style={styles.hintBold}>✏</Text> (top-right) to add
-              people.
+              {t("debts.tapEditHint")}
             </Text>
           </View>
         ) : displayed.length === 0 ? (
-          <Text style={styles.empty}>No debts in this category</Text>
+          <Text style={styles.empty}>{t("debts.noDebtsInCategory")}</Text>
         ) : (
           displayed.map((acc) => (
             <DebtTile

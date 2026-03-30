@@ -32,6 +32,7 @@ import { Transaction } from "../src/types";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { formatNumber } from "../utils/formatNumber";
 import { toMainCurrency } from "../utils/convertCurrency";
+import { useTranslation } from "react-i18next";
 import PeriodBarChart from "../components/PeriodBarChart";
 import { AccountingPeriodContext, computeRange } from "../context/AccountingPeriodContext";
 import { getBudgetFromAccount, setBudget } from "../utils/budgetStorage";
@@ -77,6 +78,7 @@ const Account = ({ navigation }: { navigation: any }) => {
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { periodType, dateFrom, dateTo, offset: periodOffset, headerLabel } = useContext(AccountingPeriodContext);
+  const { t } = useTranslation();
 
   const handleTransactionPress = (transaction: Transaction) => {
     setActiveTransaction(transaction);
@@ -305,10 +307,10 @@ const Account = ({ navigation }: { navigation: any }) => {
             </Text>
             <Text style={{ ...body, color: colors.gray }}>
               {(activeAccount.balance ?? 0) > 0
-                ? "Owes you"
+                ? t("account.owesYou")
                 : (activeAccount.balance ?? 0) < 0
-                  ? "You owe"
-                  : "Settled up"}
+                  ? t("account.youOwe")
+                  : t("account.settledUp")}
             </Text>
           </View>
         )}
@@ -318,7 +320,7 @@ const Account = ({ navigation }: { navigation: any }) => {
             <View style={styles.summaryBlock}>
               <View style={{ gap: 4, alignItems: "center" }}>
                 <Text style={{ ...body, color: colors.gray }}>
-                  {activeAccount?.type === "income" ? "Income" : "Expense"}
+                  {activeAccount?.type === "income" ? t("accountTypes.income") : t("accountTypes.expense")}
                 </Text>
                 <Text
                   style={{
@@ -344,7 +346,7 @@ const Account = ({ navigation }: { navigation: any }) => {
                 )}
               </View>
               <View style={{ gap: 4, alignItems: "center" }}>
-                <Text style={{ ...body, color: colors.gray }}>~A day</Text>
+                <Text style={{ ...body, color: colors.gray }}>{t("account.aDay")}</Text>
                 <Text style={{ ...title2 }}>
                   {dailyAvg.format()}{" "}
                   {getCurrencyMeta(mainCurrency).symbol}
@@ -363,21 +365,21 @@ const Account = ({ navigation }: { navigation: any }) => {
                 )}
               </View>
               <View style={{ gap: 4, alignItems: "center" }}>
-                <Text style={{ ...body, color: colors.gray }}>Budget</Text>
+                <Text style={{ ...body, color: colors.gray }}>{t("account.budget")}</Text>
                 <Text style={{ ...title2 }}>
                   {budget > 0
                     ? `${formatNumber(budget)} ${getCurrencyMeta(mainCurrency).symbol}`
-                    : "Not set"}
+                    : t("common.notSet")}
                 </Text>
                 <TouchableOpacity
-                  accessibilityLabel="Change budget"
+                  accessibilityLabel={t("common.change")}
                   onPress={() => {
                     setBudgetInput(budget > 0 ? budget.toString() : "");
                     setBudgetModalVisible(true);
                   }}
                 >
                   <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: "700" }}>
-                    Change
+                    {t("common.change")}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -410,7 +412,7 @@ const Account = ({ navigation }: { navigation: any }) => {
               />
               <TextInput
                 style={styles.searchInput}
-                placeholder="Search transactions..."
+                placeholder={t("account.searchTransactions")}
                 placeholderTextColor={colors.gray}
                 value={search}
                 onChangeText={setSearch}
@@ -426,7 +428,7 @@ const Account = ({ navigation }: { navigation: any }) => {
             <View style={styles.balanceBlock}>
               {activeAccount.isMultiAccount ? (
                 <>
-                  <Text style={styles.balanceLabel}>Balance</Text>
+                  <Text style={styles.balanceLabel}>{t("newAccount.balance")}</Text>
                   <Text style={styles.balanceAmount}>
                     {formatNumber(
                       accounts
@@ -462,7 +464,7 @@ const Account = ({ navigation }: { navigation: any }) => {
                 </>
               ) : (
                 <>
-                  <Text style={styles.balanceLabel}>Balance</Text>
+                  <Text style={styles.balanceLabel}>{t("newAccount.balance")}</Text>
                   <Text style={styles.balanceAmount}>
                     {formatNumber(activeAccount.balance)}{" "}
                     {getCurrencyMeta(activeAccount.currency).symbol}
@@ -490,7 +492,7 @@ const Account = ({ navigation }: { navigation: any }) => {
               }}
             >
               <Text style={styles.debtBtnText}>
-                {(activeAccount.balance ?? 0) < 0 ? "Repay" : "Lend"}
+                {(activeAccount.balance ?? 0) < 0 ? t("transaction.debtRepayment") : t("transaction.lent")}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -502,7 +504,7 @@ const Account = ({ navigation }: { navigation: any }) => {
               }}
             >
               <Text style={styles.debtBtnText}>
-                {(activeAccount.balance ?? 0) > 0 ? "Receive" : "Borrow"}
+                {(activeAccount.balance ?? 0) > 0 ? t("transaction.debtRepayment") : t("transaction.debt")}
               </Text>
             </TouchableOpacity>
           </View>
@@ -513,7 +515,7 @@ const Account = ({ navigation }: { navigation: any }) => {
             activeAccount?.type !== "personal" &&
             activeAccount?.type !== "debt" && (
               <>
-                <Text style={body}> Subcategories</Text>
+                <Text style={body}> {t("account.subcategories")}</Text>
                 <View>
                   {triggeredSubcategories.map((subcat) => (
                     <SubcategoryBar
@@ -531,7 +533,7 @@ const Account = ({ navigation }: { navigation: any }) => {
                 </View>
               </>
             )}
-          <Text style={body}> List of operations</Text>
+          <Text style={body}> {t("account.listOfOperations")}</Text>
         </View>
 
         {displayTransactions.length > 0 ? (
@@ -550,7 +552,7 @@ const Account = ({ navigation }: { navigation: any }) => {
           ))
         ) : (
           <Text style={{ color: colors.gray, paddingLeft: 20, paddingTop: 8 }}>
-            {search.trim() ? "No matching transactions" : "No transactions for this period"}
+            {search.trim() ? t("account.noMatchingTransactions") : t("account.noTransactionsForPeriod")}
           </Text>
         )}
       </ScrollView>
@@ -561,7 +563,7 @@ const Account = ({ navigation }: { navigation: any }) => {
           style={submit_button}
           onPress={() => navigation.navigate("New operation")}
         >
-          <Text style={submit_button_text}>New transaction</Text>
+          <Text style={submit_button_text}>{t("account.newTransaction")}</Text>
         </TouchableOpacity>
       ) : null}
 
@@ -573,13 +575,13 @@ const Account = ({ navigation }: { navigation: any }) => {
       >
         <View style={styles.budgetOverlay}>
           <View style={styles.budgetSheet}>
-            <Text style={styles.budgetTitle}>Budget for {headerLabel}</Text>
+            <Text style={styles.budgetTitle}>{t("account.budgetForPeriod", { period: headerLabel })}</Text>
             <TextInput
               style={styles.budgetInput}
               value={budgetInput}
               onChangeText={setBudgetInput}
               keyboardType="numeric"
-              placeholder="Enter amount"
+              placeholder={t("account.enterAmount")}
               placeholderTextColor={colors.gray}
               autoFocus
               accessibilityLabel="Budget amount input"
@@ -588,9 +590,9 @@ const Account = ({ navigation }: { navigation: any }) => {
               <TouchableOpacity
                 style={styles.budgetCancel}
                 onPress={() => setBudgetModalVisible(false)}
-                accessibilityLabel="Cancel budget change"
+                accessibilityLabel={t("common.cancel")}
               >
-                <Text style={{ color: colors.gray, fontWeight: "700" }}>Cancel</Text>
+                <Text style={{ color: colors.gray, fontWeight: "700" }}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.budgetSave}
@@ -601,9 +603,9 @@ const Account = ({ navigation }: { navigation: any }) => {
                     setBudgetModalVisible(false);
                   });
                 }}
-                accessibilityLabel="Save budget"
+                accessibilityLabel={t("common.save")}
               >
-                <Text style={{ color: "white", fontWeight: "700" }}>Save</Text>
+                <Text style={{ color: "white", fontWeight: "700" }}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
           </View>

@@ -1,4 +1,5 @@
 import React, { useState, useContext, useEffect, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import uuid from "react-native-uuid";
 import Dialog from "react-native-dialog";
 import {
@@ -42,6 +43,7 @@ import { TransactionsContext } from "../context/TransactionsContext";
 import { parseNumber } from "../utils/parseNumber";
 
 function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
+  const { t } = useTranslation();
   const { login, user } = useContext(UsersContext);
   const {
     getAccountsOfUser,
@@ -236,7 +238,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               </Text>
             </View>
             <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
-              Color
+              {t("newAccount.color")}
             </Text>
           </View>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10, width: "100%", paddingHorizontal: 10 }}>
@@ -276,7 +278,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
             />
           </TouchableOpacity>
           <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
-            Icon
+            {t("newAccount.icon")}
           </Text>
         </View>
       )}
@@ -286,7 +288,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
         value={accountData?.name}
         inlineImageLeft="search_icon"
         placeholderTextColor={colors.primaryGreen}
-        placeholder="Title*"
+        placeholder={t("newAccount.title")}
         clearButtonMode={"while-editing"}
         maxLength={20}
         selectionColor={"#primaryGreen"}
@@ -300,7 +302,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
           }
           value={accountData.balance ? String(accountData.balance) : ""}
           placeholderTextColor={colors.primaryGreen}
-          placeholder="Balance"
+          placeholder={t("newAccount.balance")}
           keyboardType="decimal-pad"
           clearButtonMode="while-editing"
           selectionColor={colors.primaryGreen}
@@ -309,18 +311,18 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
 
       {accountData.type === "personal" && type !== "edit" && (
         <View style={styles.switchRow}>
-          <Text style={styles.switchLabel}>Multi-account</Text>
+          <Text style={styles.switchLabel}>{t("newAccount.multiAccount")}</Text>
           <Switch
             value={isMultiAccount}
             onValueChange={(val) => {
               if (val) {
                 Alert.alert(
-                  "Enable multi-account?",
-                  "Once enabled, this account cannot be switched back to a regular account.",
+                  t("newAccount.enableMultiAccount"),
+                  t("newAccount.enableMultiAccountMsg"),
                   [
-                    { text: "Cancel", style: "destructive" },
+                    { text: t("common.cancel"), style: "destructive" },
                     {
-                      text: "Proceed",
+                      text: t("common.proceed"),
                       onPress: () => setIsMultiAccount(true),
                     },
                   ],
@@ -328,8 +330,8 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
                 // auto-add handled by useEffect
               } else {
                 Alert.alert(
-                  "Cannot disable",
-                  "A multi-account cannot be switched back to a regular account. Delete it and create a new one instead.",
+                  t("newAccount.cannotDisable"),
+                  t("newAccount.cannotDisableMsg"),
                 );
               }
             }}
@@ -341,7 +343,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
 
       {accountData.type === "personal" && isMultiAccount && (
         <View style={styles.subSection}>
-          <Text style={styles.subSectionTitle}>Sub-accounts</Text>
+          <Text style={styles.subSectionTitle}>{t("newAccount.subAccounts")}</Text>
 
           {/* When editing: show existing sub-accounts */}
           {type === "edit" &&
@@ -354,17 +356,17 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
                 <TouchableOpacity
                   onPress={() => {
                     if (existingSubAccounts.length === 1) {
-                      Alert.alert("Cannot remove", "A multi-account must have at least one sub-account.");
+                      Alert.alert(t("newAccount.cannotRemove"), t("newAccount.cannotRemoveMsg"));
                       return;
                     }
                     const txCount = countTransactionsForSub(sub._id);
                     Alert.alert(
-                      "Delete sub-account?",
-                      `"${sub.currency}" and ${txCount} transaction${txCount !== 1 ? "s" : ""} will be permanently deleted.`,
+                      t("newAccount.deleteSubAccount"),
+                      t("newAccount.deleteSubAccountMsg", { currency: sub.currency, count: txCount }),
                       [
-                        { text: "Cancel", style: "cancel" },
+                        { text: t("common.cancel"), style: "cancel" },
                         {
-                          text: "Delete",
+                          text: t("common.delete"),
                           style: "destructive",
                           onPress: () => deleteSubAccount(sub._id),
                         },
@@ -388,7 +390,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
                 <TouchableOpacity
                   onPress={() => {
                     if (subDrafts.length === 1) {
-                      Alert.alert("Cannot remove", "A multi-account must have at least one sub-account.");
+                      Alert.alert(t("newAccount.cannotRemove"), t("newAccount.cannotRemoveMsg"));
                       return;
                     }
                     setSubDrafts((prev) => prev.filter((_, idx) => idx !== i));
@@ -408,14 +410,14 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               setSubModalVisible(true);
             }}
           >
-            <Text style={styles.addSubText}>+ Add sub-account</Text>
+            <Text style={styles.addSubText}>{t("newAccount.addSubAccount")}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {accountData.type !== "personal" && accountData.type !== "debt" && (
         <>
-          <Text style={{ ...styles.h1, width: "100%" }}>Subcategories</Text>
+          <Text style={{ ...styles.h1, width: "100%" }}>{t("account.subcategories")}</Text>
           <ScrollView horizontal style={{ width: "100%" }}>
             {accountData?.subcategories?.map((subcat) => (
               <TouchableOpacity
@@ -445,7 +447,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               style={styles.subcat}
             >
               <Text style={body}>+</Text>
-              <Text style={caption1}>Add</Text>
+              <Text style={caption1}>{t("common.add")}</Text>
             </TouchableOpacity>
           </ScrollView>
         </>
@@ -454,7 +456,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
         onPress={() => setCurrencyModalVisible(true)}
         style={styles.currencyRow}
       >
-        <Text style={{ ...subheadline, color: "white" }}>Currency</Text>
+        <Text style={{ ...subheadline, color: "white" }}>{t("newAccount.currency")}</Text>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
           <Text
             style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}
@@ -472,7 +474,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
         style={[styles.submit_button, { margin: 16, marginTop: 0 }]}
         onPress={handleSubmit}
       >
-        <Text style={styles.submit_button_text}>Save</Text>
+        <Text style={styles.submit_button_text}>{t("common.save")}</Text>
       </TouchableOpacity>
 
       {/* Sub-account add modal */}
@@ -483,14 +485,14 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Add sub-account</Text>
+            <Text style={styles.modalTitle}>{t("newAccount.addSubAccountTitle")}</Text>
             <TouchableOpacity onPress={() => setSubModalVisible(false)}>
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
           <TextInput
             style={styles.currencySearch}
-            placeholder="Search currency..."
+            placeholder={t("newAccount.searchCurrency")}
             placeholderTextColor={colors.gray}
             value={subCurrencySearch}
             onChangeText={setSubCurrencySearch}
@@ -508,7 +510,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
             ListHeaderComponent={
               <TextInput
                 style={[styles.currencySearch, { marginBottom: 0, marginTop: 8 }]}
-                placeholder="Initial balance"
+                placeholder={t("newAccount.initialBalance")}
                 placeholderTextColor={colors.gray}
                 value={pendingSubBalance}
                 onChangeText={setPendingSubBalance}
@@ -551,7 +553,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
                   ? existingSubAccounts.some((s) => s.currency === pendingSubCurrency)
                   : subDrafts.some((d) => d.currency === pendingSubCurrency);
               if (alreadyExists) {
-                Alert.alert("Duplicate currency", `A sub-account in ${pendingSubCurrency} already exists.`);
+                Alert.alert(t("newAccount.duplicateCurrency"), t("newAccount.duplicateCurrencyMsg", { currency: pendingSubCurrency }));
                 return;
               }
 
@@ -577,7 +579,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               setSubModalVisible(false);
             }}
           >
-            <Text style={styles.submit_button_text}>Add</Text>
+            <Text style={styles.submit_button_text}>{t("common.add")}</Text>
           </TouchableOpacity>
         </View>
       </Modal>
@@ -589,7 +591,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Choose currency</Text>
+            <Text style={styles.modalTitle}>{t("newAccount.chooseCurrency")}</Text>
             <TouchableOpacity
               onPress={() => {
                 setCurrencyModalVisible(false);
@@ -601,7 +603,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
           </View>
           <TextInput
             style={styles.currencySearch}
-            placeholder="Search..."
+            placeholder={t("common.search")}
             placeholderTextColor={colors.gray}
             value={currencySearch}
             onChangeText={setCurrencySearch}
@@ -694,30 +696,30 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
       </Modal>
 
       <Dialog.Container visible={dialogVisible}>
-        <Dialog.Title>Edit Subcategory</Dialog.Title>
+        <Dialog.Title>{t("transaction.editSubcategory")}</Dialog.Title>
         <Dialog.Description>
-          Enter your new subcategory below
+          {t("transaction.enterNewSubcategory")}
         </Dialog.Description>
         <Dialog.Input value={newSubcatName} onChangeText={setNewSubcatName} />
-        <Dialog.Button label="Cancel" onPress={() => setDialogVisible(false)} />
-        <Dialog.Button label="Delete" onPress={deleteSubcat} />
-        <Dialog.Button label="Save" onPress={editAlert} />
+        <Dialog.Button label={t("common.cancel")} onPress={() => setDialogVisible(false)} />
+        <Dialog.Button label={t("common.delete")} onPress={deleteSubcat} />
+        <Dialog.Button label={t("common.save")} onPress={editAlert} />
       </Dialog.Container>
 
       <Dialog.Container visible={addDialogVisible}>
-        <Dialog.Title>New Subcategory</Dialog.Title>
-        <Dialog.Description>Enter subcategory name</Dialog.Description>
+        <Dialog.Title>{t("transaction.newSubcategory")}</Dialog.Title>
+        <Dialog.Description>{t("transaction.enterSubcategoryName")}</Dialog.Description>
         <Dialog.Input
           value={addSubcatName}
           onChangeText={setAddSubcatName}
           autoFocus
         />
         <Dialog.Button
-          label="Cancel"
+          label={t("common.cancel")}
           onPress={() => setAddDialogVisible(false)}
         />
         <Dialog.Button
-          label="Add"
+          label={t("common.add")}
           onPress={() => {
             if (addSubcatName.trim().length > 0) {
               const newData = { ...accountData };

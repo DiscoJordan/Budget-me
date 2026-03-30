@@ -22,6 +22,7 @@ import { createStackNavigator } from "@react-navigation/stack";
 import { Header } from "@react-navigation/elements";
 import { UsersContext } from "./context/UsersContext";
 import RegisteredOrNot from "./components/RegisteredOrNot";
+import "./i18n";
 
 import {
   container,

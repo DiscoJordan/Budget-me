@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { useTranslation } from "react-i18next";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { colors, windowWidth } from "../../styles/styles";
 import { Transaction } from "../../src/types";
@@ -77,12 +78,12 @@ function isDebtTransaction(transaction: Transaction): boolean {
   return sender?.type === "debt" || recipient?.type === "debt";
 }
 
-function getDebtLabel(transaction: Transaction): string | null {
+function getDebtLabelKey(transaction: Transaction): string {
   const sender = transaction.senderId as any;
   const recipient = transaction.recipientId as any;
-  if (sender?.type === "debt" && recipient?.type === "personal") return "Debt repayment";
-  if (sender?.type === "personal" && recipient?.type === "debt") return "Lent";
-  return "Debt";
+  if (sender?.type === "debt" && recipient?.type === "personal") return "transaction.debtRepayment";
+  if (sender?.type === "personal" && recipient?.type === "debt") return "transaction.lent";
+  return "transaction.debt";
 }
 
 export default function TransactionRow({
@@ -90,6 +91,7 @@ export default function TransactionRow({
   accounts,
   onPress,
 }: Props) {
+  const { t } = useTranslation();
   const isDebt = isDebtTransaction(transaction);
 
   return (
@@ -125,7 +127,7 @@ export default function TransactionRow({
               </Text>
             </View>
             {isDebt && (
-              <Text style={styles.debtBadge}>{getDebtLabel(transaction)}</Text>
+              <Text style={styles.debtBadge}>{t(getDebtLabelKey(transaction))}</Text>
             )}
             {transaction?.comment.length > 0 && (
               <View>

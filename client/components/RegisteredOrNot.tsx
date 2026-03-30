@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import React, { useContext } from "react";
+import { useTranslation } from "react-i18next";
 import axios from "axios";
 import { URL } from "../config";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
@@ -149,6 +150,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
 }
 
 function MyTabs() {
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       id={undefined}
@@ -171,7 +173,7 @@ function MyTabs() {
         name="Dashboard"
         component={Dashboard}
         options={{
-          tabBarLabel: "Dashboard",
+          tabBarLabel: t("tabs.dashboard"),
           headerTitle: () => <PeriodHeader />,
         }}
       />
@@ -179,19 +181,25 @@ function MyTabs() {
         name="History"
         component={History}
         options={{
-          tabBarLabel: "History",
-          headerTitle: "History",
+          tabBarLabel: t("tabs.history"),
+          headerTitle: t("tabs.history"),
         }}
       />
       <Tab.Screen
         name="Report"
         component={Report}
-        options={{ tabBarLabel: "Report" }}
+        options={{
+          tabBarLabel: t("tabs.report"),
+          headerTitle: t("tabs.report"),
+        }}
       />
       <Tab.Screen
         name="Settings"
         component={Settings}
-        options={{ tabBarLabel: "Settings" }}
+        options={{
+          tabBarLabel: t("tabs.settings"),
+          headerTitle: t("tabs.settings"),
+        }}
       />
     </Tab.Navigator>
   );
@@ -242,6 +250,7 @@ const tabStyles = StyleSheet.create({
 });
 
 const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
+  const { t } = useTranslation();
   const { user } = useContext(UsersContext);
   const { activeAccount, getAccountsOfUser } = useContext(AccountsContext);
   const { transactions, getTransactionsOfUser } =
@@ -264,24 +273,24 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
     }
   };
 
-  const createAlert = (navigation: any) =>
+  const createAlert = (navigation: any) => {
+    const count = transactions.filter(
+      (tran) =>
+        (tran?.senderId as any)?._id === activeAccount?._id ||
+        (tran?.recipientId as any)?._id === activeAccount?._id
+    ).length;
     Alert.alert(
-      "Delete Account?",
-      `Are you sure that you want to delete an account with ${
-        transactions.filter(
-          (tran) =>
-            (tran?.senderId as any)?._id === activeAccount?._id ||
-            (tran?.recipientId as any)?._id === activeAccount?._id
-        ).length
-      } transactions?`,
+      t("nav.deleteAccount"),
+      t("nav.deleteAccountMsg", { count }),
       [
-        { text: "Cancel", style: "destructive", onPress: () => {} },
+        { text: t("common.cancel"), style: "destructive", onPress: () => {} },
         {
-          text: "Delete",
+          text: t("common.delete"),
           onPress: () => deleteAccount(navigation),
         },
       ]
     );
+  };
 
   return (
     <AccountingPeriodProvider>
@@ -315,8 +324,8 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
               component={NewAccount}
               options={({ navigation }: { navigation: any }) => ({
                 title: activeAccount?.name
-                  ? "Edit " + activeAccount.name
-                  : "New Account",
+                  ? t("newAccount.editAccount", { name: activeAccount.name })
+                  : t("newAccount.newAccount"),
                 headerRight: activeAccount?.name
                   ? () => (
                       <TouchableOpacity onPress={() => createAlert(navigation)}>
@@ -352,21 +361,21 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
               name="Account"
               component={Account}
             />
-            <Stack.Screen name="Settings" component={Settings} />
+            <Stack.Screen name="Settings" component={Settings} options={{ title: t("tabs.settings") }} />
             <Stack.Screen
               name="Debts"
               component={Debts}
-              options={{ title: "Debts" }}
+              options={{ title: t("nav.debtsScreen") }}
             />
             <Stack.Screen
               name="Edit Debts"
               component={EditDebts}
-              options={{ title: "Edit Debts" }}
+              options={{ title: t("nav.editDebts") }}
             />
             <Stack.Group screenOptions={{ presentation: "modal" }}>
               <Stack.Screen name="New operation" component={NewOperation} />
-              <Stack.Screen name="Edit transaction" component={EditTransaction} />
-              <Stack.Screen name="Choose icon" component={EditIcon} />
+              <Stack.Screen name="Edit transaction" component={EditTransaction} options={{ title: t("nav.editTransaction") }} />
+              <Stack.Screen name="Choose icon" component={EditIcon} options={{ title: t("nav.chooseIcon") }} />
             </Stack.Group>
           </>
         ) : (

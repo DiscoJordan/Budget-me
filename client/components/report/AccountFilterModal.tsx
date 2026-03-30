@@ -9,6 +9,7 @@ import {
   Switch,
 } from "react-native";
 import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTranslation } from "react-i18next";
 import { colors, font, size } from "../../styles/styles";
 import { Account } from "../../src/types";
 
@@ -20,11 +21,11 @@ interface Props {
   onToggle: (id: string) => void;
 }
 
-const TYPE_LABELS: Record<string, string> = {
-  income: "Income",
-  personal: "Personal",
-  expense: "Expense",
-  debt: "Debts",
+const TYPE_KEYS: Record<string, string> = {
+  income: "accountTypes.income",
+  personal: "accountTypes.personal",
+  expense: "accountTypes.expense",
+  debt: "accountTypes.debt",
 };
 
 export default function AccountFilterModal({
@@ -34,9 +35,10 @@ export default function AccountFilterModal({
   excludedIds,
   onToggle,
 }: Props) {
+  const { t } = useTranslation();
   const sections = ["income", "personal", "expense", "debt"]
     .map((type) => ({
-      title: TYPE_LABELS[type],
+      title: t(TYPE_KEYS[type]),
       data: accounts.filter((a) => a.type === type),
     }))
     .filter((s) => s.data.length > 0);
@@ -45,7 +47,7 @@ export default function AccountFilterModal({
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <View style={styles.modal}>
         <View style={styles.header}>
-          <Text style={styles.title}>Filter accounts</Text>
+          <Text style={styles.title}>{t("report.filterAccounts")}</Text>
           <TouchableOpacity onPress={onClose}>
             <Feather name="x" size={24} color="white" />
           </TouchableOpacity>

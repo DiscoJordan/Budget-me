@@ -1,4 +1,6 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { formatDateLong } from "../utils/formatDate";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { EvilIcons, FontAwesome5 } from "@expo/vector-icons";
@@ -33,6 +35,7 @@ import { parseNumber } from "../utils/parseNumber";
 import { Account } from "../src/types";
 
 const EditTransaction = ({ navigation }: { navigation: any }) => {
+  const { t } = useTranslation();
   const { activeTransaction, updateTransaction, deleteTransaction } =
     useContext(TransactionsContext);
   const { accounts } = useContext(AccountsContext);
@@ -159,10 +162,10 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
   };
 
   const handleDelete = () => {
-    Alert.alert("Delete transaction?", "This cannot be undone.", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("transaction.deleteTransaction"), t("transaction.cannotBeUndone"), [
+      { text: t("common.cancel"), style: "cancel" },
       {
-        text: "Delete",
+        text: t("common.delete"),
         style: "destructive",
         onPress: async () => {
           if (!activeTransaction) return;
@@ -196,7 +199,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
   if (!activeTransaction) {
     return (
       <View style={[container, { padding: 20 }]}>
-        <Text style={{ color: "white" }}>No transaction selected</Text>
+        <Text style={{ color: "white" }}>{t("transaction.noTransactionSelected")}</Text>
       </View>
     );
   }
@@ -265,7 +268,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
                   fontWeight: font.bold,
                 }}
               >
-                {recipient?.name || "Account"}
+                {recipient?.name || t("transaction.recipient")}
               </Text>
               <Text
                 style={{ ...caption1, color: "white", fontWeight: font.bold }}
@@ -290,11 +293,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
               color={colors.primaryGreen}
             />
             <Text style={styles.dateText}>
-              {date.toLocaleDateString("en-EN", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+              {formatDateLong(date)}
             </Text>
           </TouchableOpacity>
           {showDatePicker && (
@@ -315,7 +314,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
             value={comment}
             onChangeText={setComment}
             placeholderTextColor={colors.primaryGreen}
-            placeholder="Comment"
+            placeholder={t("transaction.comment")}
             clearButtonMode="while-editing"
             maxLength={80}
             selectionColor={colors.primaryGreen}
@@ -327,7 +326,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
             value={amount}
             onChangeText={setAmount}
             placeholderTextColor={colors.primaryGreen}
-            placeholder="Amount*"
+            placeholder={t("transaction.amount")}
             keyboardType="decimal-pad"
             clearButtonMode="while-editing"
             maxLength={20}
@@ -360,14 +359,14 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           {/* Subcategory */}
           {showSubcategories && (
             <>
-              <Text style={body}> Subcategory</Text>
+              <Text style={body}> {t("transaction.subcategory")}</Text>
               <ScrollView horizontal style={styles.subcats}>
                 <TouchableOpacity
                   onPress={() => setSubcategory("")}
                   style={[styles.subcat, { opacity: subcategory === "" ? 1 : 0.5 }]}
                 >
                   <Text style={body}>?</Text>
-                  <Text style={caption1}>Without</Text>
+                  <Text style={caption1}>{t("common.without")}</Text>
                 </TouchableOpacity>
                 {subcategorySource?.map((subcat) => (
                   <TouchableOpacity
@@ -402,7 +401,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
             >
               <View style={styles.pickerSheet}>
                 <Text style={styles.pickerTitle}>
-                  {pickerTarget === "sender" ? "Choose sender" : "Choose recipient"}
+                  {pickerTarget === "sender" ? t("transaction.chooseSender") : t("transaction.chooseRecipient")}
                 </Text>
                 <ScrollView>
                   {pickerAccounts.map((item) => (
@@ -465,7 +464,7 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
 
       <View style={styles.bottomRow}>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={submit_button_text}>Save</Text>
+          <Text style={submit_button_text}>{t("common.save")}</Text>
         </TouchableOpacity>
       </View>
     </View>
