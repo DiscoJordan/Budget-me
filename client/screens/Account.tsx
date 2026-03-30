@@ -34,7 +34,10 @@ import { formatNumber } from "../utils/formatNumber";
 import { toMainCurrency } from "../utils/convertCurrency";
 import { useTranslation } from "react-i18next";
 import PeriodBarChart from "../components/PeriodBarChart";
-import { AccountingPeriodContext, computeRange } from "../context/AccountingPeriodContext";
+import {
+  AccountingPeriodContext,
+  computeRange,
+} from "../context/AccountingPeriodContext";
 import { getBudgetFromAccount, setBudget } from "../utils/budgetStorage";
 import SubcategoryBar from "../components/account/SubcategoryBar";
 import DaySection from "../components/account/DaySection";
@@ -78,7 +81,13 @@ const Account = ({ navigation }: { navigation: any }) => {
     useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
-  const { periodType, dateFrom, dateTo, offset: periodOffset, headerLabel } = useContext(AccountingPeriodContext);
+  const {
+    periodType,
+    dateFrom,
+    dateTo,
+    offset: periodOffset,
+    headerLabel,
+  } = useContext(AccountingPeriodContext);
   const { t } = useTranslation();
 
   const handleTransactionPress = (transaction: Transaction) => {
@@ -200,33 +209,64 @@ const Account = ({ navigation }: { navigation: any }) => {
   // Previous period comparison for income/expense
   const { prevTotal, daysInPeriod, prevDaysInPeriod } = useMemo(() => {
     if (!isIncomeOrExpense || periodType === "all" || periodType === "custom") {
-      return { prevTotal: 0, daysInPeriod: daysInCurrentMonth(), prevDaysInPeriod: daysInCurrentMonth() };
+      return {
+        prevTotal: 0,
+        daysInPeriod: daysInCurrentMonth(),
+        prevDaysInPeriod: daysInCurrentMonth(),
+      };
     }
     const now = new Date();
     const prev = computeRange(periodType, now, periodOffset - 1);
     const curr = computeRange(periodType, now, periodOffset);
 
-    const currDays = curr.from && curr.to
-      ? Math.max(1, Math.round((curr.to.getTime() - curr.from.getTime()) / 86400000) + 1)
-      : daysInCurrentMonth();
-    const prevDays = prev.from && prev.to
-      ? Math.max(1, Math.round((prev.to.getTime() - prev.from.getTime()) / 86400000) + 1)
-      : daysInCurrentMonth();
+    const currDays =
+      curr.from && curr.to
+        ? Math.max(
+            1,
+            Math.round((curr.to.getTime() - curr.from.getTime()) / 86400000) +
+              1,
+          )
+        : daysInCurrentMonth();
+    const prevDays =
+      prev.from && prev.to
+        ? Math.max(
+            1,
+            Math.round((prev.to.getTime() - prev.from.getTime()) / 86400000) +
+              1,
+          )
+        : daysInCurrentMonth();
 
     let sum = 0;
     if (prev.from && prev.to) {
       for (const t of transactionsOfAccount) {
         const time = new Date(t.time).getTime();
         if (time >= prev.from.getTime() && time <= prev.to.getTime()) {
-          sum += toMainCurrency(t.amount ?? 0, t.currency ?? "USD", rates, mainCurrency);
+          sum += toMainCurrency(
+            t.amount ?? 0,
+            t.currency ?? "USD",
+            rates,
+            mainCurrency,
+          );
         }
       }
     }
-    return { prevTotal: sum, daysInPeriod: currDays, prevDaysInPeriod: prevDays };
-  }, [isIncomeOrExpense, periodType, periodOffset, transactionsOfAccount, rates, mainCurrency]);
+    return {
+      prevTotal: sum,
+      daysInPeriod: currDays,
+      prevDaysInPeriod: prevDays,
+    };
+  }, [
+    isIncomeOrExpense,
+    periodType,
+    periodOffset,
+    transactionsOfAccount,
+    rates,
+    mainCurrency,
+  ]);
 
   const totalDiff = totalAmount - prevTotal;
-  const totalPctChange = prevTotal > 0 ? ((totalAmount - prevTotal) / prevTotal) * 100 : 0;
+  const totalPctChange =
+    prevTotal > 0 ? ((totalAmount - prevTotal) / prevTotal) * 100 : 0;
   const dailyAvg = totalAmount / daysInPeriod;
   const prevDailyAvg = prevTotal / prevDaysInPeriod;
   const dailyDiff = dailyAvg - prevDailyAvg;
@@ -261,7 +301,11 @@ const Account = ({ navigation }: { navigation: any }) => {
   }, 0);
 
   const triggeredSubcategories = [
-    ...new Set((isIncomeOrExpense ? periodFiltered : transactionsOfAccount).map((t) => t.subcategory)),
+    ...new Set(
+      (isIncomeOrExpense ? periodFiltered : transactionsOfAccount).map(
+        (t) => t.subcategory,
+      ),
+    ),
   ];
 
   const grouped = groupByDate(displayTransactions);
@@ -326,7 +370,9 @@ const Account = ({ navigation }: { navigation: any }) => {
             <View style={styles.summaryBlock}>
               <View style={{ gap: 4, alignItems: "center" }}>
                 <Text style={{ ...body, color: colors.gray }}>
-                  {activeAccount?.type === "income" ? t("accountTypes.income") : t("accountTypes.expense")}
+                  {activeAccount?.type === "income"
+                    ? t("accountTypes.income")
+                    : t("accountTypes.expense")}
                 </Text>
                 <Text
                   style={{
@@ -347,15 +393,17 @@ const Account = ({ navigation }: { navigation: any }) => {
                       color: totalDiff >= 0 ? colors.green : colors.red,
                     }}
                   >
-                    {totalDiff >= 0 ? "+" : ""}{totalPctChange.toFixed(1)}%
+                    {totalDiff >= 0 ? "+" : ""}
+                    {totalPctChange.toFixed(1)}%
                   </Text>
                 )}
               </View>
               <View style={{ gap: 4, alignItems: "center" }}>
-                <Text style={{ ...body, color: colors.gray }}>{t("account.aDay")}</Text>
+                <Text style={{ ...body, color: colors.gray }}>
+                  {t("account.aDay")}
+                </Text>
                 <Text style={{ ...title2 }}>
-                  {dailyAvg.format()}{" "}
-                  {getCurrencyMeta(mainCurrency).symbol}
+                  {dailyAvg.format()} {getCurrencyMeta(mainCurrency).symbol}
                 </Text>
                 {isIncomeOrExpense && prevDailyAvg > 0 && (
                   <Text
@@ -365,13 +413,16 @@ const Account = ({ navigation }: { navigation: any }) => {
                       color: dailyDiff >= 0 ? colors.green : colors.red,
                     }}
                   >
-                    {dailyDiff >= 0 ? "+" : ""}{formatNumber(Math.round(dailyDiff * 100) / 100)}{" "}
+                    {dailyDiff >= 0 ? "+" : ""}
+                    {formatNumber(Math.round(dailyDiff * 100) / 100)}{" "}
                     {getCurrencyMeta(mainCurrency).symbol}
                   </Text>
                 )}
               </View>
               <View style={{ gap: 4, alignItems: "center" }}>
-                <Text style={{ ...body, color: colors.gray }}>{t("account.budget")}</Text>
+                <Text style={{ ...body, color: colors.gray }}>
+                  {t("account.budget")}
+                </Text>
                 <Text style={{ ...title2 }}>
                   {budget > 0
                     ? `${formatNumber(budget)} ${getCurrencyMeta(mainCurrency).symbol}`
@@ -384,7 +435,13 @@ const Account = ({ navigation }: { navigation: any }) => {
                     setBudgetModalVisible(true);
                   }}
                 >
-                  <Text style={{ fontSize: 13, color: colors.primaryGreen, fontWeight: "700" }}>
+                  <Text
+                    style={{
+                      fontSize: 13,
+                      color: colors.primaryGreen,
+                      fontWeight: "700",
+                    }}
+                  >
                     {t("common.change")}
                   </Text>
                 </TouchableOpacity>
@@ -434,7 +491,9 @@ const Account = ({ navigation }: { navigation: any }) => {
             <View style={styles.balanceBlock}>
               {activeAccount.isMultiAccount ? (
                 <>
-                  <Text style={styles.balanceLabel}>{t("newAccount.balance")}</Text>
+                  <Text style={styles.balanceLabel}>
+                    {t("newAccount.balance")}
+                  </Text>
                   <Text style={styles.balanceAmount}>
                     {formatNumber(
                       accounts
@@ -470,7 +529,9 @@ const Account = ({ navigation }: { navigation: any }) => {
                 </>
               ) : (
                 <>
-                  <Text style={styles.balanceLabel}>{t("newAccount.balance")}</Text>
+                  <Text style={styles.balanceLabel}>
+                    {t("newAccount.balance")}
+                  </Text>
                   <Text style={styles.balanceAmount}>
                     {formatNumber(activeAccount.balance)}{" "}
                     {getCurrencyMeta(activeAccount.currency).symbol}
@@ -497,9 +558,7 @@ const Account = ({ navigation }: { navigation: any }) => {
                 navigation.navigate("New operation", { debtMode: "lend" });
               }}
             >
-              <Text style={styles.debtBtnText}>
-                {(activeAccount.balance ?? 0) < 0 ? t("transaction.debtRepayment") : t("transaction.lent")}
-              </Text>
+              <Text style={styles.debtBtnText}>{t("transaction.lend")}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.debtBtn, { backgroundColor: colors.red }]}
@@ -509,15 +568,35 @@ const Account = ({ navigation }: { navigation: any }) => {
                 navigation.navigate("New operation", { debtMode: "borrow" });
               }}
             >
-              <Text style={styles.debtBtnText}>
-                {(activeAccount.balance ?? 0) > 0 ? t("transaction.debtRepayment") : t("transaction.debt")}
-              </Text>
+              <Text style={styles.debtBtnText}>{t("transaction.debt")}</Text>
             </TouchableOpacity>
+            {(activeAccount.balance ?? 0) !== 0 && (
+              <TouchableOpacity
+                style={[styles.debtBtn, { backgroundColor: colors.primaryGreen }]}
+                onPress={() => {
+                  const balance = activeAccount.balance ?? 0;
+                  if (balance < 0) {
+                    // I owe (borrowed) → I repay: personal → debt
+                    setActiveAccount(null);
+                    setRecipientAccount(activeAccount);
+                    navigation.navigate("New operation", { debtMode: "repayToDebt" });
+                  } else {
+                    // They owe me (I lent) → they repay: debt → personal
+                    setActiveAccount(activeAccount);
+                    setRecipientAccount(null);
+                    navigation.navigate("New operation", { debtMode: "repayFromDebt" });
+                  }
+                }}
+              >
+                <Text style={styles.debtBtnText}>{t("transaction.repayDebt")}</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
 
         <View style={styles.listBlock}>
-          {(isIncomeOrExpense ? periodFiltered : transactionsOfAccount).length > 0 &&
+          {(isIncomeOrExpense ? periodFiltered : transactionsOfAccount).length >
+            0 &&
             activeAccount?.type !== "personal" &&
             activeAccount?.type !== "debt" && (
               <>
@@ -527,9 +606,10 @@ const Account = ({ navigation }: { navigation: any }) => {
                     <SubcategoryBar
                       key={subcat}
                       subcat={subcat}
-                      transactions={(isIncomeOrExpense ? periodFiltered : transactionsOfAccount).filter(
-                        (t) => t.subcategory === subcat,
-                      )}
+                      transactions={(isIncomeOrExpense
+                        ? periodFiltered
+                        : transactionsOfAccount
+                      ).filter((t) => t.subcategory === subcat)}
                       totalAmount={totalAmount}
                       currency={mainCurrency}
                       rates={rates}
@@ -558,7 +638,9 @@ const Account = ({ navigation }: { navigation: any }) => {
           ))
         ) : (
           <Text style={{ color: colors.gray, paddingLeft: 20, paddingTop: 8 }}>
-            {search.trim() ? t("account.noMatchingTransactions") : t("account.noTransactionsForPeriod")}
+            {search.trim()
+              ? t("account.noMatchingTransactions")
+              : t("account.noTransactionsForPeriod")}
           </Text>
         )}
       </ScrollView>
@@ -581,7 +663,9 @@ const Account = ({ navigation }: { navigation: any }) => {
       >
         <View style={styles.budgetOverlay}>
           <View style={styles.budgetSheet}>
-            <Text style={styles.budgetTitle}>{t("account.budgetForPeriod", { period: headerLabel })}</Text>
+            <Text style={styles.budgetTitle}>
+              {t("account.budgetForPeriod", { period: headerLabel })}
+            </Text>
             <TextInput
               style={styles.budgetInput}
               value={budgetInput}
@@ -598,7 +682,9 @@ const Account = ({ navigation }: { navigation: any }) => {
                 onPress={() => setBudgetModalVisible(false)}
                 accessibilityLabel={t("common.cancel")}
               >
-                <Text style={{ color: colors.gray, fontWeight: "700" }}>{t("common.cancel")}</Text>
+                <Text style={{ color: colors.gray, fontWeight: "700" }}>
+                  {t("common.cancel")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.budgetSave}
@@ -611,7 +697,9 @@ const Account = ({ navigation }: { navigation: any }) => {
                 }}
                 accessibilityLabel={t("common.save")}
               >
-                <Text style={{ color: "white", fontWeight: "700" }}>{t("common.save")}</Text>
+                <Text style={{ color: "white", fontWeight: "700" }}>
+                  {t("common.save")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>

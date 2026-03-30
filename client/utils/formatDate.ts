@@ -4,6 +4,13 @@ const LOCALE_MAP: Record<string, string> = {
   en: "en-GB",
   ru: "ru-RU",
   pl: "pl-PL",
+  es: "es-ES",
+  fr: "fr-FR",
+  de: "de-DE",
+  it: "it-IT",
+  ua: "ua-UA",
+  pt: "pt-PT",
+  be: "be-BY",
 };
 
 export function getLocale(): string {

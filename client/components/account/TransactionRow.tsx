@@ -79,11 +79,9 @@ function isDebtTransaction(transaction: Transaction): boolean {
 }
 
 function getDebtLabelKey(transaction: Transaction): string {
-  const sender = transaction.senderId as any;
-  const recipient = transaction.recipientId as any;
-  if (sender?.type === "debt" && recipient?.type === "personal") return "transaction.debtRepayment";
-  if (sender?.type === "personal" && recipient?.type === "debt") return "transaction.lent";
-  return "transaction.debt";
+  if (transaction.subcategory === "__repayment__")
+    return "transaction.debtRepayment";
+  return "transaction.gaveLoan";
 }
 
 export default function TransactionRow({
@@ -113,7 +111,7 @@ export default function TransactionRow({
             <View style={styles.tranHeader}>
               <Text style={styles.titleText}>
                 {getTitle(transaction, accounts)}
-                {transaction?.subcategory !== ""
+                {!isDebt && transaction?.subcategory !== ""
                   ? ` / ${transaction?.subcategory}`
                   : null}
               </Text>
@@ -127,7 +125,9 @@ export default function TransactionRow({
               </Text>
             </View>
             {isDebt && (
-              <Text style={styles.debtBadge}>{t(getDebtLabelKey(transaction))}</Text>
+              <Text style={styles.debtBadge}>
+                {t(getDebtLabelKey(transaction))}
+              </Text>
             )}
             {transaction?.comment.length > 0 && (
               <View>
@@ -143,8 +143,14 @@ export default function TransactionRow({
           </Text>
           {transaction?.rate != null && transaction.rate !== 1 && (
             <Text style={styles.convertedAmount}>
-              {(transaction.amount * transaction.rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}{" "}
-              {getCurrencyMeta((transaction.recipientId as any)?.currency).symbol}
+              {(transaction.amount * transaction.rate).toLocaleString(
+                undefined,
+                { maximumFractionDigits: 2 },
+              )}{" "}
+              {
+                getCurrencyMeta((transaction.recipientId as any)?.currency)
+                  .symbol
+              }
             </Text>
           )}
         </View>

@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   Switch,
   Alert,
+  Linking,
 } from "react-native";
 import {
   container,
@@ -33,9 +34,16 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 function Settings() {
   const { t, i18n } = useTranslation();
-  const { logout } = useContext(UsersContext);
-  const { currencies, rates, mainCurrency, setMainCurrency, loading, lastFetchedAt, refreshCurrencies } =
-    useContext(CurrencyContext);
+  const { logout, user } = useContext(UsersContext);
+  const {
+    currencies,
+    rates,
+    mainCurrency,
+    setMainCurrency,
+    loading,
+    lastFetchedAt,
+    refreshCurrencies,
+  } = useContext(CurrencyContext);
   const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
   const { settings: debtSettings, setEnabled: setDebtEnabled } =
     useContext(DebtsContext);
@@ -146,6 +154,20 @@ function Settings() {
         <Feather name="trash-2" size={20} color={colors.red} />
       </TouchableOpacity>
 
+      <TouchableOpacity
+        onPress={() => {
+          const subject = encodeURIComponent("BudgetMe");
+          const body = encodeURIComponent(user?.id ?? "");
+          Linking.openURL(
+            `mailto:discojordan23@gmail.com?subject=${subject}&body=${body}`,
+          );
+        }}
+        style={setting_option}
+      >
+        <Text style={styles.label}>{t("settings.contactUs")}</Text>
+        <Feather name="mail" size={20} color={colors.gray} />
+      </TouchableOpacity>
+
       <TouchableOpacity onPress={logout} style={setting_option}>
         <Text style={subheadline}>{t("settings.logOut")}</Text>
         <Feather name="log-out" size={24} color="white" />
@@ -158,12 +180,16 @@ function Settings() {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t("settings.dashboardSettings")}</Text>
+            <Text style={styles.modalTitle}>
+              {t("settings.dashboardSettings")}
+            </Text>
             <TouchableOpacity onPress={() => setDashboardSettingsOpen(false)}>
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.sectionLabel}>{t("settings.expenseAccounts")}</Text>
+          <Text style={styles.sectionLabel}>
+            {t("settings.expenseAccounts")}
+          </Text>
           <FlatList
             data={expenseAccounts}
             keyExtractor={(item) => item._id}
@@ -206,10 +232,18 @@ function Settings() {
       >
         <View style={styles.modal}>
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{t("settings.chooseCurrency")}</Text>
-            <View style={{ flexDirection: "row", gap: 16, alignItems: "center" }}>
+            <Text style={styles.modalTitle}>
+              {t("settings.chooseCurrency")}
+            </Text>
+            <View
+              style={{ flexDirection: "row", gap: 16, alignItems: "center" }}
+            >
               <TouchableOpacity onPress={refreshCurrencies}>
-                <Feather name="refresh-cw" size={20} color={loading ? colors.gray : "white"} />
+                <Feather
+                  name="refresh-cw"
+                  size={20}
+                  color={loading ? colors.gray : "white"}
+                />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => {
@@ -254,11 +288,15 @@ function Settings() {
                       {item}
                     </Text>
                     <Text style={styles.currencyName}>{meta.name}</Text>
-                    {item !== mainCurrency && rates[item] && rates[mainCurrency] && (
-                      <Text style={styles.currencyRate}>
-                        1 {mainCurrency} = {(rates[item] / rates[mainCurrency]).toFixed(4)} {item}
-                      </Text>
-                    )}
+                    {item !== mainCurrency &&
+                      rates[item] &&
+                      rates[mainCurrency] && (
+                        <Text style={styles.currencyRate}>
+                          1 {mainCurrency} ={" "}
+                          {(rates[item] / rates[mainCurrency]).toFixed(4)}{" "}
+                          {item}
+                        </Text>
+                      )}
                   </View>
                   <View style={styles.currencyItemRight}>
                     <Text
@@ -317,7 +355,9 @@ function Settings() {
                 style={styles.deleteCancelBtn}
                 onPress={() => setDeleteConfirmVisible(false)}
               >
-                <Text style={styles.deleteCancelText}>{t("common.cancel")}</Text>
+                <Text style={styles.deleteCancelText}>
+                  {t("common.cancel")}
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[
@@ -330,13 +370,13 @@ function Settings() {
                   const ok = await deleteAllTransactions();
                   Alert.alert(
                     ok ? t("common.done") : t("common.error"),
-                    ok
-                      ? t("settings.allDeleted")
-                      : t("settings.deleteFailed"),
+                    ok ? t("settings.allDeleted") : t("settings.deleteFailed"),
                   );
                 }}
               >
-                <Text style={styles.deleteConfirmText}>{t("settings.deleteAll")}</Text>
+                <Text style={styles.deleteConfirmText}>
+                  {t("settings.deleteAll")}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -373,7 +413,8 @@ function Settings() {
                 <Text
                   style={[
                     styles.currencyCode,
-                    item.code === i18n.language && styles.currencyItemTextActive,
+                    item.code === i18n.language &&
+                      styles.currencyItemTextActive,
                   ]}
                 >
                   {item.label}

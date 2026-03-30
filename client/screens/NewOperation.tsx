@@ -14,6 +14,7 @@ import { CurrencyContext } from "../context/CurrencyContext";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { EvilIcons } from "@expo/vector-icons";
 import { getCurrencyMeta } from "../utils/currencyInfo";
+import { toMainCurrency } from "../utils/convertCurrency";
 import {
   Alert,
   StyleSheet,
@@ -48,7 +49,13 @@ const NewOperation = ({
   route?: any;
 }) => {
   const { t } = useTranslation();
-  const debtMode = route?.params?.debtMode as "lend" | "borrow" | undefined;
+  const debtMode = route?.params?.debtMode as
+    | "lend"
+    | "borrow"
+    | "repay"
+    | "repayToDebt"
+    | "repayFromDebt"
+    | undefined;
   const [message, setMessage] = React.useState<string>("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -67,7 +74,7 @@ const NewOperation = ({
     "sender" | "recipient" | null
   >(null);
   const { user } = useContext(UsersContext);
-  const { rates } = useContext(CurrencyContext);
+  const { rates, mainCurrency } = useContext(CurrencyContext);
 
   // Sub-account selection for multi-accounts (sender)
   const subAccounts = useMemo(
@@ -176,6 +183,15 @@ const NewOperation = ({
     } else if (debtMode === "lend" && recipientAccount?._id && !activeAccount) {
       // From person detail "Lend" button: person is recipient, pick personal account
       setPickerTarget("sender");
+    } else if (debtMode === "repay" && activeAccount?.type === "debt") {
+      // From debt account "Repay" button: debt account is sender, pick personal account
+      setPickerTarget("recipient");
+    } else if (debtMode === "repayToDebt" && recipientAccount?._id) {
+      // Repay to debt: recipient is set (debt account), pick personal account as sender
+      setPickerTarget("sender");
+    } else if (debtMode === "repayFromDebt" && activeAccount?.type === "debt") {
+      // Repay from debt: sender is debt account, pick personal account as recipient
+      setPickerTarget("recipient");
     }
   }, []);
 
@@ -201,6 +217,36 @@ const NewOperation = ({
     if (debtMode === "borrow" && pickerTarget === "sender" && !activeAccount) {
       // Dragged debts tile → personal: pick the person to borrow from
       return Accounts.filter((a) => a.type === "debt" && !a.archived);
+    }
+    if (
+      debtMode === "repay" &&
+      pickerTarget === "recipient" &&
+      activeAccount?.type === "debt"
+    ) {
+      // Repay debt: sender is debt account, pick personal account as recipient
+      return Accounts.filter(
+        (a) => a.type === "personal" && !a.archived && !a.parentId,
+      );
+    }
+    if (
+      debtMode === "repayToDebt" &&
+      pickerTarget === "sender" &&
+      recipientAccount?._id
+    ) {
+      // Repay to debt: recipient is debt account, pick personal account as sender
+      return Accounts.filter(
+        (a) => a.type === "personal" && !a.archived && !a.parentId,
+      );
+    }
+    if (
+      debtMode === "repayFromDebt" &&
+      pickerTarget === "recipient" &&
+      activeAccount?.type === "debt"
+    ) {
+      // Repay from debt: sender is debt account, pick personal account as recipient
+      return Accounts.filter(
+        (a) => a.type === "personal" && !a.archived && !a.parentId,
+      );
     }
     if (debtMode && pickerTarget === "sender" && recipientAccount?._id) {
       // Person detail: recipient set, pick personal account as sender
@@ -311,7 +357,10 @@ const NewOperation = ({
         icon,
         comment: transactionData.comment,
         amount: parseNumber(transactionData.amount),
-        subcategory: transactionData.subcategory,
+        subcategory:
+          debtMode === "repayToDebt" || debtMode === "repayFromDebt"
+            ? "__repayment__"
+            : transactionData.subcategory,
         time: transactionData.time,
         currency: senderCurrency,
         rate: effectiveRate,
@@ -377,14 +426,9 @@ const NewOperation = ({
               <Text
                 style={{ ...caption1, color: "white", fontWeight: font.bold }}
               >
-                {formatNumber(
-                  effectiveSender?.balance ?? activeAccount?.balance ?? 0,
-                )}{" "}
-                {
-                  getCurrencyMeta(
-                    effectiveSender?.currency ?? activeAccount?.currency,
-                  ).symbol
-                }
+                {activeAccount?.isMultiAccount
+                  ? `${formatNumber(subAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
+                  : `${formatNumber(effectiveSender?.balance ?? activeAccount?.balance ?? 0)} ${getCurrencyMeta(effectiveSender?.currency ?? activeAccount?.currency).symbol}`}
               </Text>
             </View>
             <EvilIcons name="arrow-right" size={48} color="white" />
@@ -421,11 +465,11 @@ const NewOperation = ({
               <Text
                 style={{ ...caption1, color: "white", fontWeight: font.bold }}
               >
-                {recipientAccount?.balance != null
-                  ? formatNumber(recipientAccount.balance)
-                  : ""}
-                {" " +
-                  (getCurrencyMeta(recipientAccount?.currency).symbol || "")}
+                {(recipientAccount as any)?.isMultiAccount
+                  ? `${formatNumber(recipientSubAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
+                  : recipientAccount?.balance != null
+                    ? `${formatNumber(recipientAccount.balance)} ${getCurrencyMeta(recipientAccount?.currency).symbol || ""}`
+                    : ""}
               </Text>
             </View>
           </View>
@@ -524,13 +568,21 @@ const NewOperation = ({
                         pickerTarget === "sender" &&
                         !activeAccount
                       ? t("transaction.selectPerson")
-                      : debtMode && pickerTarget === "sender"
-                        ? t("transaction.fromWhichWallet")
-                        : debtMode && pickerTarget === "recipient"
-                          ? t("transaction.toWhichWallet")
-                          : pickerTarget === "sender"
-                            ? t("transaction.chooseSender")
-                            : t("transaction.chooseRecipient")}
+                      : debtMode === "repay" && pickerTarget === "recipient"
+                        ? t("transaction.toWhichWallet")
+                        : debtMode === "repayToDebt" &&
+                            pickerTarget === "sender"
+                          ? t("transaction.fromWhichWallet")
+                          : debtMode === "repayFromDebt" &&
+                              pickerTarget === "recipient"
+                            ? t("transaction.toWhichWallet")
+                            : debtMode && pickerTarget === "sender"
+                              ? t("transaction.fromWhichWallet")
+                              : debtMode && pickerTarget === "recipient"
+                                ? t("transaction.toWhichWallet")
+                                : pickerTarget === "sender"
+                                  ? t("transaction.chooseSender")
+                                  : t("transaction.chooseRecipient")}
                 </Text>
                 <ScrollView>
                   {pickerAccounts.map((item) => (
@@ -597,9 +649,34 @@ const NewOperation = ({
                       </View>
                       <View style={{ flex: 1 }}>
                         <Text style={styles.pickerName}>{item.name}</Text>
-                        <Text style={styles.pickerBalance}>
-                          {formatNumber(item.balance ?? 0)} {item.currency}
-                        </Text>
+                        {item.isMultiAccount ? (
+                          (() => {
+                            const subs = accounts.filter(
+                              (a) => a.parentId === item._id,
+                            );
+                            const total = subs.reduce(
+                              (sum, s) =>
+                                sum +
+                                toMainCurrency(
+                                  s.balance ?? 0,
+                                  s.currency,
+                                  rates,
+                                  mainCurrency,
+                                ),
+                              0,
+                            );
+                            return (
+                              <Text style={styles.pickerBalance}>
+                                {formatNumber(total)}{" "}
+                                {getCurrencyMeta(mainCurrency).symbol}
+                              </Text>
+                            );
+                          })()
+                        ) : (
+                          <Text style={styles.pickerBalance}>
+                            {formatNumber(item.balance ?? 0)} {item.currency}
+                          </Text>
+                        )}
                       </View>
                     </TouchableOpacity>
                   ))}
@@ -617,9 +694,7 @@ const NewOperation = ({
               size={20}
               color={colors.primaryGreen}
             />
-            <Text style={styles.dateText}>
-              {formatDateLong(date)}
-            </Text>
+            <Text style={styles.dateText}>{formatDateLong(date)}</Text>
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -670,12 +745,15 @@ const NewOperation = ({
               selectionColor={colors.primaryGreen}
             />
             {(() => {
-              const isDebtSender = activeAccount?.type === "debt";
-              const showButton = isDebtSender && Math.abs(effectiveSender?.balance ?? 0) !== 0;
+              const isRepayMode = debtMode === "repayToDebt" || debtMode === "repayFromDebt";
+              const debtAccount = debtMode === "repayToDebt"
+                ? (recipientAccount as any)
+                : effectiveSender;
+              const showButton = isRepayMode && Math.abs(debtAccount?.balance ?? 0) !== 0;
 
               if (!showButton) return null;
 
-              const allDebtAmount = Math.abs(effectiveSender?.balance ?? 0);
+              const allDebtAmount = Math.abs(debtAccount?.balance ?? 0);
 
               return (
                 <TouchableOpacity
@@ -687,7 +765,9 @@ const NewOperation = ({
                     }))
                   }
                 >
-                  <Text style={styles.allInText}>{t("transaction.allDebt")}</Text>
+                  <Text style={styles.allInText}>
+                    {t("transaction.allDebt")}
+                  </Text>
                 </TouchableOpacity>
               );
             })()}
