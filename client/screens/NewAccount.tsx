@@ -8,7 +8,6 @@ import {
   Switch,
   Text,
   View,
-  TextInput,
   TouchableOpacity,
   Modal,
   FlatList,
@@ -38,9 +37,11 @@ import axios from "axios";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import LiquidAccountTile from "../components/LiquidAccountTile";
 import { Subcategory } from "../src/types";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { parseNumber } from "../utils/parseNumber";
+import GlassInput from "../components/GlassInput";
 
 function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
   const { t } = useTranslation();
@@ -260,52 +261,35 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
         </>
       ) : (
         <View style={{ ...account }}>
-          <TouchableOpacity
+          <LiquidAccountTile
+            iconName={accountData?.icon?.icon_value || activeAccount?.icon?.icon_value || "credit-card-outline"}
+            iconColor={accountData.icon.color}
+            size={80}
             onPress={() => navigation.navigate("Choose icon")}
-            style={{
-              ...accounts__add,
-              backgroundColor: accountData.icon.color,
-            }}
-          >
-            <MaterialCommunityIcons
-              name={
-                (accountData?.icon?.icon_value ||
-                  activeAccount?.icon?.icon_value ||
-                  "credit-card-outline") as any
-              }
-              size={24}
-              color="white"
-            />
-          </TouchableOpacity>
+          />
           <Text style={{ ...subheadline, color: colors.gray, fontWeight: "600" }}>
             {t("newAccount.icon")}
           </Text>
         </View>
       )}
-      <TextInput
-        style={styles.input}
+      <GlassInput
+        containerStyle={styles.inputContainer}
         onChangeText={(text) => handleChange(text, "name")}
         value={accountData?.name}
-        inlineImageLeft="search_icon"
-        placeholderTextColor={colors.primaryGreen}
         placeholder={t("newAccount.title")}
         clearButtonMode={"while-editing"}
         maxLength={20}
-        selectionColor={"#primaryGreen"}
-        lineBreakStrategyIOS={"push-out"}
       />
       {accountData.type === "personal" && !isMultiAccount && (
-        <TextInput
-          style={styles.input}
+        <GlassInput
+          containerStyle={styles.inputContainer}
           onChangeText={(text) =>
             setAccountData({ ...accountData, balance: parseNumber(text) })
           }
           value={accountData.balance ? String(accountData.balance) : ""}
-          placeholderTextColor={colors.primaryGreen}
           placeholder={t("newAccount.balance")}
           keyboardType="decimal-pad"
           clearButtonMode="while-editing"
-          selectionColor={colors.primaryGreen}
         />
       )}
 
@@ -490,13 +474,13 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
-          <TextInput
-            style={styles.currencySearch}
+          <GlassInput
+            containerStyle={styles.currencySearchContainer}
             placeholder={t("newAccount.searchCurrency")}
-            placeholderTextColor={colors.gray}
             value={subCurrencySearch}
             onChangeText={setSubCurrencySearch}
             autoCapitalize="characters"
+            leftSlot={<MaterialCommunityIcons name="magnify" size={18} color={colors.gray} />}
           />
           <FlatList
             data={currencies.filter((c) => {
@@ -508,10 +492,9 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
             })}
             keyExtractor={(item) => item}
             ListHeaderComponent={
-              <TextInput
-                style={[styles.currencySearch, { marginBottom: 0, marginTop: 8 }]}
+              <GlassInput
+                containerStyle={styles.currencySearchContainer}
                 placeholder={t("newAccount.initialBalance")}
-                placeholderTextColor={colors.gray}
                 value={pendingSubBalance}
                 onChangeText={setPendingSubBalance}
                 keyboardType="decimal-pad"
@@ -601,13 +584,13 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
               <Feather name="x" size={24} color="white" />
             </TouchableOpacity>
           </View>
-          <TextInput
-            style={styles.currencySearch}
+          <GlassInput
+            containerStyle={styles.currencySearchContainer}
             placeholder={t("common.search")}
-            placeholderTextColor={colors.gray}
             value={currencySearch}
             onChangeText={setCurrencySearch}
             autoCapitalize="characters"
+            leftSlot={<MaterialCommunityIcons name="magnify" size={18} color={colors.gray} />}
           />
           <FlatList
             data={currencies.filter((c) => {
@@ -697,9 +680,7 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
 
       <Dialog.Container visible={dialogVisible}>
         <Dialog.Title>{t("transaction.editSubcategory")}</Dialog.Title>
-        <Dialog.Description>
-          {t("transaction.enterNewSubcategory")}
-        </Dialog.Description>
+        <Dialog.Description>{t("transaction.enterNewSubcategory")}</Dialog.Description>
         <Dialog.Input value={newSubcatName} onChangeText={setNewSubcatName} />
         <Dialog.Button label={t("common.cancel")} onPress={() => setDialogVisible(false)} />
         <Dialog.Button label={t("common.delete")} onPress={deleteSubcat} />
@@ -709,15 +690,8 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
       <Dialog.Container visible={addDialogVisible}>
         <Dialog.Title>{t("transaction.newSubcategory")}</Dialog.Title>
         <Dialog.Description>{t("transaction.enterSubcategoryName")}</Dialog.Description>
-        <Dialog.Input
-          value={addSubcatName}
-          onChangeText={setAddSubcatName}
-          autoFocus
-        />
-        <Dialog.Button
-          label={t("common.cancel")}
-          onPress={() => setAddDialogVisible(false)}
-        />
+        <Dialog.Input value={addSubcatName} onChangeText={setAddSubcatName} autoFocus />
+        <Dialog.Button label={t("common.cancel")} onPress={() => setAddDialogVisible(false)} />
         <Dialog.Button
           label={t("common.add")}
           onPress={() => {
@@ -773,14 +747,12 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
   },
-  currencySearch: {
-    backgroundColor: colors.darkGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: "white",
-    fontSize: 17,
+  currencySearchContainer: {
     marginBottom: 12,
+  },
+  inputContainer: {
+    marginBottom: 12,
+    alignSelf: "stretch",
   },
   currencyItem: {
     flexDirection: "row",

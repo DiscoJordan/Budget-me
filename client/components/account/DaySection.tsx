@@ -82,16 +82,20 @@ export default function DaySection({
 
 const styles = StyleSheet.create({
   day: {
-    backgroundColor: "rgba(0,159,156,0.4)",
-    paddingVertical: 16,
+    backgroundColor: colors.surface,
+    paddingVertical: 12,
     paddingHorizontal: 20,
     minWidth: "100%",
     flexDirection: "row",
     justifyContent: "space-between",
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
   },
   dayText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "white",
+    fontSize: 13,
+    fontWeight: "700",
+    color: colors.gray,
+    letterSpacing: 0.3,
   },
 });

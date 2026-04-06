@@ -5,6 +5,7 @@ import {
   setBalance,
   updateAccount,
   deleteAccount,
+  deleteAllData,
 } from "../controllers/accounts";
 import { verify_token } from "../middlewares/authMiddleware";
 
@@ -15,5 +16,6 @@ router.post("/updateaccount", verify_token, updateAccount);
 router.post("/setBalance", verify_token, setBalance);
 router.post("/deleteaccount", verify_token, deleteAccount);
 router.get("/getall/:id", verify_token, getAllAccounts);
+router.post("/deleteAllData", verify_token, deleteAllData);
 
 export default router;

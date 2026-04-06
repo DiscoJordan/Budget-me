@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BudgetMe - Financial Reports</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#46f1c5",
+                        "background": "#070e1a",
+                        "surface": "#0c1420",
+                        "surface-container": "#121d2b",
+                        "on-surface": "#e1e7f0",
+                        "on-surface-variant": "#bacac2",
+                        "tertiary": "#ffb2be",
+                        "secondary": "#bbc8d0",
+                        "outline": "#2d3d54"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Manrope"],
+                        "label": ["Manrope"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "2xl": "2rem", "3xl": "2.5rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            background-color: #070e1a;
+            color: #e1e7f0;
+            font-family: 'Manrope', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .liquid-glass {
+            background: rgba(12, 20, 32, 0.6);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        .glow-teal {
+            filter: drop-shadow(0 0 8px rgba(70, 241, 197, 0.4));
+        }
+        .text-gradient-teal {
+            background: linear-gradient(135deg, #46f1c5 0%, #00d4aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .tonal-shift-glass {
+            background: linear-gradient(180deg, rgba(12, 20, 32, 0.8) 0%, rgba(7, 14, 26, 0.95) 100%);
+        }
+    </style>
+</head>
+<body class="bg-background selection:bg-primary/30">
+<!-- TopAppBar Shared Component -->
+<header class="fixed top-0 w-full z-50 bg-[#0c1420]/80 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.3)]">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-surface-container active:scale-95 transition-transform duration-200">
+<img alt="User profile avatar" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCPYb-3kfwcqVR5NeStbjEilVQop_n7o3yI151h6DsTshBTn0QJ_YBqqLEMaddMt0YKqzu9xqZbFPqrf02K6bl2IjMxB-_nzZ19FvTQwM5T7KJjZJsUTWe2pm5UcZm6DpmbSviH2wxHWgcCV9jrgs_JXFYPo7YaWhxdsiiR-pnyj3-LG5NpWEZVspxyECi0b-xrdf5Lb6F-Xz96YwisLLoA1R3EKVvKZmmMh-NpgzeRcOZpz1vEgGxI-E3urGSxzAdm8VF5-mJDdQSn"/>
+</div>
+<h1 class="font-manrope font-bold tracking-tight text-[#46f1c5] text-xl">BudgetMe</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center rounded-full hover:opacity-80 transition-opacity active:scale-95 transition-transform duration-200 text-[#bacac2]">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+</div>
+</div>
+</header>
+<main class="pt-24 pb-36 px-6 max-w-7xl mx-auto min-h-screen">
+<!-- Segmented Control (Liquid Tabs) -->
+<div class="flex justify-center mb-10">
+<div class="liquid-glass p-1 rounded-2xl flex gap-1 items-center border border-white/10 shadow-2xl">
+<button class="px-5 py-2.5 rounded-xl text-[10px] font-extrabold tracking-widest uppercase transition-all duration-300 text-on-surface-variant hover:text-white">Expense</button>
+<button class="px-5 py-2.5 rounded-xl text-[10px] font-extrabold tracking-widest uppercase transition-all duration-300 text-on-surface-variant hover:text-white">Income</button>
+<button class="px-5 py-2.5 rounded-xl text-[10px] font-extrabold tracking-widest uppercase transition-all duration-300 bg-primary/15 text-primary shadow-[inset_0_1px_1px_rgba(255,255,255,0.1)]">Report</button>
+<button class="px-5 py-2.5 rounded-xl text-[10px] font-extrabold tracking-widest uppercase transition-all duration-300 text-on-surface-variant hover:text-white">Balance</button>
+</div>
+</div>
+<!-- Hero Analytics -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-12">
+<!-- Donut Analytics -->
+<div class="lg:col-span-5 flex flex-col items-center justify-center relative p-10 rounded-3xl bg-surface-container/50 border border-white/5 overflow-hidden">
+<div class="absolute inset-0 opacity-20 pointer-events-none">
+<div class="absolute top-[-20%] left-[-20%] w-80 h-80 bg-primary/10 blur-[120px] rounded-full"></div>
+</div>
+<h3 class="font-manrope text-[10px] font-extrabold tracking-[0.3em] uppercase text-on-surface-variant/60 mb-10">Allocation Distribution</h3>
+<div class="relative w-64 h-64 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90 glow-teal" viewbox="0 0 100 100">
+<circle cx="50" cy="50" fill="transparent" r="42" stroke="#1c2b3e" stroke-width="9"></circle>
+<circle cx="50" cy="50" fill="transparent" r="42" stroke="#46f1c5" stroke-dasharray="180 264" stroke-linecap="round" stroke-width="9"></circle>
+<circle cx="50" cy="50" fill="transparent" r="42" stroke="#ffb2be" stroke-dasharray="40 264" stroke-dashoffset="-185" stroke-linecap="round" stroke-width="9"></circle>
+<circle cx="50" cy="50" fill="transparent" r="42" stroke="#bbc8d0" stroke-dasharray="30 264" stroke-dashoffset="-230" stroke-linecap="round" stroke-width="9"></circle>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center p-12">
+<div class="liquid-glass w-full h-full rounded-full flex flex-col items-center justify-center border border-white/5 shadow-2xl">
+<span class="text-[10px] uppercase tracking-[0.2em] font-bold text-on-surface-variant/70 mb-1">Total</span>
+<span class="text-3xl font-extrabold tracking-tighter text-white">$12,450</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-x-8 gap-y-4 mt-12 w-full px-4">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary shadow-[0_0_8px_rgba(70,241,197,0.8)]"></div>
+<span class="text-[11px] font-bold text-on-surface">Savings (65%)</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-tertiary"></div>
+<span class="text-[11px] font-bold text-on-surface">Needs (20%)</span>
+</div>
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="text-[11px] font-bold text-on-surface">Wants (15%)</span>
+</div>
+</div>
+</div>
+<!-- Line Trend Chart -->
+<div class="lg:col-span-7 bg-surface-container/50 rounded-3xl p-10 border border-white/5 relative overflow-hidden flex flex-col">
+<div class="flex justify-between items-start mb-10">
+<div>
+<h3 class="font-manrope text-[10px] font-extrabold tracking-[0.3em] uppercase text-on-surface-variant/60 mb-3">Portfolio Growth</h3>
+<div class="flex items-baseline gap-3">
+<span class="text-4xl font-extrabold tracking-tighter text-white">$48,290.00</span>
+<span class="text-xs font-black text-primary flex items-center gap-1 bg-primary/10 px-2 py-0.5 rounded-full">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+                            12.4%
+                        </span>
+</div>
+</div>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/5 text-on-surface-variant hover:text-white transition-colors border border-white/5 active:scale-95">
+<span class="material-symbols-outlined text-lg">download</span>
+</button>
+</div>
+<div class="flex-grow relative mt-6">
+<svg class="w-full h-full overflow-visible" viewbox="0 0 400 150">
+<defs>
+<lineargradient id="chartGradient" x1="0%" x2="0%" y1="0%" y2="100%">
+<stop offset="0%" style="stop-color:#46f1c5; stop-opacity:0.2"></stop>
+<stop offset="100%" style="stop-color:#46f1c5; stop-opacity:0"></stop>
+</lineargradient>
+<filter id="glow">
+<fegaussianblur result="coloredBlur" stddeviation="2.5"></fegaussianblur>
+<femerge>
+<femergenode in="coloredBlur"></femergenode>
+<femergenode in="SourceGraphic"></femergenode>
+</femerge>
+</filter>
+</defs>
+<path d="M0,130 C50,120 80,140 120,90 C160,40 200,60 250,30 C300,0 350,20 400,10 L400,150 L0,150 Z" fill="url(#chartGradient)"></path>
+<path d="M0,130 C50,120 80,140 120,90 C160,40 200,60 250,30 C300,0 350,20 400,10" fill="none" filter="url(#glow)" stroke="#46f1c5" stroke-linecap="round" stroke-width="4"></path>
+<circle cx="120" cy="90" fill="#070e1a" r="5" stroke="#46f1c5" stroke-width="2.5"></circle>
+<circle cx="250" cy="30" fill="#070e1a" r="5" stroke="#46f1c5" stroke-width="2.5"></circle>
+<circle class="glow-teal" cx="400" cy="10" fill="#46f1c5" r="6"></circle>
+</svg>
+<div class="flex justify-between mt-8 text-[10px] font-extrabold tracking-widest text-on-surface-variant/40 uppercase">
+<span>Jan</span>
+<span>Feb</span>
+<span>Mar</span>
+<span>Apr</span>
+<span>May</span>
+<span>Jun</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Insight Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Insight Tile 1 -->
+<div class="liquid-glass rounded-3xl p-7 hover:bg-white/[0.05] transition-all group border-white/5">
+<div class="flex items-center gap-5 mb-5">
+<div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/10">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<h4 class="text-[10px] font-extrabold tracking-[0.2em] uppercase text-on-surface-variant/60">Daily Average</h4>
+<p class="text-xl font-extrabold text-white">$142.30</p>
+</div>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden mb-4">
+<div class="h-full w-2/3 bg-primary rounded-full shadow-[0_0_8px_rgba(70,241,197,0.5)]"></div>
+</div>
+<p class="text-[11px] text-on-surface-variant/50 font-bold">8% lower than last month</p>
+</div>
+<!-- Insight Tile 2 -->
+<div class="liquid-glass rounded-3xl p-7 hover:bg-white/[0.05] transition-all group border-white/5">
+<div class="flex items-center gap-5 mb-5">
+<div class="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary border border-tertiary/10">
+<span class="material-symbols-outlined">savings</span>
+</div>
+<div>
+<h4 class="text-[10px] font-extrabold tracking-[0.2em] uppercase text-on-surface-variant/60">Savings Rate</h4>
+<p class="text-xl font-extrabold text-white">32.4%</p>
+</div>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden mb-4">
+<div class="h-full w-[32%] bg-tertiary rounded-full"></div>
+</div>
+<p class="text-[11px] text-on-surface-variant/50 font-bold">Surpassed goal by 2.4%</p>
+</div>
+<!-- Insight Tile 3 -->
+<div class="liquid-glass rounded-3xl p-7 hover:bg-white/[0.05] transition-all group border-white/5">
+<div class="flex items-center gap-5 mb-5">
+<div class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary border border-secondary/10">
+<span class="material-symbols-outlined">insights</span>
+</div>
+<div>
+<h4 class="text-[10px] font-extrabold tracking-[0.2em] uppercase text-on-surface-variant/60">Projection</h4>
+<p class="text-xl font-extrabold text-white">+$4.2k</p>
+</div>
+</div>
+<div class="h-1.5 w-full bg-surface-container rounded-full overflow-hidden mb-4">
+<div class="h-full w-1/2 bg-secondary rounded-full"></div>
+</div>
+<p class="text-[11px] text-on-surface-variant/50 font-bold">Estimated end of year surplus</p>
+</div>
+</div>
+<!-- Anomalous Activity -->
+<div class="mt-14">
+<div class="flex justify-between items-end mb-8 px-2">
+<h3 class="font-manrope text-[10px] font-extrabold tracking-[0.4em] uppercase text-on-surface-variant/40">Anomalous Activity</h3>
+<span class="text-[10px] font-black text-primary tracking-widest uppercase cursor-pointer hover:opacity-80 transition-opacity">View Detailed Log</span>
+</div>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-6 rounded-3xl bg-surface-container/30 border border-white/5 hover:bg-surface-container/60 transition-colors group">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/10 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant/70">shopping_bag</span>
+</div>
+<div>
+<p class="font-extrabold text-base text-white">Luxury Apparel</p>
+<p class="text-[10px] font-extrabold text-on-surface-variant/40 tracking-[0.1em] uppercase mt-1">Unusual Spike in Wants</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-tertiary text-base">+$840.00</p>
+<p class="text-[10px] font-extrabold text-on-surface-variant/30 tracking-[0.1em] uppercase mt-1">Yesterday</p>
+</div>
+</div>
+<div class="flex items-center justify-between p-6 rounded-3xl bg-surface-container/30 border border-white/5 hover:bg-surface-container/60 transition-colors group">
+<div class="flex items-center gap-5">
+<div class="w-14 h-14 rounded-2xl bg-white/5 flex items-center justify-center border border-white/5 group-hover:border-white/10 transition-colors">
+<span class="material-symbols-outlined text-on-surface-variant/70">restaurant</span>
+</div>
+<div>
+<p class="font-extrabold text-base text-white">Fine Dining</p>
+<p class="text-[10px] font-extrabold text-on-surface-variant/40 tracking-[0.1em] uppercase mt-1">Recurring Outlier</p>
+</div>
+</div>
+<div class="text-right">
+<p class="font-black text-tertiary text-base">+$125.00</p>
+<p class="text-[10px] font-extrabold text-on-surface-variant/30 tracking-[0.1em] uppercase mt-1">2 Days Ago</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar Shared Component -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-4 bg-[#0c1420]/70 backdrop-blur-2xl rounded-t-[2rem] border-t border-white/15 shadow-[0_-10px_40px_rgba(7,14,26,0.8)]">
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Dashboard</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">History</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#46f1c5] drop-shadow-[0_0_12px_rgba(70,241,197,0.5)] active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Report</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 transition-transform duration-150" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Settings</span>
+</a>
+</nav>
+</body></html>

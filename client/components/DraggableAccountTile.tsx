@@ -138,8 +138,8 @@ export default function DraggableAccountTile({
 
 const styles = StyleSheet.create({
   hoverTarget: {
-    borderWidth: 2,
-    borderColor: colors.primaryGreen,
-    borderRadius: 20,
+    backgroundColor: "rgba(70,241,197,0.2)",
+    borderRadius: 16,
+    padding: -4,
   },
 });
