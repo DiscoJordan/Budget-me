@@ -19,7 +19,8 @@
     "without": "Without",
     "notSet": "Not set",
     "change": "Change",
-    "never": "Never"
+    "never": "Never",
+    "budget": "budget"
   },
   "accountTypes": {
     "income": "Income",
@@ -150,19 +151,24 @@
     "currencyRatesUpdated": "Currency rates last updated",
     "dashboardSettings": "Dashboard settings",
     "enableDebts": "Enable debts",
-    "resetAllTransactions": "Reset all transactions",
+    "deleteData": "Delete data",
     "language": "Language",
     "contactUs": "Contact Us",
     "logOut": "Log out",
     "expenseAccounts": "Expense accounts",
     "chooseCurrency": "Choose currency",
-    "resetTitle": "Reset all transactions",
-    "resetDescription": "This will permanently delete all transactions and reset all account balances. This action cannot be undone.",
+    "deleteDataTitle": "Delete data",
+    "deleteTransactionsOption": "Transactions only",
+    "deleteTransactionsDesc": "Deletes all transactions and resets account balances.",
+    "deleteEverythingOption": "Everything",
+    "deleteEverythingDesc": "Deletes all transactions and all accounts. Cannot be undone.",
     "typeToConfirm": "Type ",
     "toConfirm": " to confirm:",
-    "deleteAll": "Delete all",
-    "allDeleted": "All transactions have been deleted.",
-    "deleteFailed": "Failed to delete transactions."
+    "deleteAll": "Delete",
+    "allDeleted": "Done. All data deleted.",
+    "deleteFailed": "Failed to delete.",
+    "transactionsDeleted": "All transactions deleted.",
+    "transactionsFailed": "Failed to delete transactions."
   },
   "period": {
     "week": "Week (last 7 days)",

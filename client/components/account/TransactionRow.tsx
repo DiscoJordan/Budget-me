@@ -163,7 +163,7 @@ export default function TransactionRow({
 const styles = StyleSheet.create({
   transaction: {
     backgroundColor: colors.background,
-    paddingVertical: 16,
+    paddingVertical: 14,
     paddingHorizontal: 20,
     flexDirection: "row",
     justifyContent: "space-between",
@@ -209,10 +209,8 @@ const styles = StyleSheet.create({
     maxWidth: windowWidth * 0.65,
   },
   divider: {
-    backgroundColor: colors.gray,
+    backgroundColor: "rgba(255,255,255,0.06)",
     height: 1,
-    width: "90%",
-    alignSelf: "center",
-    opacity: 0.5,
+    width: "100%",
   },
 });

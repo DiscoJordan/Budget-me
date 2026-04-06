@@ -308,4 +308,20 @@ const getAllAccounts = async (
   }
 };
 
-export { addAccount, getAllAccounts, setBalance, updateAccount, deleteAccount };
+const deleteAllData = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { ownerId } = req.body as { ownerId: string };
+    if (!ownerId) {
+      res.status(400).send({ ok: false, data: "ownerId is required" });
+      return;
+    }
+    await Transactions.deleteMany({ ownerId });
+    await Accounts.deleteMany({ ownerId });
+    res.status(200).send({ ok: true, data: "All data deleted" });
+  } catch (error) {
+    const err = error as Error;
+    res.status(400).send({ ok: false, data: err.message });
+  }
+};
+
+export { addAccount, getAllAccounts, setBalance, updateAccount, deleteAccount, deleteAllData };

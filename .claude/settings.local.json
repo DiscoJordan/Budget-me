@@ -52,7 +52,32 @@
       "WebFetch(domain:api.coingecko.com)",
       "Bash(npm ls:*)",
       "Bash(find C:UsersГлебWebstormProjectsBudget-meclientscreens -name *Account* -o -name *account*)",
-      "Bash(rtk npm:*)"
+      "Bash(rtk npm:*)",
+      "Bash(ipconfig:*)",
+      "Bash(claude mcp:*)",
+      "mcp__stitch__get_screen",
+      "Bash(mkdir -p /c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs)",
+      "Bash(curl -L -o \"new-operation.png\" \"https://lh3.googleusercontent.com/aida/ADBb0ugV4eGOrKJsP0BpmRpBphgiRvh2mhYXGuuZvgTjCrvF6twOV4EJyfOZ2xhlACaIHbJpqAs_9ty6NgtHswcbfi7oGYJ1Ghlvf_ZiQj5HZ1M-pmDt2PG8JzvtqOe6rRnjovVP6KTydLBgaCBV5o1CQwAcOItx70uD_2n6VPRfldbEe1higqEO9ALfLoNzn2Gun-RynVaPOM_46ZRNfaGhbVFxYA98OchiB-7QFGfqIHqpW17yhSRSFCeJ8viu\")",
+      "Bash(curl -L -o \"/c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs/account-details.png\" \"https://lh3.googleusercontent.com/aida/ADBb0uiHomFotRJbsyPhyJXUkyH0bCzsKlvAjmjhBc9qix-EUXhf6l9ZCIuIMhLGedx-FuVSuZN2o1AnId4XGk1Js-sgWOH7y_EIJCJl6ydqTQ0OLr15QSJfB9jE4mmIrfzXB2UI_aFY4hS25Pqp121u3Cj8mf4Rv5MEyxnISrC9HopxupxiJOJfiCepuw-y65T9I8f7LZgL-VfC6u-IoYN8lNJwwwiR7nZrMxK0fO0gFcD4qqhT5HTALkn0XUE\")",
+      "Bash(curl -L -o \"/c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs/app-settings.png\" \"https://lh3.googleusercontent.com/aida/ADBb0uiDQ-ZKrOw5KQBhtZBbrD-vmNI9L0GdTg2v7neL2ILejf36iV1pJPs9jn_U2UijMq2AGkuAzUU7O-DrDrnPQofhzq0B-XWwauepmuCs8uTnMXITEt0Gqa4iaVsjJ2udQfh5r3QE5gd4QAXxW-8vrM6BmkEbDcL51VHJapb1W1WHg741A1yEKpoz5qh9k2iquLbHQWL_E-jpr-0sULyx1biTuaTjStoWGI0MWD3HM1FU-lTZMdNp-zg3QCm3\")",
+      "Bash(curl -L -o \"/c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs/financial-reports.png\" \"https://lh3.googleusercontent.com/aida/ADBb0ujvRSCCAbuFkxEJzGNMuvVWeE8C3MUDVXV14Ywe6snuxmPd-cRpmy7M4K7uxmXhYGjq9MtFVNoLUAnaYQlGcehRlIXVSE6dVXJrt-fOybMH81R3JzEyqDmZ1HEaE1D5i0wW562TAjBuDZKmdHI6Dh4bwkqF5Q5HjcqZJRiONy_KVAAQgu3FuPcWiZJDjWkf-OLfGmSqyYCXleDVu4jDg8hj69J7Pgyrs460RW25MjltOv6pOVM-LqPe1us\")",
+      "Bash(curl -L -o \"/c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs/budget-dashboard.png\" \"https://lh3.googleusercontent.com/aida/ADBb0ugbn5mGh3Ejjcc_ddRoqzurK4WlmldZEWaaWSNYQcPvcO9QZVdHE7NJgUqoDh_JXoT9ZvjRzx-mj8VPRkwPPguaScVgTDtUjcLNax5qkvf_hrV372Al1ei-LU5NmRwsVmzINKsLQ_VlhaIxgUPBt3YSf7te83sljHsTyjpVoRb9GjSefY22iKb-kFDAAf2c9H3exVz-yZmG2-CvDVqnWgBJtIYCk2eT85BPg8eSTADxpjAwc2-S4W0VOWs\")",
+      "Bash(curl -L -o \"/c/Users/Глеб/WebstormProjects/Budget-me/stitch-designs/transaction-history.png\" \"https://lh3.googleusercontent.com/aida/ADBb0ugDFLyhkeSNYvNHLpM7YeIteKvw2LUHnJYZTs4IICbgbOlWql6M0EMh6kQfovgXSPer7IBYZP8CQrM7H7pm_Ly2pXpk6jLyc9rbSDp-xLvBdICptonVa_GUmd2l5gnKksfDElCN3y9vcMzbVqa3uoQ2rsENXAY_QNc5E6WnZNeYNs0aQkhTYj6dXYqXTmYOEWA_MZmpMONE4sgCn1rp0tcTvAQSQ1dl16Jqne_SGB3FSWoVRRaH6zjW4-Fg\")",
+      "Bash(curl -L -o \"new-operation.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2I3NTYyN2JkZmYxMTRjNjA5MzI3Mzk2OGFmZTVkMjk2EgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(curl -L -o \"account-details.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzdiMGFmMDQ4NDU2YjQzZmFiMzI4YTkwYzM4ZDk4NWZhEgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(curl -L -o \"app-settings.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2E4ZjFhMTlhOTA0ZTQ0YWY4Mjc3MThmZGZlYWExMWI1EgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(curl -L -o \"financial-reports.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzc4M2MzODcxNTUwOTRmODliMDdiMTQ3M2M5OTQ2YmQ3EgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(curl -L -o \"budget-dashboard.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sXzgzZWYwM2IyYzg1NTQwNDhhZDA0YWFmZmZkYjc0NjZiEgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(curl -L -o \"transaction-history.html\" \"https://contribution.usercontent.google.com/download?c=CgthaWRhX2NvZGVmeBJ8Eh1hcHBfY29tcGFuaW9uX2dlbmVyYXRlZF9maWxlcxpbCiVodG1sX2RlNDA1M2UzYzZkYzQyYzk4NGMyN2I2YzM5Y2QwOTExEgsSBxDczb6tjQQYAZIBJAoKcHJvamVjdF9pZBIWQhQxMzc3Mzg2NzI5MjEwMjAwMzE2OA&filename=&opi=89354086\")",
+      "Bash(npm show:*)",
+      "Bash(awk 'NR>=700 && NR<=730' screens/NewOperation.tsx)",
+      "Bash(awk 'NR>=730 && NR<=780' screens/NewOperation.tsx)",
+      "Bash(awk 'NR>=780 && NR<=830' screens/NewOperation.tsx)",
+      "Bash(awk 'NR>=880 && NR<=940' screens/NewOperation.tsx)",
+      "Bash(rtk git:*)",
+      "Bash(grep -v \"^--$\")",
+      "Bash(mkdir -p /c/Users/Глеб/WebstormProjects/Budget-me/.claude/commands)",
+      "Bash(mv /c/Users/Глеб/.claude/commands/ui.md /c/Users/Глеб/WebstormProjects/Budget-me/.claude/commands/ui.md)"
     ]
   }
 }
