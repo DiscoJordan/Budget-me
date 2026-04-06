@@ -38,6 +38,7 @@ import { CurrencyContext } from "../context/CurrencyContext";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { AccountingPeriodContext } from "../context/AccountingPeriodContext";
 import { DebtsContext } from "../context/DebtsContext";
+import { AssetsContext } from "../context/AssetsContext";
 import { toMainCurrency } from "../utils/convertCurrency";
 import { Account } from "../src/types";
 import { getCurrencyMeta } from "../utils/currencyInfo";
@@ -75,6 +76,7 @@ function Dashboard({ navigation }: { navigation: any }) {
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { settings: debtSettings } = useContext(DebtsContext);
+  const { settings: assetSettings } = useContext(AssetsContext);
   const {
     transactions,
     getTransactionsOfUser,
@@ -198,11 +200,44 @@ function Dashboard({ navigation }: { navigation: any }) {
     [debtTotalBalance, mainCurrency, t],
   );
 
+  const assetAccounts = useMemo(
+    () => accounts.filter((a) => a.type === "asset" && !a.archived),
+    [accounts],
+  );
+
+  const assetTotalValue = useMemo(
+    () =>
+      assetAccounts.reduce(
+        (sum, a) =>
+          sum +
+          toMainCurrency(
+            a.initialBalance ?? 0,
+            a.currency ?? mainCurrency,
+            rates,
+            mainCurrency,
+          ),
+        0,
+      ),
+    [assetAccounts, rates, mainCurrency],
+  );
+
+  const ASSETS_TILE = useMemo<DashboardItem>(
+    () => ({
+      _id: "__assets__",
+      type: "asset",
+      name: t("accountTypes.asset"),
+      balance: assetTotalValue,
+      currency: mainCurrency,
+      icon: { color: "#F7DC6F", icon_value: "briefcase-outline" },
+    }),
+    [assetTotalValue, mainCurrency, t],
+  );
+
   const Accounts = useMemo<DashboardItem[]>(
     () => [
       // exclude sub-accounts (they appear under their parent tile)
       ...(accounts.filter(
-        (a) => !a.archived && !a.parentId && a.type !== "debt",
+        (a) => !a.archived && !a.parentId && a.type !== "debt" && a.type !== "asset",
       ) as DashboardItem[]),
       { _id: "income", title: "New account", type: "income" },
       { _id: "personal", title: "New account", type: "personal" },
@@ -284,12 +319,18 @@ function Dashboard({ navigation }: { navigation: any }) {
             (acc) =>
               !acc.archived &&
               (acc.type === "personal" ||
-                (acc.type === "debt" && debtSettings.includeInPersonalBalance)),
+                (acc.type === "debt" && debtSettings.includeInPersonalBalance) ||
+                (acc.type === "asset" && assetSettings.includeInPersonalBalance)),
           )
           .reduce(
             (sum, acc) =>
               sum +
-              toMainCurrency(acc.balance, acc.currency, rates, mainCurrency),
+              toMainCurrency(
+                acc.type === "asset" ? (acc.initialBalance ?? 0) : acc.balance,
+                acc.currency,
+                rates,
+                mainCurrency,
+              ),
             0,
           ) * 100,
       ) / 100;
@@ -322,6 +363,7 @@ function Dashboard({ navigation }: { navigation: any }) {
     rates,
     mainCurrency,
     debtSettings.includeInPersonalBalance,
+    assetSettings.includeInPersonalBalance,
   ]);
 
   const handleCurrentAccount = (accountId: string, itemType: string) => {
@@ -374,8 +416,9 @@ function Dashboard({ navigation }: { navigation: any }) {
             };
 
     const iconColor = item.icon?.color || "gray";
-    const amountValue = formatNumber(
-      item._id === "__debts__"
+    const isAssetTile = item._id === "__assets__";
+    const rawAmount =
+      item._id === "__debts__" || isAssetTile
         ? (item.balance ?? 0)
         : item.isMultiAccount
           ? (subAccountsByParent.get(item._id) ?? []).reduce(
@@ -391,13 +434,13 @@ function Dashboard({ navigation }: { navigation: any }) {
             )
           : item.type === "personal"
             ? (item as Account).balance
-            : periodAmt,
-    );
+            : periodAmt;
+    const amountValue = (isAssetTile ? "~" : "") + formatNumber(rawAmount);
     const currencySymbol = item.isMultiAccount
       ? mainCurrency
       : getCurrencyMeta(item.currency).symbol;
     const isHidden = hiddenTypes.has(
-      item.type === "debt" ? "personal" : item.type,
+      item.type === "debt" || item.type === "asset" ? "personal" : item.type,
     );
 
     const tileContent = (
@@ -458,6 +501,8 @@ function Dashboard({ navigation }: { navigation: any }) {
           if (!draggedAccount) {
             if (item._id === "__debts__") {
               navigation.navigate("Debts");
+            } else if (item._id === "__assets__") {
+              navigation.navigate("Assets");
             } else {
               handleCurrentAccount(item._id, item.type);
               setType("edit");
@@ -667,7 +712,10 @@ function Dashboard({ navigation }: { navigation: any }) {
             {renderPagedGrid(
               Accounts.filter((a) => a.type === "personal" && a.title !== "New account"),
               2, perPage, setPerPage, "personal",
-              debtSettings.enabled ? [DEBTS_TILE] : [],
+              [
+                ...(debtSettings.enabled ? [DEBTS_TILE] : []),
+                ...(assetSettings.enabled ? [ASSETS_TILE] : []),
+              ],
             )}
           </BlurView>
 

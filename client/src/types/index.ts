@@ -1,6 +1,6 @@
 // ─── Domain enums ─────────────────────────────────────────────────────────────
 
-export type AccountType = "income" | "personal" | "expense" | "debt";
+export type AccountType = "income" | "personal" | "expense" | "debt" | "asset";
 
 // ─── Debts feature settings ───────────────────────────────────────────────────
 
@@ -11,6 +11,19 @@ export interface DebtsSettings {
 
 export interface DebtsContextType {
   settings: DebtsSettings;
+  setEnabled: (v: boolean) => Promise<void>;
+  setIncludeInPersonalBalance: (v: boolean) => Promise<void>;
+}
+
+// ─── Assets feature settings ──────────────────────────────────────────────────
+
+export interface AssetsSettings {
+  enabled: boolean;
+  includeInPersonalBalance: boolean;
+}
+
+export interface AssetsContextType {
+  settings: AssetsSettings;
   setEnabled: (v: boolean) => Promise<void>;
   setIncludeInPersonalBalance: (v: boolean) => Promise<void>;
 }

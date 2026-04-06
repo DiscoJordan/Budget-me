@@ -27,7 +27,8 @@
     "personal": "Личные",
     "expense": "Расходы",
     "expenses": "Расходы",
-    "debt": "Долги"
+    "debt": "Долги",
+    "asset": "Активы"
   },
   "dashboard": {
     "addNewAccount": "Добавить счёт"
@@ -48,6 +49,29 @@
     "enterAmount": "Введите сумму",
     "newTransaction": "Новая операция",
     "noSubcategory": "Без подкатегории"
+  },
+  "assets": {
+    "assetsDisabled": "Активы отключены",
+    "assetsDisabledHint": "Перейдите в Настройки, чтобы включить учёт активов.",
+    "howAssetsWork": "Как работают активы",
+    "eachAssetHint": "Каждый ваш актив — это отдельный счёт. Указывайте примерную и реальную стоимость.",
+    "personalToAsset": "Личный → Актив",
+    "buyingAsset": "покупка актива (реальная стоимость списывается с кошелька)",
+    "assetToPersonal": "Актив → Личный",
+    "sellingAsset": "продажа актива (выручка зачисляется на кошелёк)",
+    "tapEditHint": "Нажмите ✏ (вверху справа) для добавления активов.",
+    "includeInBalance": "Включить в личный баланс",
+    "yourAssets": "Ваши активы",
+    "assetName": "Название актива",
+    "approxCost": "Примерная стоимость",
+    "actualCost": "Фактическая стоимость (оплачено)",
+    "addAsset": "Добавить актив",
+    "alreadyExists": "Уже существует",
+    "alreadyExistsMsg": "уже есть в списке.",
+    "couldNotAdd": "Не удалось добавить актив.",
+    "buy": "Купить",
+    "sell": "Продать",
+    "approxValue": "Примерная стоимость"
   },
   "debts": {
     "debtsDisabled": "Долги отключены",
@@ -151,6 +175,7 @@
     "currencyRatesUpdated": "Курсы валют обновлены",
     "dashboardSettings": "Настройки главной",
     "enableDebts": "Включить долги",
+    "enableAssets": "Включить активы",
     "deleteData": "Удалить данные",
     "language": "Язык",
     "contactUs": "Связаться с нами",
@@ -270,6 +295,8 @@
   },
   "nav": {
     "editDebts": "Редактировать долги",
+    "assetsScreen": "Активы",
+    "editAssets": "Редактировать активы",
     "addNewAccount": "Добавить счёт",
     "accountScreen": "Счёт",
     "debtsScreen": "Долги",

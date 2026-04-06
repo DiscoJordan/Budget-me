@@ -33,6 +33,8 @@ import NewOperation from "../screens/NewOperation";
 import Login from "../screens/Login";
 import EditIcon from "../screens/EditIcon";
 import EditTransaction from "../screens/EditTransaction";
+import Assets from "../screens/Assets";
+import EditAssets from "../screens/EditAssets";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { BlurView } from "expo-blur";
@@ -395,6 +397,16 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
                   name="Edit Debts"
                   component={EditDebts}
                   options={{ title: t("nav.editDebts") }}
+                />
+                <Stack.Screen
+                  name="Assets"
+                  component={Assets}
+                  options={{ title: t("nav.assetsScreen") }}
+                />
+                <Stack.Screen
+                  name="Edit Assets"
+                  component={EditAssets}
+                  options={{ title: t("nav.editAssets") }}
                 />
                 <Stack.Group
                   screenOptions={{

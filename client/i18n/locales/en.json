@@ -27,7 +27,8 @@
     "personal": "Personal",
     "expense": "Expense",
     "expenses": "Expenses",
-    "debt": "Debts"
+    "debt": "Debts",
+    "asset": "Assets"
   },
   "dashboard": {
     "addNewAccount": "Add new account"
@@ -48,6 +49,29 @@
     "enterAmount": "Enter amount",
     "newTransaction": "New transaction",
     "noSubcategory": "No subcategory"
+  },
+  "assets": {
+    "assetsDisabled": "Assets are disabled",
+    "assetsDisabledHint": "Go to Settings to enable tracking of your owned assets.",
+    "howAssetsWork": "How assets work",
+    "eachAssetHint": "Each item you own is an asset account. Track its approximate value and actual purchase price.",
+    "personalToAsset": "Personal → Asset",
+    "buyingAsset": "buying an asset (actual cost deducted from wallet)",
+    "assetToPersonal": "Asset → Personal",
+    "sellingAsset": "selling an asset (proceeds added to wallet)",
+    "tapEditHint": "Tap ✏ (top-right) to add assets.",
+    "includeInBalance": "Include in personal balance",
+    "yourAssets": "Your assets",
+    "assetName": "Asset name",
+    "approxCost": "Approximate value",
+    "actualCost": "Actual cost (paid)",
+    "addAsset": "Add asset",
+    "alreadyExists": "Already exists",
+    "alreadyExistsMsg": "is already in your list.",
+    "couldNotAdd": "Could not add asset.",
+    "buy": "Buy",
+    "sell": "Sell",
+    "approxValue": "Approx value"
   },
   "debts": {
     "debtsDisabled": "Debts are disabled",
@@ -151,6 +175,7 @@
     "currencyRatesUpdated": "Currency rates last updated",
     "dashboardSettings": "Dashboard settings",
     "enableDebts": "Enable debts",
+    "enableAssets": "Enable assets",
     "deleteData": "Delete data",
     "language": "Language",
     "contactUs": "Contact Us",
@@ -270,6 +295,8 @@
   },
   "nav": {
     "editDebts": "Edit Debts",
+    "assetsScreen": "Assets",
+    "editAssets": "Edit Assets",
     "addNewAccount": "Add new account",
     "accountScreen": "Account",
     "debtsScreen": "Debts",

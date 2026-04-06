@@ -6,6 +6,7 @@ import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { DebtsContext } from "../context/DebtsContext";
+import { AssetsContext } from "../context/AssetsContext";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { getCurrencyMeta, formatCurrencyLabel } from "../utils/currencyInfo";
 import { Feather } from "@expo/vector-icons";
@@ -47,6 +48,8 @@ function Settings() {
   const { accounts, toggleArchiveAccount, deleteAllData } = useContext(AccountsContext);
   const { settings: debtSettings, setEnabled: setDebtEnabled } =
     useContext(DebtsContext);
+  const { settings: assetSettings, setEnabled: setAssetEnabled } =
+    useContext(AssetsContext);
   const { deleteAllTransactions } = useContext(TransactionsContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [dashboardSettingsOpen, setDashboardSettingsOpen] = useState(false);
@@ -121,6 +124,16 @@ function Settings() {
         <Switch
           value={debtSettings.enabled}
           onValueChange={setDebtEnabled}
+          trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
+          thumbColor="white"
+        />
+      </View>
+
+      <View style={setting_option}>
+        <Text style={styles.label}>{t("settings.enableAssets")}</Text>
+        <Switch
+          value={assetSettings.enabled}
+          onValueChange={setAssetEnabled}
           trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
           thumbColor="white"
         />

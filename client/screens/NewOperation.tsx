@@ -117,6 +117,7 @@ const NewOperation = ({
   const [pickerTarget, setPickerTarget] = useState<
     "sender" | "recipient" | null
   >(null);
+  const [approxCost, setApproxCost] = useState("");
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
 
@@ -153,6 +154,13 @@ const NewOperation = ({
   }, [(recipientAccount as any)?._id, recipientSubAccounts.length]);
 
   // Auto-select main sub-account when sender changes
+  // Pre-fill amount with approxCost when selling an asset
+  useEffect(() => {
+    if (activeAccount?.type === "asset" && (activeAccount.initialBalance ?? 0) > 0) {
+      handleChange(String(activeAccount.initialBalance), "amount");
+    }
+  }, [activeAccount?._id]);
+
   useEffect(() => {
     if (activeAccount?.isMultiAccount && subAccounts.length > 0) {
       const main =
@@ -414,6 +422,14 @@ const NewOperation = ({
         setMessage("");
       }, 2000);
       if (response.data.ok) {
+        // If buying an asset, update the asset account's initialBalance with approxCost
+        const recipientIsAsset = (recipientAccount as any)?.type === "asset";
+        if (recipientIsAsset && approxCost) {
+          const assetId = (recipientAccount as any)?._id;
+          await axios.post(`${URL}/accounts/updateaccount`, {
+            accountData: { _id: assetId, initialBalance: parseFloat(approxCost) || 0 },
+          }).catch(() => {});
+        }
         // Pass sub-account ID as sender override when needed
         setBalance(
           activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
@@ -778,6 +794,20 @@ const NewOperation = ({
               })()}
               </View>
             </View>
+
+            {/* Approx cost field — shown when buying an asset */}
+            {(recipientAccount as any)?.type === "asset" && (
+              <GlassInput
+                containerStyle={{ marginTop: 8 }}
+                value={approxCost}
+                onChangeText={setApproxCost}
+                placeholder={t("assets.approxCost")}
+                keyboardType="decimal-pad"
+                clearButtonMode="while-editing"
+                maxLength={20}
+              />
+            )}
+
             {isCrossCurrency && (
               <View style={styles.rateContainer}>
                 <Text style={styles.rateLabel}>1 {senderCurrency} =</Text>
