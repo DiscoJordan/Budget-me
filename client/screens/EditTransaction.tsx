@@ -33,6 +33,7 @@ import { CurrencyContext } from "../context/CurrencyContext";
 import { formatNumber } from "../utils/formatNumber";
 import { parseNumber } from "../utils/parseNumber";
 import { Account } from "../src/types";
+import GlassInput from "../components/GlassInput";
 
 const EditTransaction = ({ navigation }: { navigation: any }) => {
   const { t } = useTranslation();
@@ -309,28 +310,24 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
           )}
 
           {/* Comment */}
-          <TextInput
-            style={{ ...input, width: "100%", color: "white" }}
+          <GlassInput
+            containerStyle={styles.fieldContainer}
             value={comment}
             onChangeText={setComment}
-            placeholderTextColor={colors.primaryGreen}
             placeholder={t("transaction.comment")}
             clearButtonMode="while-editing"
             maxLength={80}
-            selectionColor={colors.primaryGreen}
           />
 
           {/* Amount */}
-          <TextInput
-            style={{ ...input, width: "100%", color: "white" }}
+          <GlassInput
+            containerStyle={styles.fieldContainer}
             value={amount}
             onChangeText={setAmount}
-            placeholderTextColor={colors.primaryGreen}
             placeholder={t("transaction.amount")}
             keyboardType="decimal-pad"
             clearButtonMode="while-editing"
             maxLength={20}
-            selectionColor={colors.primaryGreen}
           />
 
           {/* Cross-currency rate */}
@@ -472,6 +469,10 @@ const EditTransaction = ({ navigation }: { navigation: any }) => {
 };
 
 const styles = StyleSheet.create({
+  fieldContainer: {
+    marginBottom: 12,
+    alignSelf: "stretch",
+  },
   accountsRow: {
     flexDirection: "row",
     justifyContent: "center",

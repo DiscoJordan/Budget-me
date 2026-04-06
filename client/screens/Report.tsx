@@ -1,5 +1,6 @@
-import React, { useContext, useState, useCallback } from "react";
+import React, { useContext, useState, useCallback, useLayoutEffect } from "react";
 import { ScrollView, View, TouchableOpacity, StyleSheet, ActivityIndicator } from "react-native";
+import { useNavigation } from "@react-navigation/native";
 import { Feather } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
 import { TransactionsContext } from "../context/TransactionsContext";
@@ -17,6 +18,7 @@ import { useReportData } from "../hooks/useReportData";
 import { colors } from "../styles/styles";
 
 function Report() {
+  const navigation = useNavigation();
   const { accounts, loading: accountsLoading } = useContext(AccountsContext);
   const { transactions, loading: transactionsLoading } = useContext(TransactionsContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
@@ -26,6 +28,23 @@ function Report() {
   const [activeTab, setActiveTab] = useState<ReportTab>("expense");
   const [excludedIds, setExcludedIds] = useState<Set<string>>(new Set());
   const [filterVisible, setFilterVisible] = useState(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity
+          style={{ paddingRight: 16, paddingVertical: 8 }}
+          onPress={() => setFilterVisible(true)}
+        >
+          <Feather
+            name="sliders"
+            size={20}
+            color={excludedIds.size > 0 ? colors.primaryGreen : "white"}
+          />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, excludedIds]);
 
   const toggleExclude = useCallback((id: string) => {
     setExcludedIds((prev) => {
@@ -81,22 +100,7 @@ function Report() {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.topRow}>
-          <View style={styles.periodWrap}>
-            <PeriodNavigator />
-          </View>
-          <TouchableOpacity
-            style={styles.filterBtn}
-            onPress={() => setFilterVisible(true)}
-          >
-            <Feather
-              name="sliders"
-              size={20}
-              color={excludedIds.size > 0 ? colors.primaryGreen : "white"}
-            />
-          </TouchableOpacity>
-        </View>
-
+        <PeriodNavigator />
         <ReportTabBar active={activeTab} onSelect={setActiveTab} />
         {renderTab()}
         <View style={{ height: 100 }} />
@@ -133,16 +137,5 @@ const styles = StyleSheet.create({
   content: {
     paddingTop: 60,
     gap: 8,
-  },
-  topRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingRight: 16,
-  },
-  periodWrap: {
-    flex: 1,
-  },
-  filterBtn: {
-    padding: 8,
   },
 });

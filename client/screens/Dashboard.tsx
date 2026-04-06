@@ -14,27 +14,23 @@ import Animated, {
 import { formatNumber } from "../utils/formatNumber";
 import { AntDesign } from "@expo/vector-icons";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import {
   Text,
   View,
   TouchableOpacity,
-  FlatList,
   ScrollView,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+
 import {
   container,
   accounts__block,
-  accounts__header,
-  body,
-  green_line,
-  accounts__add,
-  account,
   caption1,
   colors,
   font,
-  accounts__body,
+  windowWidth,
 } from "../styles/styles";
 import { AccountsContext } from "../context/AccountsContext";
 import { UsersContext } from "../context/UsersContext";
@@ -46,6 +42,7 @@ import { toMainCurrency } from "../utils/convertCurrency";
 import { Account } from "../src/types";
 import { getCurrencyMeta } from "../utils/currencyInfo";
 import DraggableAccountTile from "../components/DraggableAccountTile";
+import { BlurView } from "expo-blur";
 import { useDragOperation } from "../hooks/useDragOperation";
 import { getAllBudgetsFromAccounts } from "../utils/budgetStorage";
 
@@ -78,9 +75,22 @@ function Dashboard({ navigation }: { navigation: any }) {
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
   const { settings: debtSettings } = useContext(DebtsContext);
-  const { transactions, getTransactionsOfUser, loading: transactionsLoading } =
-    useContext(TransactionsContext);
+  const {
+    transactions,
+    getTransactionsOfUser,
+    loading: transactionsLoading,
+  } = useContext(TransactionsContext);
   const { dateFrom, dateTo, periodType } = useContext(AccountingPeriodContext);
+  const [hiddenTypes, setHiddenTypes] = useState<Set<string>>(new Set());
+  const [incPage, setIncPage] = useState(0);
+  const [perPage, setPerPage] = useState(0);
+  const [expPage, setExpPage] = useState(0);
+  const toggleHidden = (type: string) =>
+    setHiddenTypes((prev) => {
+      const next = new Set(prev);
+      next.has(type) ? next.delete(type) : next.add(type);
+      return next;
+    });
   const containerRef = useRef<View>(null);
   const containerOffsetY = useSharedValue(0); // shared value so useAnimatedStyle can read it
 
@@ -327,34 +337,9 @@ function Dashboard({ navigation }: { navigation: any }) {
   }));
 
   const isDraggableItem = (item: DashboardItem): boolean =>
-    item.title !== "New account" &&
-    (item.type === "income" ||
-      item.type === "personal" ||
-      item.type === "debt");
+    item.type === "income" || item.type === "personal" || item.type === "debt";
 
-  const renderItem = ({ item }: { item: DashboardItem }) => {
-    if (item.title === "New account") {
-      return (
-        <TouchableOpacity
-          onPress={() => {
-            setActiveAccount(null);
-            setAccountData({
-              name: "",
-              subcategories: [],
-              ownerId: user?.id,
-              type: item.type,
-              icon: { color: randomColor, icon_value: "credit-card-outline" },
-            });
-            setType(item.type);
-            navigation.navigate("Add new account");
-          }}
-          style={[accounts__add, { backgroundColor: colors.darkGray }]}
-        >
-          <AntDesign name="plus" size={24} color="white" />
-        </TouchableOpacity>
-      );
-    }
-
+  const renderTile = (item: DashboardItem) => {
     const accountBudget =
       item.type === "income" || item.type === "expense"
         ? (allBudgets[(item as Account)._id]?.[periodType] ?? 0)
@@ -369,68 +354,105 @@ function Dashboard({ navigation }: { navigation: any }) {
             : "white"
         : "white";
 
-    const tileChildren = (
-      <View style={account}>
+    const glassLevel =
+      item.type === "income"
+        ? {
+            bg: "rgba(70,241,197,0.07)",
+            border: "rgba(70,241,197,0.18)",
+            glow: colors.primaryGreen,
+          }
+        : item.type === "expense"
+          ? {
+              bg: "rgba(255,178,190,0.07)",
+              border: "rgba(255,178,190,0.18)",
+              glow: colors.red,
+            }
+          : {
+              bg: "rgba(255,255,255,0.04)",
+              border: "rgba(255,255,255,0.10)",
+              glow: "transparent" as const,
+            };
+
+    const iconColor = item.icon?.color || "gray";
+    const amountValue = formatNumber(
+      item._id === "__debts__"
+        ? (item.balance ?? 0)
+        : item.isMultiAccount
+          ? (subAccountsByParent.get(item._id) ?? []).reduce(
+              (sum, sub) =>
+                sum +
+                toMainCurrency(
+                  sub.balance ?? 0,
+                  sub.currency ?? "USD",
+                  rates,
+                  mainCurrency,
+                ),
+              0,
+            )
+          : item.type === "personal"
+            ? (item as Account).balance
+            : periodAmt,
+    );
+    const currencySymbol = item.isMultiAccount
+      ? mainCurrency
+      : getCurrencyMeta(item.currency).symbol;
+    const isHidden = hiddenTypes.has(
+      item.type === "debt" ? "personal" : item.type,
+    );
+
+    const tileContent = (
+      <BlurView
+        intensity={28}
+        tint="dark"
+        style={[
+          styles.glassTile,
+          {
+            shadowColor: glassLevel.glow,
+            borderColor: glassLevel.border,
+            borderWidth: 1,
+            overflow: "hidden",
+          },
+        ]}
+      >
+        <View
+          style={[StyleSheet.absoluteFill, { backgroundColor: glassLevel.bg }]}
+        />
         <View
           style={[
-            accounts__add,
-            { backgroundColor: item.icon?.color || "gray" },
+            styles.tileIconWrap,
+            { backgroundColor: iconColor + "55", shadowColor: iconColor },
           ]}
         >
           <MaterialCommunityIcons
             name={(item.icon?.icon_value || "wallet-outline") as any}
-            size={24}
+            size={18}
             color="white"
           />
         </View>
-        <Text
-          numberOfLines={1}
-          style={{ ...caption1, color: colors.gray, fontWeight: font.bold }}
-        >
+        <Text numberOfLines={1} style={styles.tileName}>
           {item.name}
         </Text>
-        <Text
-          style={{ ...caption1, color: budgetColor, fontWeight: font.bold }}
-        >
-          {formatNumber(
-            item._id === "__debts__"
-              ? (item.balance ?? 0)
-              : item.isMultiAccount
-                ? (subAccountsByParent.get(item._id) ?? []).reduce(
-                    (sum, sub) =>
-                      sum +
-                      toMainCurrency(
-                        sub.balance ?? 0,
-                        sub.currency ?? "USD",
-                        rates,
-                        mainCurrency,
-                      ),
-                    0,
-                  )
-                : item.type === "personal"
-                  ? (item as Account).balance
-                  : periodAmt,
-          )}{" "}
-          {item.isMultiAccount
-            ? mainCurrency
-            : getCurrencyMeta(item.currency).symbol}
-        </Text>
-        {(item.type === "income" || item.type === "expense") &&
-          accountBudget > 0 && (
-            <Text style={{ ...caption1, color: colors.gray }}>
-              / {formatNumber(accountBudget)}{" "}
-              {
-                getCurrencyMeta(
-                  item.isMultiAccount ? mainCurrency : item.currency,
-                ).symbol
-              }
-            </Text>
-          )}
-      </View>
+        <View style={[styles.tileAmountRow, isHidden && styles.blur]}>
+          <Text
+            numberOfLines={1}
+            style={[styles.tileAmount, { color: budgetColor }]}
+          >
+            {amountValue}
+          </Text>
+          <Text style={styles.tileCurrency}>{currencySymbol}</Text>
+          {(item.type === "income" || item.type === "expense") &&
+            accountBudget > 0 && (
+              <Text style={styles.tileBudget}>
+                /{formatNumber(accountBudget)}
+              </Text>
+            )}
+        </View>
+      </BlurView>
     );
 
     return (
       <TouchableOpacity
+        key={item._id}
         activeOpacity={0.8}
         onPress={() => {
           if (!draggedAccount) {
@@ -461,11 +483,85 @@ function Dashboard({ navigation }: { navigation: any }) {
           dragY={dragY}
           dragVisible={dragVisible}
         >
-          {tileChildren}
+          {tileContent}
         </DraggableAccountTile>
       </TouchableOpacity>
     );
   };
+
+  const PAGE_W = windowWidth - 40;
+  const TILES_PER_ROW = Math.floor(PAGE_W / (TILE_W + 6));
+
+  const renderPagedGrid = (
+    items: DashboardItem[],
+    numRows: number,
+    pageIdx: number,
+    setPageIdx: (n: number) => void,
+    addType: string,
+    pinnedItems: DashboardItem[] = [],
+  ) => {
+    const slotsPerPage = TILES_PER_ROW * numRows - pinnedItems.length;
+    const pages: DashboardItem[][] = [];
+    for (let i = 0; i < items.length; i += slotsPerPage) {
+      pages.push(items.slice(i, i + slotsPerPage));
+    }
+    if (pages.length === 0) pages.push([]);
+    const totalPages = pages.length;
+    return (
+      <View>
+        <View style={{ position: "relative" }}>
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onMomentumScrollEnd={(e) => {
+              const p = Math.round(e.nativeEvent.contentOffset.x / PAGE_W);
+              setPageIdx(p);
+            }}
+            style={{ width: PAGE_W }}
+          >
+            {pages.map((pageItems, pi) => (
+              <View
+                key={pi}
+                style={{ width: PAGE_W, flexDirection: "row", flexWrap: "wrap", alignContent: "flex-start" }}
+              >
+                {[...pinnedItems, ...pageItems].map(renderTile)}
+              </View>
+            ))}
+          </ScrollView>
+          {renderAddButton(addType)}
+        </View>
+        {totalPages > 1 && (
+          <View style={styles.dotsRow}>
+            {Array.from({ length: totalPages }, (_, i) => (
+              <View key={i} style={[styles.dot, i === pageIdx && styles.dotActive]} />
+            ))}
+          </View>
+        )}
+      </View>
+    );
+  };
+
+  const renderAddButton = (type: string) => (
+    <TouchableOpacity
+      activeOpacity={0.7}
+      style={styles.addTileWrapper}
+      onPress={() => {
+        setActiveAccount(null);
+        setAccountData({
+          name: "",
+          subcategories: [],
+          ownerId: user?.id,
+          type,
+          icon: { color: randomColor, icon_value: "credit-card-outline" },
+        });
+        setType(type);
+        navigation.navigate("Add new account");
+      }}
+    >
+      <AntDesign name="plus" size={13} color={colors.gray} />
+    </TouchableOpacity>
+  );
 
   return (
     <View
@@ -478,91 +574,164 @@ function Dashboard({ navigation }: { navigation: any }) {
           <ActivityIndicator size="large" color={colors.primaryGreen} />
         </View>
       )}
-      <ScrollView
-        style={{ backgroundColor: colors.background, padding: 20 }}
-        scrollEnabled={!draggedAccount}
+      <View
+        style={{
+          backgroundColor: colors.background,
+          padding: 20,
+          flex: 1,
+          justifyContent: "flex-start",
+        }}
       >
-        <View
-          style={[
-            styles.container,
-            { justifyContent: "flex-start", minHeight: "100%" },
-          ]}
-        >
-          <View style={accounts__block}>
-            <View style={accounts__header}>
-              <Text style={body}>{t("accountTypes.income")}</Text>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={body}>
-                  {formatNumber(periodTotals.incomeTotal)}{" "}
-                  {getCurrencyMeta(mainCurrency).symbol}
+        <View style={[styles.container, { justifyContent: "flex-start" }]}>
+          {/* INCOME — 1 row horizontal scroll */}
+          <BlurView
+            intensity={20}
+            tint="dark"
+            style={[styles.glassTab, { borderColor: "rgba(70,241,197,0.18)" }]}
+          >
+            <View style={styles.sectionCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionLabel}>
+                  {t("accountTypes.income")}
                 </Text>
-                {incomeBudgetTotal > 0 && (
-                  <Text style={{ ...caption1, color: colors.gray }}>
-                    / {formatNumber(incomeBudgetTotal)}{" "}
+                <View style={styles.sectionAmountRow}>
+                  <Text
+                    style={[
+                      styles.sectionTotal,
+                      { color: colors.primaryGreen },
+                      hiddenTypes.has("income") && styles.blur,
+                    ]}
+                  >
+                    {formatNumber(periodTotals.incomeTotal)}{" "}
                     {getCurrencyMeta(mainCurrency).symbol}
                   </Text>
-                )}
+                  {incomeBudgetTotal > 0 && (
+                    <View style={styles.sectionBudgetBadge}>
+                      <Feather name="target" size={10} color={colors.gray} />
+                      <Text
+                        style={[
+                          styles.sectionBudgetText,
+                          hiddenTypes.has("income") && styles.blur,
+                        ]}
+                      >
+                        {formatNumber(incomeBudgetTotal)}{" "}
+                        {getCurrencyMeta(mainCurrency).symbol}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
+              <TouchableOpacity onPress={() => toggleHidden("income")}>
+                <Feather
+                  name={hiddenTypes.has("income") ? "eye-off" : "eye"}
+                  size={18}
+                  color={colors.gray}
+                />
+              </TouchableOpacity>
             </View>
-            <View style={green_line} />
-            <FlatList
-              scrollEnabled={false}
-              style={accounts__body}
-              data={Accounts.filter((acc) => acc.type === "income")}
-              renderItem={renderItem}
-              keyExtractor={(item) => item._id}
-              numColumns={5}
-            />
-          </View>
-          <View style={accounts__block}>
-            <View style={accounts__header}>
-              <Text style={body}>{t("accountTypes.personal")}</Text>
-              <Text style={body}>
-                {formatNumber(periodTotals.personalNet)}{" "}
-                {getCurrencyMeta(mainCurrency).symbol}
-              </Text>
-            </View>
-            <View style={green_line} />
-            <FlatList
-              scrollEnabled={false}
-              style={accounts__body}
-              data={[
-                ...(debtSettings.enabled ? [DEBTS_TILE] : []),
-                ...Accounts.filter((acc) => acc.type === "personal"),
-              ]}
-              renderItem={renderItem}
-              keyExtractor={(item) => item._id}
-              numColumns={5}
-            />
-          </View>
-          <View style={accounts__block}>
-            <View style={accounts__header}>
-              <Text style={body}>{t("accountTypes.expenses")}</Text>
-              <View style={{ alignItems: "flex-end" }}>
-                <Text style={body}>
-                  {formatNumber(periodTotals.expenseTotal)}{" "}
+            {renderPagedGrid(
+              Accounts.filter((a) => a.type === "income" && a.title !== "New account"),
+              1, incPage, setIncPage, "income",
+            )}
+          </BlurView>
+
+          {/* PERSONAL — 1 row horizontal scroll */}
+          <BlurView
+            intensity={20}
+            tint="dark"
+            style={[styles.glassTab, { borderColor: "rgba(255,255,255,0.10)" }]}
+          >
+            <View style={styles.sectionCard}>
+              <View>
+                <Text style={styles.sectionLabel}>
+                  {t("accountTypes.personal")}
+                </Text>
+                <Text
+                  style={[
+                    styles.sectionTotal,
+                    hiddenTypes.has("personal") && styles.blur,
+                  ]}
+                >
+                  {formatNumber(periodTotals.personalNet)}{" "}
                   {getCurrencyMeta(mainCurrency).symbol}
                 </Text>
-                {expenseBudgetTotal > 0 && (
-                  <Text style={{ ...caption1, color: colors.gray }}>
-                    / {formatNumber(expenseBudgetTotal)}{" "}
+              </View>
+              <TouchableOpacity onPress={() => toggleHidden("personal")}>
+                <Feather
+                  name={hiddenTypes.has("personal") ? "eye-off" : "eye"}
+                  size={18}
+                  color={colors.gray}
+                />
+              </TouchableOpacity>
+            </View>
+            {renderPagedGrid(
+              Accounts.filter((a) => a.type === "personal" && a.title !== "New account"),
+              2, perPage, setPerPage, "personal",
+              debtSettings.enabled ? [DEBTS_TILE] : [],
+            )}
+          </BlurView>
+
+          {/* EXPENSES — 2 rows horizontal scroll */}
+          <BlurView
+            intensity={20}
+            tint="dark"
+            style={[styles.glassTab, { borderColor: "rgba(255,178,190,0.18)" }]}
+          >
+            <View style={styles.sectionCard}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionLabel}>
+                  {t("accountTypes.expenses")}
+                </Text>
+                <View style={styles.sectionAmountRow}>
+                  <Text
+                    style={[
+                      styles.sectionTotal,
+                      { color: colors.red },
+                      hiddenTypes.has("expense") && styles.blur,
+                    ]}
+                  >
+                    {formatNumber(periodTotals.expenseTotal)}{" "}
                     {getCurrencyMeta(mainCurrency).symbol}
                   </Text>
-                )}
+                  {expenseBudgetTotal > 0 && (
+                    <View
+                      style={[
+                        styles.sectionBudgetBadge,
+                        {
+                          borderColor: "rgba(255,178,190,0.25)",
+                          backgroundColor: "rgba(255,178,190,0.08)",
+                        },
+                      ]}
+                    >
+                      <Feather name="target" size={10} color={colors.gray} />
+                      <Text
+                        style={[
+                          styles.sectionBudgetText,
+                          hiddenTypes.has("expense") && styles.blur,
+                        ]}
+                      >
+                        {formatNumber(expenseBudgetTotal)}{" "}
+                        {getCurrencyMeta(mainCurrency).symbol}
+                      </Text>
+                    </View>
+                  )}
+                </View>
               </View>
+              <TouchableOpacity onPress={() => toggleHidden("expense")}>
+                <Feather
+                  name={hiddenTypes.has("expense") ? "eye-off" : "eye"}
+                  size={18}
+                  color={colors.gray}
+                />
+              </TouchableOpacity>
             </View>
-            <View style={green_line} />
-            <FlatList
-              scrollEnabled={false}
-              style={accounts__body}
-              data={Accounts.filter((acc) => acc.type === "expense")}
-              renderItem={renderItem}
-              keyExtractor={(item) => item._id}
-              numColumns={5}
-            />
-          </View>
+            {renderPagedGrid(
+              Accounts.filter((a) => a.type === "expense" && a.title !== "New account"),
+              3, expPage, setExpPage, "expense",
+            )}
+          </BlurView>
         </View>
-      </ScrollView>
+      </View>
 
       {/* Always mounted — avoids useAnimatedStyle losing native connection on remount */}
       <Animated.View
@@ -590,8 +759,212 @@ function Dashboard({ navigation }: { navigation: any }) {
   );
 }
 
+// 40px scroll padding + 4 tiles × 6px margin each = 64px total non-tile space
+const TILE_W = 72;
+
 const styles = StyleSheet.create({
-  container,
+  container: {
+    flex: 1,
+  },
+  // Glass tab container
+  glassTab: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    marginBottom: 10,
+    overflow: "hidden",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 8,
+    padding: 2,
+  },
+  // Section header card
+  sectionCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  sectionLabel: {
+    color: colors.gray,
+    fontSize: 10,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 2,
+    opacity: 0.7,
+  },
+  sectionTotal: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  sectionAmountRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 2,
+  },
+  sectionBudgetBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "rgba(70,241,197,0.25)",
+    backgroundColor: "rgba(70,241,197,0.08)",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  sectionBudgetText: {
+    color: colors.gray,
+    fontSize: 11,
+    fontWeight: "600",
+  },
+  // Glass account tiles — Liquid Glass
+  glassTile: {
+    width: TILE_W,
+    margin: 3,
+    borderRadius: 14,
+    minHeight: 72,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    gap: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  liquidRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  liquidGrid: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  tileIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  tileName: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 8,
+    fontWeight: "600",
+    textAlign: "center",
+    paddingHorizontal: 3,
+    width: "100%",
+  },
+  tileAmountRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    flexWrap: "nowrap",
+    gap: 1,
+    paddingHorizontal: 3,
+  },
+  tileAmount: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: -0.3,
+    flexShrink: 1,
+  },
+  tileCurrency: {
+    color: "rgba(255,255,255,0.45)",
+    fontSize: 8,
+    fontWeight: "600",
+    flexShrink: 0,
+  },
+  tileBudget: {
+    color: "rgba(255,255,255,0.3)",
+    fontSize: 8,
+    flexShrink: 0,
+  },
+  addTileWrapper: {
+    position: "absolute",
+    bottom: 4,
+    right: 4,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.18)",
+    borderStyle: "dashed",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.04)",
+    zIndex: 10,
+  },
+  // Row / grid layouts
+  rowSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    position: "relative",
+  },
+  rowContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingRight: 4,
+  },
+  verticalGridContent: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+    paddingRight: 4,
+  },
+  verticalGrid: {
+    flexDirection: "column",
+    alignItems: "flex-start",
+  },
+  expenseRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  expensesScrollView: {
+    height: 234, // 3 rows * (72 tile height + 6 margin)
+  },
+  personalScrollView: {
+    height: 156, // 2 rows * (72 tile height + 6 margin)
+  },
+  dotsRow: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  dot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.2)",
+  },
+  dotActive: {
+    width: 14,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: "rgba(255,255,255,0.75)",
+  },
+  blur: {
+    opacity: 0.3,
+  },
   loaderOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: colors.background,
