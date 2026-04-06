@@ -19,7 +19,8 @@
     "without": "Без категории",
     "notSet": "Не задан",
     "change": "Изменить",
-    "never": "Никогда"
+    "never": "Никогда",
+    "budget": "бюджет"
   },
   "accountTypes": {
     "income": "Доходы",
@@ -150,19 +151,24 @@
     "currencyRatesUpdated": "Курсы валют обновлены",
     "dashboardSettings": "Настройки главной",
     "enableDebts": "Включить долги",
-    "resetAllTransactions": "Сбросить все операции",
+    "deleteData": "Удалить данные",
     "language": "Язык",
     "contactUs": "Связаться с нами",
     "logOut": "Выйти",
     "expenseAccounts": "Счета расходов",
     "chooseCurrency": "Выберите валюту",
-    "resetTitle": "Сбросить все операции",
-    "resetDescription": "Все операции будут удалены, а балансы счетов сброшены. Это действие нельзя отменить.",
+    "deleteDataTitle": "Удалить данные",
+    "deleteTransactionsOption": "Только операции",
+    "deleteTransactionsDesc": "Удаляет все операции и сбрасывает балансы счетов.",
+    "deleteEverythingOption": "Всё",
+    "deleteEverythingDesc": "Удаляет все операции и все счета. Нельзя отменить.",
     "typeToConfirm": "Введите ",
     "toConfirm": " для подтверждения:",
-    "deleteAll": "Удалить все",
-    "allDeleted": "Все операции удалены.",
-    "deleteFailed": "Не удалось удалить операции."
+    "deleteAll": "Удалить",
+    "allDeleted": "Готово. Все данные удалены.",
+    "deleteFailed": "Не удалось удалить.",
+    "transactionsDeleted": "Все операции удалены.",
+    "transactionsFailed": "Не удалось удалить операции."
   },
   "period": {
     "week": "Неделя (7 дней)",

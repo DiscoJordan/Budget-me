@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Transaction History - BudgetMe</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200;300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary": "#46f1c5",
+              "background": "#070e1a",
+              "surface": "#0c1420",
+              "surface-variant": "#16202e",
+              "on-surface": "#bacac2",
+              "on-surface-variant": "#94a3b8",
+              "outline": "#2d3a4d",
+              "error": "#ff6b8b",
+              "success": "#46f1c5"
+            },
+            fontFamily: {
+              "manrope": ["Manrope", "sans-serif"],
+              "headline": ["Manrope", "sans-serif"],
+              "body": ["Manrope", "sans-serif"],
+            },
+            borderRadius: {
+              "DEFAULT": "0.5rem",
+              "lg": "0.75rem",
+              "xl": "1rem",
+              "2xl": "1.5rem",
+              "full": "9999px"
+            },
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .liquid-glass {
+            background: rgba(22, 32, 46, 0.4);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glow-success {
+            text-shadow: 0 0 15px rgba(70, 241, 197, 0.4);
+        }
+        .glow-error {
+            text-shadow: 0 0 15px rgba(255, 107, 139, 0.4);
+        }
+        body {
+            background-color: #070e1a;
+            color: #bacac2;
+            font-family: 'Manrope', sans-serif;
+            min-height: 100dvh;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-primary/30">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-[#0c1420]/80 backdrop-blur-xl border-b border-white/10 shadow-[0_4px_30px_rgba(0,0,0,0.3)] flex justify-between items-center px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden border border-white/10 active:scale-95 transition-transform duration-200 cursor-pointer">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGVtLthS1fs3miKhRaMWFPyUd9FNf9kwHB6T3ytR9ANVmJIyqk35yZ6VUucCsIdJG56l0KcoY6X7kU904Hi-PBVTWucpeDp0taS6MV83zNMJ1f2RH0wf8GG69ppxk2OFtest-C3aMg3bgyIOznrASCHhWweVJWBihg0iZYe-IK6zvc1mghxgOkVpxfjGsqBbg0yM8QV0_DW2BPmSiqRJ5lZ_TWwFfIEiSXMsUDNO2bw97_I3wL_iHYF3wspMEWbnireDgxC45rSPkP"/>
+</div>
+<span class="font-manrope text-xl font-extrabold text-white tracking-widest">BudgetMe</span>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full text-[#bacac2] hover:opacity-80 transition-opacity active:scale-95 duration-200">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+</div>
+</header>
+<main class="pt-24 pb-40 px-6 max-w-2xl mx-auto">
+<!-- Search Bar Section -->
+<section class="mb-10">
+<div class="liquid-glass rounded-2xl flex items-center px-5 py-4 gap-4 focus-within:border-primary/50 transition-all">
+<span class="material-symbols-outlined text-on-surface-variant" data-icon="search">search</span>
+<input class="bg-transparent border-none outline-none focus:ring-0 text-white w-full font-manrope font-medium placeholder:text-on-surface-variant/50" placeholder="Search transactions..." type="text"/>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="tune">tune</span>
+</button>
+</div>
+</section>
+<!-- Date Group: Today -->
+<section class="mb-12">
+<div class="flex justify-between items-end mb-6">
+<h2 class="font-manrope text-xs font-bold tracking-[0.2em] uppercase text-on-surface-variant/70">Today, 24 Oct</h2>
+<span class="font-manrope text-[11px] font-bold tracking-[0.05em] text-error glow-error">- $1,240.00</span>
+</div>
+<div class="space-y-4">
+<!-- Transaction Item -->
+<div class="liquid-glass rounded-2xl p-5 flex items-center justify-between hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20">
+<span class="material-symbols-outlined" data-icon="shopping_bag">shopping_bag</span>
+</div>
+<div>
+<h3 class="font-manrope font-bold text-white text-base">Apple Store</h3>
+<p class="font-manrope text-xs text-on-surface-variant/80 flex items-center gap-1">
+                                Electronics • <span class="italic">MacBook Pro M3</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-manrope font-extrabold text-lg text-white tracking-tight">- $1,199.00</span>
+<p class="font-manrope text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 opacity-60">Business Account</p>
+</div>
+</div>
+<!-- Transaction Item -->
+<div class="liquid-glass rounded-2xl p-5 flex items-center justify-between hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-error/10 flex items-center justify-center text-error border border-error/20">
+<span class="material-symbols-outlined" data-icon="coffee">coffee</span>
+</div>
+<div>
+<h3 class="font-manrope font-bold text-white text-base">Blue Bottle Coffee</h3>
+<p class="font-manrope text-xs text-on-surface-variant/80 flex items-center gap-1">
+                                Dining • <span class="italic">Morning routine</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-manrope font-extrabold text-lg text-white tracking-tight">- $41.00</span>
+<p class="font-manrope text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 opacity-60">Personal Debit</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Date Group: Yesterday -->
+<section class="mb-12">
+<div class="flex justify-between items-end mb-6">
+<h2 class="font-manrope text-xs font-bold tracking-[0.2em] uppercase text-on-surface-variant/70">Yesterday, 23 Oct</h2>
+<span class="font-manrope text-[11px] font-bold tracking-[0.05em] text-success glow-success">+ $4,850.20</span>
+</div>
+<div class="space-y-4">
+<!-- Transaction Item: Income -->
+<div class="liquid-glass rounded-2xl p-5 flex items-center justify-between hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary border border-primary/30 shadow-[0_0_15px_rgba(70,241,197,0.15)]">
+<span class="material-symbols-outlined" data-icon="payments" style="font-variation-settings: 'FILL' 1;">payments</span>
+</div>
+<div>
+<h3 class="font-manrope font-bold text-white text-base">Stripe Payout</h3>
+<p class="font-manrope text-xs text-on-surface-variant/80 flex items-center gap-1">
+                                Revenue • <span class="italic">Project Alpha Final</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-manrope font-extrabold text-lg text-primary glow-success tracking-tight">+ $5,200.00</span>
+<p class="font-manrope text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 opacity-60">Business Account</p>
+</div>
+</div>
+<!-- Transaction Item -->
+<div class="liquid-glass rounded-2xl p-5 flex items-center justify-between hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-on-surface-variant border border-white/10">
+<span class="material-symbols-outlined" data-icon="subscriptions">subscriptions</span>
+</div>
+<div>
+<h3 class="font-manrope font-bold text-white text-base">Adobe Creative Cloud</h3>
+<p class="font-manrope text-xs text-on-surface-variant/80 flex items-center gap-1">
+                                Subscriptions • <span class="italic">Monthly Plan</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-manrope font-extrabold text-lg text-white tracking-tight">- $54.99</span>
+<p class="font-manrope text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 opacity-60">Amex Gold</p>
+</div>
+</div>
+<!-- Transaction Item -->
+<div class="liquid-glass rounded-2xl p-5 flex items-center justify-between hover:bg-white/[0.04] transition-all group cursor-pointer active:scale-[0.98]">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-on-surface-variant border border-white/10">
+<span class="material-symbols-outlined" data-icon="directions_car">directions_car</span>
+</div>
+<div>
+<h3 class="font-manrope font-bold text-white text-base">Shell Gas</h3>
+<p class="font-manrope text-xs text-on-surface-variant/80 flex items-center gap-1">
+                                Transport • <span class="italic">Fuel refill</span>
+</p>
+</div>
+</div>
+<div class="text-right">
+<span class="font-manrope font-extrabold text-lg text-white tracking-tight">- $294.81</span>
+<p class="font-manrope text-[9px] text-on-surface-variant uppercase tracking-widest mt-1 opacity-60">Personal Debit</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Loading Indicator -->
+<div class="flex justify-center py-8">
+<div class="w-6 h-6 border-2 border-primary/20 border-t-primary rounded-full animate-spin shadow-[0_0_15px_rgba(70,241,197,0.2)]"></div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-8 pt-4 bg-[#0c1420]/70 backdrop-blur-2xl rounded-t-[2rem] border-t border-white/15 shadow-[0_-10px_40px_rgba(7,14,26,0.8)]">
+<!-- Dashboard -->
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Dashboard</span>
+</a>
+<!-- History (Active) -->
+<a class="flex flex-col items-center justify-center text-[#46f1c5] drop-shadow-[0_0_12px_rgba(70,241,197,0.5)] active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="history" style="font-variation-settings: 'FILL' 1;">history</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">History</span>
+</a>
+<!-- Report -->
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Report</span>
+</a>
+<!-- Settings -->
+<a class="flex flex-col items-center justify-center text-[#bacac2] opacity-60 hover:text-white transition-colors active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-manrope text-[10px] font-medium uppercase tracking-wider mt-1">Settings</span>
+</a>
+</nav>
+</body></html>
