@@ -100,6 +100,7 @@ const NewOperation = ({
     | "repayToDebt"
     | "repayFromDebt"
     | undefined;
+  const assetMode = route?.params?.assetMode as "buy" | "sell" | undefined;
   const [message, setMessage] = React.useState<string>("");
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -244,6 +245,12 @@ const NewOperation = ({
     } else if (debtMode === "repayFromDebt" && activeAccount?.type === "debt") {
       // Repay from debt: sender is debt account, pick personal account as recipient
       setPickerTarget("recipient");
+    } else if (assetMode === "buy" && activeAccount && !recipientAccount?._id) {
+      // Personal → Assets tile: pick which asset to buy
+      setPickerTarget("recipient");
+    } else if (assetMode === "sell" && !activeAccount) {
+      // Assets tile → Personal: pick which asset to sell
+      setPickerTarget("sender");
     }
   }, []);
 
@@ -315,6 +322,20 @@ const NewOperation = ({
       return Accounts.filter(
         (a) => a.type === "personal" && !a.archived && !a.parentId,
       );
+    }
+
+    // Asset mode: buy = personal→asset, sell = asset→personal
+    if (assetMode === "buy" && pickerTarget === "recipient" && !recipientAccount?._id) {
+      return Accounts.filter((a) => a.type === "asset" && !a.archived);
+    }
+    if (assetMode === "sell" && pickerTarget === "sender" && !activeAccount) {
+      return Accounts.filter((a) => a.type === "asset" && !a.archived);
+    }
+    if (assetMode === "buy" && pickerTarget === "sender" && recipientAccount?._id) {
+      return Accounts.filter((a) => a.type === "personal" && !a.archived && !a.parentId);
+    }
+    if (assetMode === "sell" && pickerTarget === "recipient" && activeAccount?.type === "asset") {
+      return Accounts.filter((a) => a.type === "personal" && !a.archived && !a.parentId);
     }
 
     if (pickerTarget === "sender") {

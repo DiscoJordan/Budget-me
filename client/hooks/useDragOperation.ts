@@ -26,7 +26,9 @@ export function isValidDrop(source: Account, target: Account): boolean {
     (source.type === "personal" && target.type === "expense") ||
     (source.type === "personal" && target.type === "personal" && source._id !== target._id) ||
     (source.type === "personal" && target.type === "debt") ||
-    (source.type === "debt" && target.type === "personal")
+    (source.type === "debt" && target.type === "personal") ||
+    (source.type === "personal" && target.type === "asset") ||
+    (source.type === "asset" && target.type === "personal")
   );
 }
 
@@ -114,6 +116,16 @@ export function useDragOperation({
               setActiveAccount(current);
               setRecipientAccount({});
               navigate("New operation", { debtMode: "lend" });
+            } else if (current._id === "__assets__") {
+              // Assets tile → personal: selling an asset
+              setActiveAccount(null);
+              setRecipientAccount(target.account);
+              navigate("New operation", { assetMode: "sell" });
+            } else if (target.account._id === "__assets__") {
+              // Personal → Assets tile: buying an asset
+              setActiveAccount(current);
+              setRecipientAccount({});
+              navigate("New operation", { assetMode: "buy" });
             } else {
               setActiveAccount(current);
               setRecipientAccount(target.account);

@@ -379,7 +379,7 @@ function Dashboard({ navigation }: { navigation: any }) {
   }));
 
   const isDraggableItem = (item: DashboardItem): boolean =>
-    item.type === "income" || item.type === "personal" || item.type === "debt";
+    item.type === "income" || item.type === "personal" || item.type === "debt" || item.type === "asset";
 
   const renderTile = (item: DashboardItem) => {
     const accountBudget =
