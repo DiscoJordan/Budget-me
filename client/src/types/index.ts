@@ -148,6 +148,7 @@ export interface AccountsContextType {
     subcatName: string,
   ) => Promise<void>;
   toggleArchiveAccount: (id: string, archived: boolean) => Promise<void>;
+  deleteAllData: () => Promise<boolean>;
 }
 
 export interface TransactionsContextType {

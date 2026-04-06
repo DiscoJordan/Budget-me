@@ -4,14 +4,17 @@ export const windowWidth = Dimensions.get("window").width;
 export const windowHeight = Dimensions.get("window").height;
 
 export const colors = {
-  primaryGreen: "#009F9C",
-  background: "#1E1E1E",
-  darkBlack: "#0F0F0F",
-  darkGray: "#434343",
-  darkgray: "#434343",
-  gray: "#919191",
-  red: "#FF5959",
-  green: "#44FFBC",
+  primaryGreen: "#46f1c5",
+  background: "#070e1a",
+  darkBlack: "#04080f",
+  darkGray: "#171f2b",
+  darkgray: "#171f2b",
+  gray: "#bacac2",
+  red: "#ffb2be",
+  green: "#46f1c5",
+  surface: "#0c1420",
+  surfaceHigh: "#1c2633",
+  border: "rgba(255,255,255,0.08)",
 };
 
 export const font = {
@@ -78,14 +81,14 @@ export const container = {
   color: "#ffffff" as const,
   backgroundColor: colors.background,
   justifyContent: "center" as const,
-  gap: 30,
+  gap: 4,
   width: "100%" as const,
 };
 
 export const accounts__block = {
-  paddingTop: 8,
-  paddingBottom: 8,
-  gap: 20,
+  paddingTop: 4,
+  paddingBottom: 4,
+  gap: 8,
   width: "100%" as const,
 };
 
@@ -102,10 +105,12 @@ export const accounts__add = {
   height: (windowWidth - 40 - 10 * 10) / 5,
   margin: 10,
   aspectRatio: 1 / 1,
-  borderRadius: 20,
+  borderRadius: 16,
   justifyContent: "center" as const,
   alignItems: "center" as const,
-  backgroundColor: colors.darkGray,
+  backgroundColor: colors.surface,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.08)" as const,
 };
 
 export const account = {
@@ -121,7 +126,7 @@ export const green_line = {
 };
 
 export const setting_option = {
-  backgroundColor: colors.darkGray,
+  backgroundColor: colors.surface,
   width: "100%" as const,
   height: 60,
   justifyContent: "space-between" as const,
@@ -129,7 +134,10 @@ export const setting_option = {
   alignItems: "center" as const,
   paddingLeft: 20,
   paddingRight: 20,
+  borderRadius: 12,
   color: "white" as const,
+  borderWidth: 1,
+  borderColor: "rgba(255,255,255,0.07)" as const,
 };
 
 export const input = {
@@ -147,7 +155,7 @@ export const h1 = {
 };
 
 export const submit_button = {
-  backgroundColor: "#009F9C" as const,
+  backgroundColor: "#46f1c5" as const,
   width: windowWidth - 40,
   alignItems: "center" as const,
   padding: 16,
@@ -157,8 +165,9 @@ export const submit_button = {
 };
 
 export const submit_button_text = {
-  color: "white" as const,
+  color: "#00382f" as const,
   fontSize: 16,
+  fontWeight: "700" as const,
 };
 
 /** Alias kept for backwards compat (some screens imported `blue` but it was never defined) */

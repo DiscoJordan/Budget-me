@@ -54,12 +54,14 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: colors.darkBlack,
+    backgroundColor: colors.surface,
     alignItems: "center",
     paddingVertical: 10,
     paddingHorizontal: 6,
     borderRadius: 12,
     gap: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.07)",
   },
   cardCenter: {
     flex: 1.2,

@@ -97,8 +97,8 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     </GlassContainer>
   ) : (
     <BlurView
-      intensity={100}
-      tint="systemChromeMaterialDark"
+      intensity={60}
+      tint="dark"
       style={StyleSheet.absoluteFillObject}
     />
   );
@@ -227,6 +227,9 @@ const tabStyles = StyleSheet.create({
     right: 0,
     height: 85,
     overflow: "hidden",
+    backgroundColor: "rgba(4,8,15,0.85)",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.06)",
   },
   tabRow: {
     flexDirection: "row",
@@ -294,9 +297,10 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
         (tran?.recipientId as any)?._id === activeAccount?._id,
     ).length;
     Alert.alert(t("nav.deleteAccount"), t("nav.deleteAccountMsg", { count }), [
-      { text: t("common.cancel"), style: "destructive", onPress: () => {} },
+      { text: t("common.cancel"), onPress: () => {} },
       {
         text: t("common.delete"),
+        style: "destructive",
         onPress: () => deleteAccount(navigation),
       },
     ]);
@@ -392,8 +396,21 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
                   component={EditDebts}
                   options={{ title: t("nav.editDebts") }}
                 />
-                <Stack.Group screenOptions={{ presentation: "modal" }}>
-                  <Stack.Screen name="New operation" component={NewOperation} />
+                <Stack.Group
+                  screenOptions={{
+                    presentation: "transparentModal",
+                    headerShown: false,
+                    cardStyle: { backgroundColor: "transparent" },
+                  }}
+                >
+                  <Stack.Screen
+                    name="New operation"
+                    component={NewOperation}
+                    options={{
+                      headerShown: false,
+                      cardStyle: { backgroundColor: "transparent" },
+                    }}
+                  />
                   <Stack.Screen
                     name="Edit transaction"
                     component={EditTransaction}

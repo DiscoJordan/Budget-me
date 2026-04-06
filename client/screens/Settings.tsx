@@ -16,7 +16,6 @@ import {
   TouchableOpacity,
   Modal,
   FlatList,
-  TextInput,
   ActivityIndicator,
   Switch,
   Alert,
@@ -31,6 +30,7 @@ import {
   size,
 } from "../styles/styles";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import GlassInput from "../components/GlassInput";
 
 function Settings() {
   const { t, i18n } = useTranslation();
@@ -44,7 +44,7 @@ function Settings() {
     lastFetchedAt,
     refreshCurrencies,
   } = useContext(CurrencyContext);
-  const { accounts, toggleArchiveAccount } = useContext(AccountsContext);
+  const { accounts, toggleArchiveAccount, deleteAllData } = useContext(AccountsContext);
   const { settings: debtSettings, setEnabled: setDebtEnabled } =
     useContext(DebtsContext);
   const { deleteAllTransactions } = useContext(TransactionsContext);
@@ -53,6 +53,7 @@ function Settings() {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [search, setSearch] = useState("");
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
+  const [deleteMode, setDeleteMode] = useState<"transactions" | "everything">("transactions");
   const [deleteInput, setDeleteInput] = useState("");
 
   const currentLanguageLabel =
@@ -75,7 +76,7 @@ function Settings() {
   };
 
   return (
-    <View style={{ ...container, paddingBottom: 90 }}>
+    <View style={{ ...container, paddingBottom: 90, paddingHorizontal: 16, gap: 8 }}>
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
         style={setting_option}
@@ -149,7 +150,7 @@ function Settings() {
         style={setting_option}
       >
         <Text style={{ ...styles.label, color: colors.red }}>
-          {t("settings.resetAllTransactions")}
+          {t("settings.deleteData")}
         </Text>
         <Feather name="trash-2" size={20} color={colors.red} />
       </TouchableOpacity>
@@ -256,13 +257,13 @@ function Settings() {
             </View>
           </View>
 
-          <TextInput
-            style={styles.search}
+          <GlassInput
+            containerStyle={styles.searchContainer}
             placeholder={t("common.search")}
-            placeholderTextColor={colors.gray}
             value={search}
             onChangeText={setSearch}
             autoCapitalize="characters"
+            leftSlot={<MaterialCommunityIcons name="magnify" size={18} color={colors.gray} />}
           />
 
           <FlatList
@@ -330,23 +331,40 @@ function Settings() {
       >
         <View style={styles.deleteOverlay}>
           <View style={styles.deleteSheet}>
-            <Text style={styles.deleteTitle}>{t("settings.resetTitle")}</Text>
-            <Text style={styles.deleteDesc}>
-              {t("settings.resetDescription")}
-            </Text>
+            <Text style={styles.deleteTitle}>{t("settings.deleteDataTitle")}</Text>
+
+            {/* Option selector */}
+            <View style={styles.deleteOptions}>
+              <TouchableOpacity
+                style={[styles.deleteOption, deleteMode === "transactions" && styles.deleteOptionActive]}
+                onPress={() => setDeleteMode("transactions")}
+              >
+                <Text style={[styles.deleteOptionTitle, deleteMode === "transactions" && styles.deleteOptionTitleActive]}>
+                  {t("settings.deleteTransactionsOption")}
+                </Text>
+                <Text style={styles.deleteOptionDesc}>{t("settings.deleteTransactionsDesc")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.deleteOption, deleteMode === "everything" && styles.deleteOptionActive]}
+                onPress={() => setDeleteMode("everything")}
+              >
+                <Text style={[styles.deleteOptionTitle, deleteMode === "everything" && styles.deleteOptionTitleActive]}>
+                  {t("settings.deleteEverythingOption")}
+                </Text>
+                <Text style={styles.deleteOptionDesc}>{t("settings.deleteEverythingDesc")}</Text>
+              </TouchableOpacity>
+            </View>
+
             <Text style={styles.deleteDesc}>
               {t("settings.typeToConfirm")}
-              <Text style={{ color: colors.red, fontWeight: "700" }}>
-                Delete
-              </Text>
+              <Text style={{ color: colors.red, fontWeight: "700" }}>Delete</Text>
               {t("settings.toConfirm")}
             </Text>
-            <TextInput
-              style={styles.deleteInput}
+            <GlassInput
+              containerStyle={styles.deleteInputContainer}
               value={deleteInput}
               onChangeText={setDeleteInput}
               placeholder="Delete"
-              placeholderTextColor={colors.darkGray}
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -355,28 +373,27 @@ function Settings() {
                 style={styles.deleteCancelBtn}
                 onPress={() => setDeleteConfirmVisible(false)}
               >
-                <Text style={styles.deleteCancelText}>
-                  {t("common.cancel")}
-                </Text>
+                <Text style={styles.deleteCancelText}>{t("common.cancel")}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[
-                  styles.deleteConfirmBtn,
-                  { opacity: deleteInput === "Delete" ? 1 : 0.4 },
-                ]}
+                style={[styles.deleteConfirmBtn, { opacity: deleteInput === "Delete" ? 1 : 0.4 }]}
                 disabled={deleteInput !== "Delete"}
                 onPress={async () => {
                   setDeleteConfirmVisible(false);
-                  const ok = await deleteAllTransactions();
+                  setDeleteInput("");
+                  let ok: boolean;
+                  if (deleteMode === "everything") {
+                    ok = await deleteAllData();
+                  } else {
+                    ok = await deleteAllTransactions();
+                  }
                   Alert.alert(
                     ok ? t("common.done") : t("common.error"),
                     ok ? t("settings.allDeleted") : t("settings.deleteFailed"),
                   );
                 }}
               >
-                <Text style={styles.deleteConfirmText}>
-                  {t("settings.deleteAll")}
-                </Text>
+                <Text style={styles.deleteConfirmText}>{t("settings.deleteAll")}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -448,7 +465,7 @@ const styles = StyleSheet.create({
   },
   modal: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: colors.darkBlack,
     paddingTop: 56,
     paddingHorizontal: 16,
   },
@@ -463,13 +480,7 @@ const styles = StyleSheet.create({
     fontSize: size.title3,
     fontWeight: font.bold,
   },
-  search: {
-    backgroundColor: colors.darkGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    color: "white",
-    fontSize: size.body,
+  searchContainer: {
     marginBottom: 12,
   },
   currencyItem: {
@@ -479,10 +490,10 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: colors.darkGray,
+    borderBottomColor: "rgba(255,255,255,0.06)",
   },
   currencyItemActive: {
-    backgroundColor: colors.darkGray,
+    backgroundColor: colors.surface,
     borderRadius: 8,
   },
   currencyItemLeft: {
@@ -534,7 +545,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: colors.darkGray,
+    borderBottomColor: "rgba(255,255,255,0.06)",
   },
   archiveLeft: {
     flexDirection: "row",
@@ -560,11 +571,13 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   deleteSheet: {
-    backgroundColor: colors.darkBlack,
-    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
     padding: 24,
     width: "100%",
     gap: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   deleteTitle: {
     color: "white",
@@ -576,13 +589,8 @@ const styles = StyleSheet.create({
     fontSize: size.body,
     lineHeight: 20,
   },
-  deleteInput: {
-    backgroundColor: colors.darkGray,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: "white",
-    fontSize: size.body,
+  deleteInputContainer: {
+    marginBottom: 4,
   },
   deleteActions: {
     flexDirection: "row",
@@ -595,6 +603,8 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 10,
     backgroundColor: colors.darkGray,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
   },
   deleteCancelText: {
     color: "white",
@@ -612,6 +622,37 @@ const styles = StyleSheet.create({
     color: "white",
     fontSize: size.body,
     fontWeight: font.bold,
+  },
+  deleteOptions: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  deleteOption: {
+    flex: 1,
+    backgroundColor: colors.darkBlack,
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.06)",
+    gap: 4,
+  },
+  deleteOptionActive: {
+    borderColor: colors.red,
+    backgroundColor: colors.red + "22",
+  },
+  deleteOptionTitle: {
+    color: "white",
+    fontSize: size.body,
+    fontWeight: font.semibold,
+  },
+  deleteOptionTitleActive: {
+    color: colors.red,
+  },
+  deleteOptionDesc: {
+    color: colors.gray,
+    fontSize: size.footnote,
+    lineHeight: 16,
   },
 });
 

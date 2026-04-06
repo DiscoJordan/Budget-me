@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useState, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { formatDateLong } from "../utils/formatDate";
 import Dialog from "react-native-dialog";
@@ -12,11 +12,15 @@ import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
 import { CurrencyContext } from "../context/CurrencyContext";
 import { FontAwesome5 } from "@expo/vector-icons";
-import { EvilIcons } from "@expo/vector-icons";
+import LiquidAccountTile from "../components/LiquidAccountTile";
+import { BlurView } from "expo-blur";
 import { getCurrencyMeta } from "../utils/currencyInfo";
 import { toMainCurrency } from "../utils/convertCurrency";
 import {
   Alert,
+  Animated,
+  Dimensions,
+  PanResponder,
   StyleSheet,
   Text,
   View,
@@ -25,12 +29,12 @@ import {
   TextInput,
   TouchableOpacity,
 } from "react-native";
+
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.7;
 import {
   container,
   windowWidth,
-  green_line,
-  account,
-  accounts__add,
   body,
   input,
   submit_button,
@@ -40,6 +44,7 @@ import {
   caption1,
 } from "../styles/styles";
 import { Account, TransactionFormData } from "../src/types";
+import GlassInput from "../components/GlassInput";
 
 const NewOperation = ({
   navigation,
@@ -49,6 +54,45 @@ const NewOperation = ({
   route?: any;
 }) => {
   const { t } = useTranslation();
+  const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+
+  useEffect(() => {
+    Animated.spring(translateY, {
+      toValue: 0,
+      useNativeDriver: true,
+      tension: 65,
+      friction: 11,
+    }).start();
+  }, []);
+
+  const dismiss = () => {
+    Animated.timing(translateY, {
+      toValue: SHEET_HEIGHT,
+      duration: 260,
+      useNativeDriver: true,
+    }).start(() => navigation.goBack());
+  };
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dy) > 5,
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) translateY.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 100 || g.vy > 0.5) {
+          dismiss();
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    }),
+  ).current;
+
   const debtMode = route?.params?.debtMode as
     | "lend"
     | "borrow"
@@ -386,148 +430,86 @@ const NewOperation = ({
   };
 
   return (
-    <View style={{ flex: 1, alignItems: "center" }}>
-      <ScrollView
-        contentContainerStyle={{ paddingBottom: 100 }}
-        style={{ backgroundColor: colors.background, width: "100%" }}
-      >
-        <View style={{ ...container, padding: 20 }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 20,
-            }}
-          >
-            <View style={account}>
-              <TouchableOpacity
+    <View style={sheetStyles.overlay}>
+      <TouchableOpacity
+        style={StyleSheet.absoluteFill}
+        activeOpacity={1}
+        onPress={dismiss}
+      />
+      <Animated.View style={{ transform: [{ translateY }] }}>
+        <BlurView intensity={40} tint="dark" style={sheetStyles.sheet}>
+        {/* Drag handle */}
+        <View {...panResponder.panHandlers} style={sheetStyles.handleArea}>
+          <View style={sheetStyles.handle} />
+        </View>
+        <ScrollView
+          contentContainerStyle={{ paddingBottom: 40 }}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={{ ...container, padding: 20 }}>
+            <View
+              style={{
+                flexDirection: "row",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 20,
+              }}
+            >
+              <LiquidAccountTile
+                iconName={activeAccount?.icon?.icon_value || "wallet-outline"}
+                iconColor={activeAccount?.icon?.color || colors.primaryGreen}
+                name={activeAccount?.name}
+                balance={
+                  activeAccount?.isMultiAccount
+                    ? `${formatNumber(subAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
+                    : `${formatNumber(effectiveSender?.balance ?? activeAccount?.balance ?? 0)} ${getCurrencyMeta(effectiveSender?.currency ?? activeAccount?.currency).symbol}`
+                }
+                size={80}
                 onPress={() => setPickerTarget("sender")}
-                style={[
-                  accounts__add,
-                  { backgroundColor: activeAccount?.icon?.color },
-                ]}
-              >
+              />
+              <View style={sheetStyles.arrowWrap}>
                 <MaterialCommunityIcons
-                  name={activeAccount?.icon?.icon_value || "wallet-outline"}
-                  size={24}
+                  name="arrow-right"
+                  size={20}
                   color="white"
                 />
-              </TouchableOpacity>
-              <Text
-                style={{
-                  ...caption1,
-                  color: colors.gray,
-                  fontWeight: font.bold,
-                }}
-              >
-                {activeAccount?.name}
-              </Text>
-              <Text
-                style={{ ...caption1, color: "white", fontWeight: font.bold }}
-              >
-                {activeAccount?.isMultiAccount
-                  ? `${formatNumber(subAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
-                  : `${formatNumber(effectiveSender?.balance ?? activeAccount?.balance ?? 0)} ${getCurrencyMeta(effectiveSender?.currency ?? activeAccount?.currency).symbol}`}
-              </Text>
-            </View>
-            <EvilIcons name="arrow-right" size={48} color="white" />
-            <View style={account}>
-              <TouchableOpacity
+              </View>
+              <LiquidAccountTile
+                iconName={
+                  recipientAccount?.icon?.icon_value || "help-circle-outline"
+                }
+                iconColor={recipientAccount?.icon?.color || colors.gray}
+                name={recipientAccount?.name || t("transaction.recipient")}
+                balance={
+                  (recipientAccount as any)?.isMultiAccount
+                    ? `${formatNumber(recipientSubAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
+                    : recipientAccount?.balance != null
+                      ? `${formatNumber(recipientAccount.balance)} ${getCurrencyMeta(recipientAccount?.currency).symbol || ""}`
+                      : undefined
+                }
+                size={80}
                 onPress={() => setPickerTarget("recipient")}
-                style={[
-                  accounts__add,
-                  {
-                    backgroundColor:
-                      recipientAccount?.icon?.color || colors.darkGray,
-                  },
-                ]}
-              >
-                {recipientAccount?.icon ? (
-                  <MaterialCommunityIcons
-                    name={recipientAccount.icon.icon_value as any}
-                    size={24}
-                    color="white"
-                  />
-                ) : (
-                  <FontAwesome5 name="question" size={24} color="white" />
-                )}
-              </TouchableOpacity>
-              <Text
-                style={{
-                  ...caption1,
-                  color: colors.gray,
-                  fontWeight: font.bold,
-                }}
-              >
-                {recipientAccount?.name || t("transaction.recipient")}
-              </Text>
-              <Text
-                style={{ ...caption1, color: "white", fontWeight: font.bold }}
-              >
-                {(recipientAccount as any)?.isMultiAccount
-                  ? `${formatNumber(recipientSubAccounts.reduce((sum, s) => sum + toMainCurrency(s.balance ?? 0, s.currency, rates, mainCurrency), 0))} ${getCurrencyMeta(mainCurrency).symbol}`
-                  : recipientAccount?.balance != null
-                    ? `${formatNumber(recipientAccount.balance)} ${getCurrencyMeta(recipientAccount?.currency).symbol || ""}`
-                    : ""}
-              </Text>
+              />
             </View>
-          </View>
 
-          {/* Sub-account currency selector for multi-account sender */}
-          {activeAccount?.isMultiAccount && subAccounts.length > 0 && (
-            <View style={styles.subAccountRow}>
-              {subAccounts.map((sub) => (
-                <TouchableOpacity
-                  key={sub._id}
-                  style={[
-                    styles.subAccountChip,
-                    selectedSubAccount?._id === sub._id &&
-                      styles.subAccountChipActive,
-                  ]}
-                  onPress={() => setSelectedSubAccount(sub)}
-                >
-                  <Text
-                    style={[
-                      styles.subAccountChipCurrency,
-                      selectedSubAccount?._id === sub._id &&
-                        styles.subAccountChipTextActive,
-                    ]}
-                  >
-                    {getCurrencyMeta(sub.currency).symbol}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.subAccountChipBalance,
-                      selectedSubAccount?._id === sub._id &&
-                        styles.subAccountChipTextActive,
-                    ]}
-                  >
-                    {formatNumber(sub.balance ?? 0)}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-
-          {/* Sub-account currency selector for multi-account recipient */}
-          {(recipientAccount as any)?.isMultiAccount &&
-            recipientSubAccounts.length > 0 && (
+            {/* Sub-account currency selector for multi-account sender */}
+            {activeAccount?.isMultiAccount && subAccounts.length > 0 && (
               <View style={styles.subAccountRow}>
-                {recipientSubAccounts.map((sub) => (
+                {subAccounts.map((sub) => (
                   <TouchableOpacity
                     key={sub._id}
                     style={[
                       styles.subAccountChip,
-                      selectedRecipientSubAccount?._id === sub._id &&
+                      selectedSubAccount?._id === sub._id &&
                         styles.subAccountChipActive,
                     ]}
-                    onPress={() => setSelectedRecipientSubAccount(sub)}
+                    onPress={() => setSelectedSubAccount(sub)}
                   >
                     <Text
                       style={[
                         styles.subAccountChipCurrency,
-                        selectedRecipientSubAccount?._id === sub._id &&
+                        selectedSubAccount?._id === sub._id &&
                           styles.subAccountChipTextActive,
                       ]}
                     >
@@ -536,7 +518,7 @@ const NewOperation = ({
                     <Text
                       style={[
                         styles.subAccountChipBalance,
-                        selectedRecipientSubAccount?._id === sub._id &&
+                        selectedSubAccount?._id === sub._id &&
                           styles.subAccountChipTextActive,
                       ]}
                     >
@@ -547,359 +529,414 @@ const NewOperation = ({
               </View>
             )}
 
-          <Modal
-            visible={pickerTarget !== null}
-            transparent
-            animationType="slide"
-            onRequestClose={() => setPickerTarget(null)}
-          >
-            <TouchableOpacity
-              style={styles.modalOverlay}
-              activeOpacity={1}
-              onPress={() => setPickerTarget(null)}
-            >
-              <View style={styles.pickerSheet}>
-                <Text style={styles.pickerTitle}>
-                  {debtMode === "lend" &&
-                  pickerTarget === "recipient" &&
-                  !recipientAccount?._id
-                    ? t("transaction.selectPerson")
-                    : debtMode === "borrow" &&
-                        pickerTarget === "sender" &&
-                        !activeAccount
-                      ? t("transaction.selectPerson")
-                      : debtMode === "repay" && pickerTarget === "recipient"
-                        ? t("transaction.toWhichWallet")
-                        : debtMode === "repayToDebt" &&
-                            pickerTarget === "sender"
-                          ? t("transaction.fromWhichWallet")
-                          : debtMode === "repayFromDebt" &&
-                              pickerTarget === "recipient"
-                            ? t("transaction.toWhichWallet")
-                            : debtMode && pickerTarget === "sender"
-                              ? t("transaction.fromWhichWallet")
-                              : debtMode && pickerTarget === "recipient"
-                                ? t("transaction.toWhichWallet")
-                                : pickerTarget === "sender"
-                                  ? t("transaction.chooseSender")
-                                  : t("transaction.chooseRecipient")}
-                </Text>
-                <ScrollView>
-                  {pickerAccounts.map((item) => (
+            {/* Sub-account currency selector for multi-account recipient */}
+            {(recipientAccount as any)?.isMultiAccount &&
+              recipientSubAccounts.length > 0 && (
+                <View style={styles.subAccountRow}>
+                  {recipientSubAccounts.map((sub) => (
                     <TouchableOpacity
-                      key={item._id}
-                      style={styles.pickerRow}
-                      onPress={() => {
-                        if (pickerTarget === "sender") {
-                          setActiveAccount(item);
-                          const currentRecipientId = recipientAccount?._id;
-                          const recipientStillValid =
-                            currentRecipientId &&
-                            currentRecipientId !== item._id &&
-                            (() => {
-                              const rec = Accounts.find(
-                                (a) => a._id === currentRecipientId,
-                              );
-                              if (!rec) return false;
-                              if (item.type === "income")
-                                return rec.type === "personal";
-                              if (item.type === "personal")
-                                return (
-                                  rec.type === "expense" ||
-                                  rec.type === "personal" ||
-                                  rec.type === "debt"
-                                );
-                              if (item.type === "debt")
-                                return rec.type === "personal";
-                              return false;
-                            })();
-                          if (!recipientStillValid) {
-                            setRecipientAccount({});
-                          }
-                          setTransactionData((prev) => ({
-                            ...prev,
-                            senderId: item._id,
-                            recipientId: recipientStillValid
-                              ? prev.recipientId
-                              : undefined,
-                            subcategory: "",
-                          }));
-                        } else {
-                          setRecipientAccount(item);
-                        }
-                        setPickerTarget(null);
-                      }}
+                      key={sub._id}
+                      style={[
+                        styles.subAccountChip,
+                        selectedRecipientSubAccount?._id === sub._id &&
+                          styles.subAccountChipActive,
+                      ]}
+                      onPress={() => setSelectedRecipientSubAccount(sub)}
                     >
-                      <View
+                      <Text
                         style={[
-                          styles.pickerIcon,
-                          {
-                            backgroundColor:
-                              item.icon?.color || colors.darkGray,
-                          },
+                          styles.subAccountChipCurrency,
+                          selectedRecipientSubAccount?._id === sub._id &&
+                            styles.subAccountChipTextActive,
                         ]}
                       >
-                        <MaterialCommunityIcons
-                          name={
-                            (item.icon?.icon_value || "wallet-outline") as any
-                          }
-                          size={22}
-                          color="white"
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={styles.pickerName}>{item.name}</Text>
-                        {item.isMultiAccount ? (
-                          (() => {
-                            const subs = accounts.filter(
-                              (a) => a.parentId === item._id,
-                            );
-                            const total = subs.reduce(
-                              (sum, s) =>
-                                sum +
-                                toMainCurrency(
-                                  s.balance ?? 0,
-                                  s.currency,
-                                  rates,
-                                  mainCurrency,
-                                ),
-                              0,
-                            );
-                            return (
-                              <Text style={styles.pickerBalance}>
-                                {formatNumber(total)}{" "}
-                                {getCurrencyMeta(mainCurrency).symbol}
-                              </Text>
-                            );
-                          })()
-                        ) : (
-                          <Text style={styles.pickerBalance}>
-                            {formatNumber(item.balance ?? 0)} {item.currency}
-                          </Text>
-                        )}
-                      </View>
+                        {getCurrencyMeta(sub.currency).symbol}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.subAccountChipBalance,
+                          selectedRecipientSubAccount?._id === sub._id &&
+                            styles.subAccountChipTextActive,
+                        ]}
+                      >
+                        {formatNumber(sub.balance ?? 0)}
+                      </Text>
                     </TouchableOpacity>
                   ))}
-                </ScrollView>
-              </View>
+                </View>
+              )}
+
+            <Modal
+              visible={pickerTarget !== null}
+              transparent
+              animationType="slide"
+              onRequestClose={() => setPickerTarget(null)}
+            >
+              <TouchableOpacity
+                style={styles.modalOverlay}
+                activeOpacity={1}
+                onPress={() => setPickerTarget(null)}
+              >
+                <View style={styles.pickerSheet}>
+                  <Text style={styles.pickerTitle}>
+                    {debtMode === "lend" &&
+                    pickerTarget === "recipient" &&
+                    !recipientAccount?._id
+                      ? t("transaction.selectPerson")
+                      : debtMode === "borrow" &&
+                          pickerTarget === "sender" &&
+                          !activeAccount
+                        ? t("transaction.selectPerson")
+                        : debtMode === "repay" && pickerTarget === "recipient"
+                          ? t("transaction.toWhichWallet")
+                          : debtMode === "repayToDebt" &&
+                              pickerTarget === "sender"
+                            ? t("transaction.fromWhichWallet")
+                            : debtMode === "repayFromDebt" &&
+                                pickerTarget === "recipient"
+                              ? t("transaction.toWhichWallet")
+                              : debtMode && pickerTarget === "sender"
+                                ? t("transaction.fromWhichWallet")
+                                : debtMode && pickerTarget === "recipient"
+                                  ? t("transaction.toWhichWallet")
+                                  : pickerTarget === "sender"
+                                    ? t("transaction.chooseSender")
+                                    : t("transaction.chooseRecipient")}
+                  </Text>
+                  <ScrollView>
+                    {pickerAccounts.map((item) => (
+                      <TouchableOpacity
+                        key={item._id}
+                        style={styles.pickerRow}
+                        onPress={() => {
+                          if (pickerTarget === "sender") {
+                            setActiveAccount(item);
+                            const currentRecipientId = recipientAccount?._id;
+                            const recipientStillValid =
+                              currentRecipientId &&
+                              currentRecipientId !== item._id &&
+                              (() => {
+                                const rec = Accounts.find(
+                                  (a) => a._id === currentRecipientId,
+                                );
+                                if (!rec) return false;
+                                if (item.type === "income")
+                                  return rec.type === "personal";
+                                if (item.type === "personal")
+                                  return (
+                                    rec.type === "expense" ||
+                                    rec.type === "personal" ||
+                                    rec.type === "debt"
+                                  );
+                                if (item.type === "debt")
+                                  return rec.type === "personal";
+                                return false;
+                              })();
+                            if (!recipientStillValid) {
+                              setRecipientAccount({});
+                            }
+                            setTransactionData((prev) => ({
+                              ...prev,
+                              senderId: item._id,
+                              recipientId: recipientStillValid
+                                ? prev.recipientId
+                                : undefined,
+                              subcategory: "",
+                            }));
+                          } else {
+                            setRecipientAccount(item);
+                          }
+                          setPickerTarget(null);
+                        }}
+                      >
+                        <View
+                          style={[
+                            styles.pickerIcon,
+                            {
+                              backgroundColor:
+                                item.icon?.color || colors.darkGray,
+                            },
+                          ]}
+                        >
+                          <MaterialCommunityIcons
+                            name={
+                              (item.icon?.icon_value || "wallet-outline") as any
+                            }
+                            size={22}
+                            color="white"
+                          />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.pickerName}>{item.name}</Text>
+                          {item.isMultiAccount ? (
+                            (() => {
+                              const subs = accounts.filter(
+                                (a) => a.parentId === item._id,
+                              );
+                              const total = subs.reduce(
+                                (sum, s) =>
+                                  sum +
+                                  toMainCurrency(
+                                    s.balance ?? 0,
+                                    s.currency,
+                                    rates,
+                                    mainCurrency,
+                                  ),
+                                0,
+                              );
+                              return (
+                                <Text style={styles.pickerBalance}>
+                                  {formatNumber(total)}{" "}
+                                  {getCurrencyMeta(mainCurrency).symbol}
+                                </Text>
+                              );
+                            })()
+                          ) : (
+                            <Text style={styles.pickerBalance}>
+                              {formatNumber(item.balance ?? 0)} {item.currency}
+                            </Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              </TouchableOpacity>
+            </Modal>
+            <TouchableOpacity
+              style={styles.dateButton}
+              onPress={() => setShowDatePicker(true)}
+            >
+              <MaterialCommunityIcons
+                name="calendar"
+                size={20}
+                color={colors.primaryGreen}
+              />
+              <Text style={styles.dateText}>{formatDateLong(date)}</Text>
             </TouchableOpacity>
-          </Modal>
-          <View style={green_line} />
-          <TouchableOpacity
-            style={styles.dateButton}
-            onPress={() => setShowDatePicker(true)}
-          >
-            <MaterialCommunityIcons
-              name="calendar"
-              size={20}
-              color={colors.primaryGreen}
-            />
-            <Text style={styles.dateText}>{formatDateLong(date)}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              maximumDate={new Date()}
-              onChange={(_event, selected) => {
-                setShowDatePicker(false);
-                if (selected) {
-                  setDate(selected);
-                  setTransactionData((prev) => ({
-                    ...prev,
-                    time: selected.toISOString(),
-                  }));
-                }
-              }}
-            />
-          )}
-          <TextInput
-            style={{ ...input, width: "100%", color: "white" }}
-            onChangeText={(text) => handleChange(text, "comment")}
-            placeholderTextColor={colors.primaryGreen}
-            placeholder={t("transaction.comment_required")}
-            textContentType="none"
-            clearButtonMode="while-editing"
-            maxLength={80}
-            selectionColor={colors.primaryGreen}
-          />
-          <View style={{ width: "100%", position: "relative" }}>
-            <TextInput
-              style={{
-                ...input,
-                width: "100%",
-                color: "white",
-                paddingRight: 72,
-              }}
-              onChangeText={(text) => handleChange(text, "amount")}
-              value={
-                transactionData.amount === 0
-                  ? ""
-                  : String(transactionData.amount)
-              }
-              placeholderTextColor={colors.primaryGreen}
-              placeholder={t("transaction.amount")}
-              keyboardType="decimal-pad"
-              clearButtonMode="while-editing"
-              maxLength={20}
-              selectionColor={colors.primaryGreen}
-            />
-            {(() => {
-              const isRepayMode = debtMode === "repayToDebt" || debtMode === "repayFromDebt";
-              const debtAccount = debtMode === "repayToDebt"
-                ? (recipientAccount as any)
-                : effectiveSender;
-              const showButton = isRepayMode && Math.abs(debtAccount?.balance ?? 0) !== 0;
-
-              if (!showButton) return null;
-
-              const allDebtAmount = Math.abs(debtAccount?.balance ?? 0);
-
-              return (
-                <TouchableOpacity
-                  style={styles.allInBtn}
-                  onPress={() =>
+            {showDatePicker && (
+              <DateTimePicker
+                value={date}
+                mode="date"
+                maximumDate={new Date()}
+                onChange={(_event, selected) => {
+                  setShowDatePicker(false);
+                  if (selected) {
+                    setDate(selected);
                     setTransactionData((prev) => ({
                       ...prev,
-                      amount: allDebtAmount,
-                    }))
+                      time: selected.toISOString(),
+                    }));
                   }
-                >
-                  <Text style={styles.allInText}>
-                    {t("transaction.allDebt")}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })()}
-          </View>
-          {isCrossCurrency && (
-            <View style={styles.rateContainer}>
-              <Text style={styles.rateLabel}>1 {senderCurrency} =</Text>
-              <TextInput
-                style={styles.rateInput}
-                value={customRate}
-                onChangeText={setCustomRate}
-                keyboardType="decimal-pad"
-                selectTextOnFocus
-                selectionColor={colors.primaryGreen}
+                }}
               />
-              <Text style={styles.rateLabel}>{recipientCurrency}</Text>
-            </View>
-          )}
-          {isCrossCurrency && transactionData.amount > 0 && (
-            <Text style={styles.ratePreview}>
-              {formatNumber(transactionData.amount)} {senderCurrency} →{" "}
-              {formatNumber(transactionData.amount * effectiveRate)}{" "}
-              {recipientCurrency}
-            </Text>
-          )}
-          {(() => {
-            const isExpenseRecipient =
-              activeAccount?.type === "personal" &&
-              recipientAccount?.type === "expense";
-            const expenseAccount =
-              activeAccount?.type === "income" ||
-              activeAccount?.type === "expense"
-                ? activeAccount
-                : isExpenseRecipient
-                  ? recipientAccount
-                  : null;
-            if (!expenseAccount) return null;
-            return (
-              <>
-                <Text style={body}> {t("transaction.subcategory")}</Text>
-                <ScrollView horizontal style={styles.subcats}>
+            )}
+            <View style={sheetStyles.inputWrap}>
+              <View style={{ width: "100%", position: "relative" }}>
+              <GlassInput
+                containerStyle={{ marginTop: 8 }}
+                onChangeText={(text) => handleChange(text, "amount")}
+                value={
+                  transactionData.amount === 0
+                    ? ""
+                    : String(transactionData.amount)
+                }
+                placeholder={t("transaction.amount")}
+                keyboardType="decimal-pad"
+                clearButtonMode="while-editing"
+                maxLength={20}
+              />
+              {(() => {
+                const isRepayMode =
+                  debtMode === "repayToDebt" || debtMode === "repayFromDebt";
+                const debtAccount =
+                  debtMode === "repayToDebt"
+                    ? (recipientAccount as any)
+                    : effectiveSender;
+                const showButton =
+                  isRepayMode && Math.abs(debtAccount?.balance ?? 0) !== 0;
+
+                if (!showButton) return null;
+
+                const allDebtAmount = Math.abs(debtAccount?.balance ?? 0);
+
+                return (
                   <TouchableOpacity
+                    style={styles.allInBtn}
                     onPress={() =>
-                      setTransactionData({
-                        ...transactionData,
-                        subcategory: "",
-                      })
+                      setTransactionData((prev) => ({
+                        ...prev,
+                        amount: allDebtAmount,
+                      }))
                     }
-                    style={{
-                      ...styles.subcat,
-                      opacity: transactionData.subcategory === "" ? 1 : 0.5,
-                    }}
                   >
-                    <Text style={body}>?</Text>
-                    <Text style={caption1}>{t("common.without")}</Text>
+                    <Text style={styles.allInText}>
+                      {t("transaction.allDebt")}
+                    </Text>
                   </TouchableOpacity>
-                  {expenseAccount.subcategories?.map((subcat) => (
+                );
+              })()}
+              </View>
+            </View>
+            {isCrossCurrency && (
+              <View style={styles.rateContainer}>
+                <Text style={styles.rateLabel}>1 {senderCurrency} =</Text>
+                <TextInput
+                  style={styles.rateInput}
+                  value={customRate}
+                  onChangeText={setCustomRate}
+                  keyboardType="decimal-pad"
+                  selectTextOnFocus
+                  selectionColor={colors.primaryGreen}
+                />
+                <Text style={styles.rateLabel}>{recipientCurrency}</Text>
+              </View>
+            )}
+            {isCrossCurrency && transactionData.amount > 0 && (
+              <Text style={styles.ratePreview}>
+                {formatNumber(transactionData.amount)} {senderCurrency} →{" "}
+                {formatNumber(transactionData.amount * effectiveRate)}{" "}
+                {recipientCurrency}
+              </Text>
+            )}
+            {(() => {
+              const isExpenseRecipient =
+                activeAccount?.type === "personal" &&
+                recipientAccount?.type === "expense";
+              const expenseAccount =
+                activeAccount?.type === "income" ||
+                activeAccount?.type === "expense"
+                  ? activeAccount
+                  : isExpenseRecipient
+                    ? recipientAccount
+                    : null;
+              if (!expenseAccount) return null;
+              return (
+                <>
+                  <View style={{ height: 12 }} />
+                  <Text style={body}> {t("transaction.subcategory")}</Text>
+                  <ScrollView horizontal style={styles.subcats}>
                     <TouchableOpacity
-                      key={subcat._id || subcat.id || subcat.subcategory}
                       onPress={() =>
                         setTransactionData({
                           ...transactionData,
-                          subcategory: subcat.subcategory,
+                          subcategory: "",
                         })
                       }
                       style={{
                         ...styles.subcat,
-                        opacity:
-                          transactionData.subcategory === subcat.subcategory
-                            ? 1
-                            : 0.5,
+                        opacity: transactionData.subcategory === "" ? 1 : 0.5,
                       }}
                     >
-                      <Text style={body}>
-                        {subcat.subcategory.slice(0, 1).toUpperCase()}
-                      </Text>
-                      <Text style={caption1}>{subcat.subcategory}</Text>
+                      <Text style={body}>?</Text>
+                      <Text style={caption1}>{t("common.without")}</Text>
                     </TouchableOpacity>
-                  ))}
-                  <TouchableOpacity
-                    onPress={() => {
-                      setNewSubcatInput("");
-                      setAddSubcatDialogVisible(true);
-                    }}
-                    style={styles.subcat}
+                    {expenseAccount.subcategories?.map((subcat) => (
+                      <TouchableOpacity
+                        key={subcat._id || subcat.id || subcat.subcategory}
+                        onPress={() =>
+                          setTransactionData({
+                            ...transactionData,
+                            subcategory: subcat.subcategory,
+                          })
+                        }
+                        style={{
+                          ...styles.subcat,
+                          opacity:
+                            transactionData.subcategory === subcat.subcategory
+                              ? 1
+                              : 0.5,
+                        }}
+                      >
+                        <Text style={body}>
+                          {subcat.subcategory.slice(0, 1).toUpperCase()}
+                        </Text>
+                        <Text style={caption1}>{subcat.subcategory}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    <TouchableOpacity
+                      onPress={() => {
+                        setNewSubcatInput("");
+                        setAddSubcatDialogVisible(true);
+                      }}
+                      style={styles.subcat}
+                    >
+                      <Text style={body}>+</Text>
+                      <Text style={caption1}>{t("common.add")}</Text>
+                    </TouchableOpacity>
+                  </ScrollView>
+                  <Modal
+                    visible={addSubcatDialogVisible}
+                    transparent
+                    animationType="fade"
+                    onRequestClose={() => setAddSubcatDialogVisible(false)}
                   >
-                    <Text style={body}>+</Text>
-                    <Text style={caption1}>{t("common.add")}</Text>
-                  </TouchableOpacity>
-                </ScrollView>
-                <Dialog.Container visible={addSubcatDialogVisible}>
-                  <Dialog.Title>{t("transaction.newSubcategory")}</Dialog.Title>
-                  <Dialog.Description>
-                    {t("transaction.enterSubcategoryName")}
-                  </Dialog.Description>
-                  <Dialog.Input
-                    value={newSubcatInput}
-                    onChangeText={setNewSubcatInput}
-                    autoFocus
-                  />
-                  <Dialog.Button
-                    label={t("common.cancel")}
-                    onPress={() => setAddSubcatDialogVisible(false)}
-                  />
-                  <Dialog.Button
-                    label={t("common.add")}
-                    onPress={async () => {
-                      if (
-                        newSubcatInput.trim().length > 0 &&
-                        expenseAccount._id
-                      ) {
-                        await addSubcategoryToAccount(
-                          expenseAccount._id,
-                          newSubcatInput.trim(),
-                        );
-                      }
-                      setAddSubcatDialogVisible(false);
-                    }}
-                  />
-                </Dialog.Container>
-              </>
-            );
-          })()}
+                    <View style={sheetStyles.dialogOverlay}>
+                      <BlurView intensity={40} tint="dark" style={sheetStyles.dialogBox}>
+                        <View style={[StyleSheet.absoluteFill, { backgroundColor: "rgba(7,14,26,0.75)", borderRadius: 24 }]} />
+                        <Text style={sheetStyles.dialogTitle}>{t("transaction.newSubcategory")}</Text>
+                        <Text style={sheetStyles.dialogDesc}>{t("transaction.enterSubcategoryName")}</Text>
+                        <BlurView intensity={28} tint="dark" style={sheetStyles.glassField}>
+                          <View style={[StyleSheet.absoluteFill, sheetStyles.glassFieldOverlay]} />
+                          <TextInput
+                            style={sheetStyles.glassInput}
+                            value={newSubcatInput}
+                            onChangeText={setNewSubcatInput}
+                            autoFocus
+                            placeholderTextColor="rgba(255,255,255,0.3)"
+                            placeholder={t("transaction.newSubcategory")}
+                            selectionColor={colors.primaryGreen}
+                            returnKeyType="done"
+                          />
+                        </BlurView>
+                        <View style={sheetStyles.dialogActions}>
+                          <TouchableOpacity
+                            style={sheetStyles.dialogBtn}
+                            onPress={() => setAddSubcatDialogVisible(false)}
+                          >
+                            <Text style={sheetStyles.dialogBtnText}>{t("common.cancel")}</Text>
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            style={[sheetStyles.dialogBtn, sheetStyles.dialogBtnPrimary]}
+                            onPress={async () => {
+                              if (newSubcatInput.trim().length > 0 && expenseAccount._id) {
+                                await addSubcategoryToAccount(expenseAccount._id, newSubcatInput.trim());
+                              }
+                              setAddSubcatDialogVisible(false);
+                            }}
+                          >
+                            <Text style={[sheetStyles.dialogBtnText, { color: colors.primaryGreen }]}>{t("common.add")}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </BlurView>
+                    </View>
+                  </Modal>
+                </>
+              );
+            })()}
 
-          {message ? (
-            <Text style={{ color: "white", marginTop: 8 }}>{message}</Text>
-          ) : null}
-        </View>
-      </ScrollView>
-      <TouchableOpacity style={{ ...submit_button }} onPress={handleSubmit}>
-        <Text style={submit_button_text}>{t("common.save")}</Text>
-      </TouchableOpacity>
+            <GlassInput
+              containerStyle={{ marginTop: 8 }}
+              style={{ minHeight: 70, textAlignVertical: "top" }}
+              onChangeText={(text) => handleChange(text, "comment")}
+              placeholder={t("transaction.comment")}
+              textContentType="none"
+              clearButtonMode="while-editing"
+              maxLength={200}
+              multiline
+              numberOfLines={3}
+            />
+
+            {message ? (
+              <Text style={{ color: "white", marginTop: 8 }}>{message}</Text>
+            ) : null}
+          </View>
+        </ScrollView>
+        <TouchableOpacity style={sheetStyles.saveButton} onPress={handleSubmit}>
+          <Text style={submit_button_text}>{t("common.save")}</Text>
+        </TouchableOpacity>
+        </BlurView>
+      </Animated.View>
     </View>
   );
 };
@@ -1045,6 +1082,135 @@ const styles = StyleSheet.create({
     color: colors.primaryGreen,
     fontSize: 14,
     fontWeight: "700",
+  },
+});
+
+const sheetStyles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.8)",
+  },
+  sheet: {
+    height: SHEET_HEIGHT,
+    backgroundColor: "rgba(7,14,26,0.82)",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    overflow: "hidden",
+    borderTopWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  handleArea: {
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "rgba(255,255,255,0.25)",
+  },
+  arrowWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.14)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 32,
+  },
+  dialogBox: {
+    width: "100%",
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    padding: 24,
+    gap: 12,
+  },
+  dialogTitle: {
+    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  dialogDesc: {
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 13,
+    textAlign: "center",
+  },
+  dialogActions: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 4,
+  },
+  dialogBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+  },
+  dialogBtnPrimary: {
+    backgroundColor: "rgba(70,241,197,0.08)",
+    borderColor: "rgba(70,241,197,0.25)",
+  },
+  dialogBtnText: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  inputWrap: {
+    width: "100%",
+    marginTop: 8,
+  },
+  simpleInput: {
+    width: "100%",
+    color: "white",
+    fontSize: 16,
+    paddingVertical: 12,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+  },
+  glassField: {
+    width: "100%",
+    borderRadius: 16,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.10)",
+    marginTop: 8,
+  },
+  glassFieldOverlay: {
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderRadius: 16,
+  },
+  glassInput: {
+    color: "white",
+    fontSize: 16,
+    padding: 16,
+    width: "100%",
+  },
+  saveButton: {
+    margin: 16,
+    marginTop: 0,
+    marginBottom: 32,
+    backgroundColor: colors.primaryGreen,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: "center",
   },
 });
 

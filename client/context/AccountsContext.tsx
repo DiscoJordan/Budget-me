@@ -303,6 +303,20 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
       "plain-text",
     );
 
+  const deleteAllData = async (): Promise<boolean> => {
+    try {
+      const response = await axios.post(`${URL}/accounts/deleteAllData`, { ownerId: user?.id });
+      if (response.data.ok) {
+        setAccounts([]);
+        return true;
+      }
+      return false;
+    } catch (error) {
+      console.log(error);
+      return false;
+    }
+  };
+
   return (
     <AccountsContext.Provider
       value={{
@@ -327,6 +341,7 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
         addSubcategoryToAccount,
         toggleArchiveAccount,
         deleteSubAccount,
+        deleteAllData,
       }}
     >
       {children}
