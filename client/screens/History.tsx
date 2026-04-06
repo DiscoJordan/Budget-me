@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, View, ScrollView, TextInput, ActivityIndicator } from "react-native";
+import { StyleSheet, Text, View, ScrollView, ActivityIndicator } from "react-native";
+import GlassInput from "../components/GlassInput";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TransactionsContext } from "../context/TransactionsContext";
 import { UsersContext } from "../context/UsersContext";
@@ -133,22 +134,14 @@ function History({ navigation }: { navigation: any }) {
         style={{ backgroundColor: colors.background }}
         contentContainerStyle={{ paddingBottom: 90 }}
       >
-        <View style={styles.searchContainer}>
-          <MaterialCommunityIcons
-            name="magnify"
-            size={20}
-            color={colors.gray}
-            style={styles.searchIcon}
-          />
-          <TextInput
-            style={styles.searchInput}
-            placeholder={t("history.searchTransactions")}
-            placeholderTextColor={colors.gray}
-            value={search}
-            onChangeText={setSearch}
-            autoCorrect={false}
-          />
-        </View>
+        <GlassInput
+          containerStyle={styles.searchContainer}
+          placeholder={t("history.searchTransactions")}
+          value={search}
+          onChangeText={setSearch}
+          autoCorrect={false}
+          leftSlot={<MaterialCommunityIcons name="magnify" size={20} color={colors.gray} />}
+        />
         <FlowSummary
           inflows={inflows}
           outflows={outflows}
@@ -197,16 +190,8 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.darkBlack,
-    borderRadius: 10,
     marginHorizontal: 16,
     marginTop: 12,
-    paddingHorizontal: 10,
-  },
-  searchIcon: {
-    marginRight: 6,
   },
   sectionTitle: {
     color: "white",

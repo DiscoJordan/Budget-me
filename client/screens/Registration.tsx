@@ -4,14 +4,12 @@ import {
   StyleSheet,
   Text,
   View,
-  TextInput,
   TouchableOpacity,
 } from "react-native";
+import GlassInput from "../components/GlassInput";
 import {
   container,
   h1,
-  input,
-  blue,
   submit_button,
   submit_button_text,
   colors,
@@ -69,46 +67,38 @@ function Registration({ navigation }: { navigation: any }) {
   return (
     <View style={{ ...container, minHeight: "100%" }}>
       <Text style={styles.h1}>{t("auth.signUp")}</Text>
-      <TextInput
-        style={styles.input}
+      <GlassInput
+        containerStyle={styles.inputContainer}
         onChangeText={(text) => handleChange(text, "username")}
-        inlineImageLeft="search_icon"
-        placeholderTextColor={colors.primaryGreen}
         placeholder={t("auth.username")}
         textContentType="username"
         clearButtonMode={"while-editing"}
         maxLength={20}
-        selectionColor={"#primaryGreen"}
-        lineBreakStrategyIOS={"push-out"}
+        autoCapitalize="none"
       />
-      <TextInput
+      <GlassInput
+        containerStyle={styles.inputContainer}
         onChangeText={(text) => handleChange(text, "email")}
-        inlineImageLeft="search_icon"
-        style={styles.input}
-        placeholderTextColor={colors.primaryGreen}
         placeholder={t("auth.email")}
         textContentType="emailAddress"
         clearButtonMode={"while-editing"}
-        maxLength={20}
-        selectionColor={"#primaryGreen"}
+        maxLength={40}
+        autoCapitalize="none"
+        keyboardType="email-address"
       />
-      <TextInput
+      <GlassInput
+        containerStyle={styles.inputContainer}
         onChangeText={(text) => handleChange(text, "password")}
-        style={styles.input}
         placeholder={t("auth.password")}
-        placeholderTextColor={colors.primaryGreen}
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
-        selectionColor={"#primaryGreen"}
       />
-      <TextInput
+      <GlassInput
+        containerStyle={styles.inputContainer}
         onChangeText={(text) => handleChange(text, "password2")}
-        style={styles.input}
         placeholder={t("auth.repeatPassword")}
-        placeholderTextColor={colors.primaryGreen}
         clearButtonMode={"while-editing"}
         secureTextEntry={true}
-        selectionColor={"#primaryGreen"}
       />
 
       <TouchableOpacity style={styles.submit_button} onPress={handleSubmit}>
@@ -129,9 +119,12 @@ const styles = StyleSheet.create({
   green: {
     color: colors.primaryGreen,
   },
+  inputContainer: {
+    marginBottom: 12,
+    alignSelf: "stretch",
+  },
   container,
   h1,
-  input,
   submit_button,
   submit_button_text,
 });

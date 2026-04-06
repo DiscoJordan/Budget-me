@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  TextInput,
+
   Modal,
 } from "react-native";
 import React, {
@@ -45,6 +45,7 @@ import { getCurrencyMeta } from "../utils/currencyInfo";
 import FlowSummary from "../components/FlowSummary";
 import PeriodNavigator from "../components/PeriodNavigator";
 import { getLocale } from "../utils/formatDate";
+import GlassInput from "../components/GlassInput";
 
 // Extend Number with legacy .format() used in this screen
 declare global {
@@ -467,19 +468,12 @@ const Account = ({ navigation }: { navigation: any }) => {
               budget={budget}
             />
             <View style={styles.searchContainer}>
-              <MaterialCommunityIcons
-                name="magnify"
-                size={20}
-                color={colors.gray}
-                style={{ marginRight: 6 }}
-              />
-              <TextInput
-                style={styles.searchInput}
+              <GlassInput
                 placeholder={t("account.searchTransactions")}
-                placeholderTextColor={colors.gray}
                 value={search}
                 onChangeText={setSearch}
                 autoCorrect={false}
+                leftSlot={<MaterialCommunityIcons name="magnify" size={20} color={colors.gray} />}
               />
             </View>
           </>
@@ -666,13 +660,12 @@ const Account = ({ navigation }: { navigation: any }) => {
             <Text style={styles.budgetTitle}>
               {t("account.budgetForPeriod", { period: headerLabel })}
             </Text>
-            <TextInput
-              style={styles.budgetInput}
+            <GlassInput
+              containerStyle={styles.budgetInputContainer}
               value={budgetInput}
               onChangeText={setBudgetInput}
               keyboardType="numeric"
               placeholder={t("account.enterAmount")}
-              placeholderTextColor={colors.gray}
               autoFocus
               accessibilityLabel="Budget amount input"
             />
@@ -759,19 +752,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: colors.darkBlack,
-    borderRadius: 10,
     marginHorizontal: 16,
     marginTop: 12,
-    paddingHorizontal: 10,
   },
   searchInput: {
     flex: 1,
-    color: "white",
-    fontSize: 15,
-    paddingVertical: 10,
   },
   listBlock: {
     ...container,
@@ -833,14 +818,9 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 16,
   },
-  budgetInput: {
-    backgroundColor: colors.darkBlack,
-    color: "white",
-    fontSize: 18,
-    padding: 12,
-    borderRadius: 10,
+  budgetInputContainer: {
     width: "100%",
-    textAlign: "center",
+    marginBottom: 4,
   },
   budgetCancel: {
     flex: 1,
