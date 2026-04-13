@@ -10,8 +10,10 @@ import {
   StyleSheet,
 } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import axios from "axios";
-import { URL } from "../config";
+// import axios from "axios";
+// import { URL } from "../config";
+import { upsertAccount } from "../db/accountsDb";
+import uuid from "react-native-uuid";
 import { AccountsContext } from "../context/AccountsContext";
 import { UsersContext } from "../context/UsersContext";
 import { DebtsContext } from "../context/DebtsContext";
@@ -61,15 +63,18 @@ export default function EditDebts({ navigation }: { navigation: any }) {
     }
 
     try {
-      await axios.post(`${URL}/accounts/addaccount`, {
-        ownerId: user?.id,
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ─────────────────────
+      await upsertAccount({
+        _id: uuid.v4() as string,
+        ownerId: user?.id ?? "",
         type: "debt",
         name: trimmed,
         icon: { color: pickColor(), icon_value: "account-outline" },
         subcategories: [],
         balance: 0,
+        initialBalance: 0,
         currency: mainCurrency,
-      });
+      } as any);
       await getAccountsOfUser();
       setName("");
       setAdding(false);

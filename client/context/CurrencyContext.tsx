@@ -38,10 +38,9 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
   }, [user?.currency]);
 
   useEffect(() => {
-    if (token) {
-      fetchCurrencies();
-    }
-  }, [token]);
+    // ─── OFFLINE-FIRST: fetch from cache on mount (token no longer required) ─
+    fetchCurrencies();
+  }, []);
 
   const fetchCurrencies = async (force = false) => {
     setLoading(true);
@@ -89,15 +88,12 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
 
   const setMainCurrency = async (currency: string) => {
     try {
-      const response = await axios.post(`${URL}/users/update-currency`, {
-        currency,
-      });
-      if (response.data.ok) {
-        setMainCurrencyState(currency);
-        if (response.data.token) {
-          await login(response.data.token);
-        }
-      }
+      // ─── OFFLINE-FIRST: update local SQLite user record instead of API ────
+      // const response = await axios.post(`${URL}/users/update-currency`, { currency });
+      // if (response.data.ok) { setMainCurrencyState(currency); if (response.data.token) await login(response.data.token); }
+      const { updateLocalUser } = await import("../db/localUser");
+      await updateLocalUser({ currency });
+      setMainCurrencyState(currency);
     } catch (error) {
       console.log("Error updating currency:", error);
     }

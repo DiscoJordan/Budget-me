@@ -32,8 +32,9 @@ import {
   accounts__add,
   windowWidth,
 } from "../styles/styles";
-import { URL } from "../config";
-import axios from "axios";
+// import { URL } from "../config";
+// import axios from "axios";
+import { upsertAccount } from "../db/accountsDb";
 import { UsersContext } from "../context/UsersContext";
 import { AccountsContext } from "../context/AccountsContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -122,50 +123,54 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     try {
+      // ─── OFFLINE-FIRST: replaced API calls with SQLite ────────────────────
       if (type !== "edit") {
-        const payload = { ...accountData, isMultiAccount };
+        const newId = uuid.v4() as string;
+        const payload = {
+          ...accountData,
+          _id: newId,
+          ownerId: user?.id ?? "",
+          isMultiAccount,
+          balance: isMultiAccount ? 0 : (accountData.balance ?? 0),
+          initialBalance: isMultiAccount ? 0 : (accountData.balance ?? 0),
+          currency: isMultiAccount ? (subDrafts[0]?.currency ?? mainCurrency) : (accountData.currency ?? mainCurrency),
+          subcategories: accountData.subcategories ?? [],
+        };
+        await upsertAccount(payload as any);
         if (isMultiAccount) {
-          payload.balance = 0;
-          payload.currency = subDrafts[0]?.currency ?? mainCurrency;
-        }
-        const response = await axios.post(`${URL}/accounts/addaccount`, payload);
-        setMessage(response.data.data);
-        setTimeout(() => setMessage(""), 2000);
-        if (response.data.ok) {
-          const parentId = response.data.newAccount._id;
-          if (isMultiAccount) {
-            for (let i = 0; i < subDrafts.length; i++) {
-              const sub = subDrafts[i];
-              await axios.post(`${URL}/accounts/addaccount`, {
-                ownerId: user?.id,
-                icon: accountData.icon,
-                type: "personal",
-                name: sub.currency,
-                subcategories: [],
-                balance: sub.balance,
-                currency: sub.currency,
-                parentId,
-                isMultiAccount: false,
-                isMainSubAccount: i === 0,
-              });
-            }
+          for (let i = 0; i < subDrafts.length; i++) {
+            const sub = subDrafts[i];
+            await upsertAccount({
+              _id: uuid.v4() as string,
+              ownerId: user?.id ?? "",
+              icon: accountData.icon ?? { color: "#717171", icon_value: "credit-card-outline" },
+              type: "personal",
+              name: sub.currency,
+              subcategories: [],
+              balance: sub.balance,
+              initialBalance: sub.balance,
+              currency: sub.currency,
+              parentId: newId,
+              isMultiAccount: false,
+              isMainSubAccount: i === 0,
+            } as any);
           }
-          await getAccountsOfUser();
-          navigation.navigate("Home", { screen: "Dashboard" });
         }
+        await getAccountsOfUser();
+        navigation.navigate("Home", { screen: "Dashboard" });
       } else {
-        const response = await axios.post(`${URL}/accounts/updateaccount`, {
-          accountData: { ...accountData, isMultiAccount },
-        });
-        setMessage(response.data.data);
-        setTimeout(() => setMessage(""), 2000);
-        if (response.data.ok) {
-          await getAccountsOfUser();
-          if (accountData.type === "debt") {
-            navigation.goBack();
-          } else {
-            navigation.navigate("Home", { screen: "Dashboard" });
-          }
+        await upsertAccount({
+          ...accountData,
+          ownerId: user?.id ?? "",
+          isMultiAccount,
+          initialBalance: accountData.balance ?? 0,
+          subcategories: accountData.subcategories ?? [],
+        } as any);
+        await getAccountsOfUser();
+        if (accountData.type === "debt") {
+          navigation.goBack();
+        } else {
+          navigation.navigate("Home", { screen: "Dashboard" });
         }
       }
     } catch (error) {
@@ -542,19 +547,21 @@ function NewAccount({ navigation, route }: { navigation: any; route?: any }) {
 
               const balance = parseNumber(pendingSubBalance);
               if (type === "edit" && activeAccount?._id) {
-                // create immediately when editing
-                await axios.post(`${URL}/accounts/addaccount`, {
-                  ownerId: user?.id,
-                  icon: accountData.icon,
+                // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────
+                await upsertAccount({
+                  _id: uuid.v4() as string,
+                  ownerId: user?.id ?? "",
+                  icon: accountData.icon ?? { color: "#717171", icon_value: "credit-card-outline" },
                   type: "personal",
                   name: pendingSubCurrency,
                   subcategories: [],
                   balance,
+                  initialBalance: balance,
                   currency: pendingSubCurrency,
                   parentId: activeAccount._id,
                   isMultiAccount: false,
                   isMainSubAccount: existingSubAccounts.length === 0,
-                });
+                } as any);
                 getAccountsOfUser();
               } else {
                 setSubDrafts((prev) => [...prev, { currency: pendingSubCurrency, balance }]);

@@ -3,10 +3,12 @@ import { useTranslation } from "react-i18next";
 import { formatDateLong } from "../utils/formatDate";
 import Dialog from "react-native-dialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { URL } from "../config";
+// import { URL } from "../config";
 import { formatNumber } from "../utils/formatNumber";
 import { parseNumber } from "../utils/parseNumber";
-import axios from "axios";
+// import axios from "axios";
+import uuid from "react-native-uuid";
+import { upsertTransaction } from "../db/transactionsDb";
 import { UsersContext } from "../context/UsersContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
@@ -394,36 +396,32 @@ const NewOperation = ({
         activeAccount?.type === "income"
           ? activeAccount.icon
           : recipientAccount?.icon || activeAccount?.icon;
-      const response = await axios.post(`${URL}/transactions/addTransaction`, {
-        ownerId: transactionData.ownerId,
-        senderId: actualSenderId,
-        recipientId: actualRecipientId,
-        icon,
-        comment: transactionData.comment,
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ─────────────────────
+      // const response = await axios.post(`${URL}/transactions/addTransaction`, { ... });
+      await upsertTransaction({
+        _id: uuid.v4() as string,
+        ownerId: transactionData.ownerId ?? "",
+        senderId: actualSenderId ?? "",
+        recipientId: actualRecipientId ?? "",
+        icon: icon ?? { color: "#717171", icon_value: "credit-card-outline" },
+        comment: transactionData.comment ?? "",
         amount: parseNumber(transactionData.amount),
         subcategory:
           debtMode === "repayToDebt" || debtMode === "repayFromDebt"
             ? "__repayment__"
-            : transactionData.subcategory,
-        time: transactionData.time,
+            : (transactionData.subcategory ?? ""),
+        time: transactionData.time ?? new Date().toISOString(),
         currency: senderCurrency,
         rate: effectiveRate,
-      });
-      setMessage(response.data.message);
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
-      if (response.data.ok) {
-        // Pass sub-account ID as sender override when needed
-        setBalance(
-          activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
-          (recipientAccount as any)?.isMultiAccount
-            ? selectedRecipientSubAccount?._id
-            : undefined,
-        );
-        setRecipientAccount({});
-        navigation.navigate("Home", { screen: "Dashboard" });
-      }
+      } as any);
+      setBalance(
+        activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
+        (recipientAccount as any)?.isMultiAccount
+          ? selectedRecipientSubAccount?._id
+          : undefined,
+      );
+      setRecipientAccount({});
+      navigation.navigate("Home", { screen: "Dashboard" });
     } catch (error) {
       console.log(error);
     }

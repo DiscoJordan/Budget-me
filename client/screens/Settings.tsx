@@ -21,6 +21,12 @@ import {
   Alert,
   Linking,
 } from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import * as DocumentPicker from "expo-document-picker";
+import * as Crypto from "expo-crypto";
+import { getAllAccounts, upsertAccount } from "../db/accountsDb";
+import { getAllTransactions, upsertTransaction } from "../db/transactionsDb";
 import {
   container,
   setting_option,
@@ -55,6 +61,11 @@ function Settings() {
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [deleteMode, setDeleteMode] = useState<"transactions" | "everything">("transactions");
   const [deleteInput, setDeleteInput] = useState("");
+  const [exportPassphraseVisible, setExportPassphraseVisible] = useState(false);
+  const [importPassphraseVisible, setImportPassphraseVisible] = useState(false);
+  const [exportPassphrase, setExportPassphrase] = useState("");
+  const [importPassphrase, setImportPassphrase] = useState("");
+  const [importFileUri, setImportFileUri] = useState<string | null>(null);
 
   const currentLanguageLabel =
     LANGUAGES.find((l) => l.code === i18n.language)?.label ?? i18n.language;
@@ -73,6 +84,86 @@ function Settings() {
     await setMainCurrency(currency);
     setModalVisible(false);
     setSearch("");
+  };
+
+  // ─── Export/Import helpers ────────────────────────────────────────────────
+
+  // Simple XOR cipher keyed on SHA-256 digest of passphrase
+  const xorEncrypt = async (data: string, passphrase: string): Promise<string> => {
+    const keyHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, passphrase);
+    const keyBytes = Array.from(keyHash);
+    const dataBytes = Array.from(data).map((c) => c.charCodeAt(0));
+    const encrypted = dataBytes.map((b, i) => b ^ parseInt(keyBytes[i % keyBytes.length], 16));
+    return btoa(String.fromCharCode(...encrypted));
+  };
+
+  const xorDecrypt = async (encoded: string, passphrase: string): Promise<string> => {
+    const keyHash = await Crypto.digestStringAsync(Crypto.CryptoDigestAlgorithm.SHA256, passphrase);
+    const keyBytes = Array.from(keyHash);
+    const encrypted = Array.from(atob(encoded)).map((c) => c.charCodeAt(0));
+    const decrypted = encrypted.map((b, i) => b ^ parseInt(keyBytes[i % keyBytes.length], 16));
+    return decrypted.map((b) => String.fromCharCode(b)).join("");
+  };
+
+  const handleExport = async () => {
+    if (!user?.id) return;
+    try {
+      const [accts, txs] = await Promise.all([
+        getAllAccounts(user.id),
+        getAllTransactions(user.id),
+      ]);
+      const payload = JSON.stringify({
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        user: { id: user.id, username: user.username, currency: user.currency },
+        accounts: accts,
+        transactions: txs,
+      });
+      const encrypted = await xorEncrypt(payload, exportPassphrase || "budgetme");
+      const fileUri = FileSystem.documentDirectory + "budgetme_backup.bme";
+      await FileSystem.writeAsStringAsync(fileUri, encrypted, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(fileUri, { mimeType: "application/octet-stream", dialogTitle: "Export BudgetMe data" });
+    } catch (e) {
+      console.log(e);
+      Alert.alert(t("common.error"), "Export failed.");
+    } finally {
+      setExportPassphraseVisible(false);
+      setExportPassphrase("");
+    }
+  };
+
+  const handlePickImport = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: "*/*", copyToCacheDirectory: true });
+      if (result.canceled || !result.assets?.[0]?.uri) return;
+      setImportFileUri(result.assets[0].uri);
+      setImportPassphraseVisible(true);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFileUri || !user?.id) return;
+    try {
+      const encoded = await FileSystem.readAsStringAsync(importFileUri, { encoding: FileSystem.EncodingType.UTF8 });
+      const decrypted = await xorDecrypt(encoded, importPassphrase || "budgetme");
+      const parsed = JSON.parse(decrypted);
+      for (const acc of parsed.accounts ?? []) {
+        await upsertAccount({ ...acc, ownerId: user.id });
+      }
+      for (const tx of parsed.transactions ?? []) {
+        await upsertTransaction({ ...tx, ownerId: user.id });
+      }
+      Alert.alert(t("common.done"), t("settings.importSuccess"));
+    } catch (e) {
+      console.log(e);
+      Alert.alert(t("common.error"), t("settings.importFailed"));
+    } finally {
+      setImportPassphraseVisible(false);
+      setImportPassphrase("");
+      setImportFileUri(null);
+    }
   };
 
   return (
@@ -167,6 +258,16 @@ function Settings() {
       >
         <Text style={styles.label}>{t("settings.contactUs")}</Text>
         <Feather name="mail" size={20} color={colors.gray} />
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={() => setExportPassphraseVisible(true)} style={setting_option}>
+        <Text style={styles.label}>{t("settings.exportData")}</Text>
+        <Feather name="upload" size={20} color={colors.gray} />
+      </TouchableOpacity>
+
+      <TouchableOpacity onPress={handlePickImport} style={setting_option}>
+        <Text style={styles.label}>{t("settings.importData")}</Text>
+        <Feather name="download" size={20} color={colors.gray} />
       </TouchableOpacity>
 
       <TouchableOpacity onPress={logout} style={setting_option}>
@@ -394,6 +495,70 @@ function Settings() {
                 }}
               >
                 <Text style={styles.deleteConfirmText}>{t("settings.deleteAll")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Export passphrase modal */}
+      <Modal
+        visible={exportPassphraseVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setExportPassphraseVisible(false)}
+      >
+        <View style={styles.deleteOverlay}>
+          <View style={styles.deleteSheet}>
+            <Text style={styles.deleteTitle}>{t("settings.exportData")}</Text>
+            <Text style={styles.deleteDesc}>{t("settings.exportPassphraseHint")}</Text>
+            <GlassInput
+              containerStyle={styles.deleteInputContainer}
+              value={exportPassphrase}
+              onChangeText={setExportPassphrase}
+              placeholder={t("settings.passphrase")}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+            />
+            <View style={styles.deleteActions}>
+              <TouchableOpacity style={styles.deleteCancelBtn} onPress={() => { setExportPassphraseVisible(false); setExportPassphrase(""); }}>
+                <Text style={styles.deleteCancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.deleteConfirmBtn, { backgroundColor: colors.primaryGreen }]} onPress={handleExport}>
+                <Text style={[styles.deleteConfirmText, { color: "#000" }]}>{t("settings.exportData")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Import passphrase modal */}
+      <Modal
+        visible={importPassphraseVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setImportPassphraseVisible(false)}
+      >
+        <View style={styles.deleteOverlay}>
+          <View style={styles.deleteSheet}>
+            <Text style={styles.deleteTitle}>{t("settings.importData")}</Text>
+            <Text style={styles.deleteDesc}>{t("settings.importPassphraseHint")}</Text>
+            <GlassInput
+              containerStyle={styles.deleteInputContainer}
+              value={importPassphrase}
+              onChangeText={setImportPassphrase}
+              placeholder={t("settings.passphrase")}
+              autoCapitalize="none"
+              autoCorrect={false}
+              secureTextEntry
+            />
+            <View style={styles.deleteActions}>
+              <TouchableOpacity style={styles.deleteCancelBtn} onPress={() => { setImportPassphraseVisible(false); setImportPassphrase(""); }}>
+                <Text style={styles.deleteCancelText}>{t("common.cancel")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.deleteConfirmBtn, { backgroundColor: colors.primaryGreen }]} onPress={handleImport}>
+                <Text style={[styles.deleteConfirmText, { color: "#000" }]}>{t("settings.importData")}</Text>
               </TouchableOpacity>
             </View>
           </View>

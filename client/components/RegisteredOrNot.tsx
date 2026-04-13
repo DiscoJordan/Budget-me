@@ -326,7 +326,8 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
               },
             }}
           >
-            {user ? (
+            {/* OFFLINE-FIRST: always show authenticated routes; auth gate commented out */}
+            {true /* user */ ? (
               <>
                 <Stack.Screen
                   name="Home"
@@ -423,20 +424,14 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
                   />
                 </Stack.Group>
               </>
-            ) : (
-              <>
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Registration"
-                  component={Registration}
-                />
-                <Stack.Screen
-                  options={{ headerShown: false }}
-                  name="Login"
-                  component={Login}
-                />
-              </>
-            )}
+            ) : /* OFFLINE-FIRST: login/registration commented out */ null
+            // ) : (
+            //   <>
+            //     <Stack.Screen options={{ headerShown: false }} name="Registration" component={Registration} />
+            //     <Stack.Screen options={{ headerShown: false }} name="Login" component={Login} />
+            //   </>
+            // )
+            }
           </Stack.Navigator>
         </NavigationContainer>
       </GestureHandlerRootView>
