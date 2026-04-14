@@ -245,16 +245,30 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
 
   // ─── Local balance recalculation (mirrors server setBalance logic) ──────────
   const recalcBalance = async (accountId: string): Promise<void> => {
-    const account = accounts.find((a) => a._id === accountId);
+    if (!user?.id) return;
+    // Read directly from SQLite to avoid stale React state
+    const freshAccounts = await getAllAccounts(user.id);
+    const account = freshAccounts.find((a) => a._id === accountId);
     if (!account) return;
     const txs = await getTransactionsByAccount(accountId);
-    let balance = account.initialBalance;
-    for (const tx of txs) {
-      const senderId = typeof tx.senderId === "string" ? tx.senderId : (tx.senderId as any)?._id;
-      const recipientId = typeof tx.recipientId === "string" ? tx.recipientId : (tx.recipientId as any)?._id;
-      if (recipientId === accountId) balance += tx.amount;
-      if (senderId === accountId) balance -= tx.amount;
-    }
+    // Income transactions (this account is recipient): amount * rate (cross-currency)
+    const incomeAmount = txs
+      .filter((tx) => {
+        const recipientId = typeof tx.recipientId === "string" ? tx.recipientId : (tx.recipientId as any)?._id;
+        return recipientId === accountId;
+      })
+      .reduce((sum, tx) => sum + tx.amount * (tx.rate ?? 1), 0);
+    // Expense transactions (this account is sender): just amount
+    const expenseAmount = txs
+      .filter((tx) => {
+        const senderId = typeof tx.senderId === "string" ? tx.senderId : (tx.senderId as any)?._id;
+        return senderId === accountId;
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    let balance = account.initialBalance + incomeAmount - expenseAmount;
+    // Income-type accounts: balance is negated (they "give" money out)
+    if (account.type === "income") balance *= -1;
+    balance = Math.round(balance * 100) / 100;
     await updateAccountBalance(accountId, balance);
   };
 

@@ -25,7 +25,7 @@ export const TransactionsProvider = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
   const { user } = useContext(UsersContext);
-  const { getAccountsOfUser } = useContext(AccountsContext);
+  const { getAccountsOfUser, setBalance } = useContext(AccountsContext);
 
   const getTransactionsOfUser = async (): Promise<void> => {
     if (!user?.id) return;
@@ -60,7 +60,10 @@ export const TransactionsProvider = ({
         _id: id,
       };
       await upsertTransaction(updated);
-      await Promise.all([getTransactionsOfUser(), getAccountsOfUser()]);
+      const senderId = (updated.senderId as any)?._id ?? updated.senderId as string;
+      const recipientId = (updated.recipientId as any)?._id ?? updated.recipientId as string;
+      await setBalance(senderId, recipientId);
+      await getTransactionsOfUser();
       return true;
     } catch (error) {
       console.log(error);
@@ -75,6 +78,13 @@ export const TransactionsProvider = ({
       if (!user?.id) return false;
       await deleteAllTransactionsByOwner(user.id);
       setTransactions([]);
+      // Reset all account balances to initialBalance (no transactions left)
+      const { getAllAccounts, updateAccountBalance } = await import("../db/accountsDb");
+      const accts = await getAllAccounts(user.id);
+      for (const acc of accts) {
+        const resetBalance = acc.type === "income" ? -(acc.initialBalance) : acc.initialBalance;
+        await updateAccountBalance(acc._id, Math.round(resetBalance * 100) / 100);
+      }
       await getAccountsOfUser();
       return true;
     } catch (error) {
@@ -87,8 +97,14 @@ export const TransactionsProvider = ({
     try {
       // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
       // const response = await axios.post(`${URL}/transactions/deleteTransaction`, { transactionId: id });
+      const tx = transactions.find((t) => t._id === id);
       await deleteTransactionById(id);
-      await Promise.all([getTransactionsOfUser(), getAccountsOfUser()]);
+      if (tx) {
+        const senderId = (tx.senderId as any)?._id ?? tx.senderId as string;
+        const recipientId = (tx.recipientId as any)?._id ?? tx.recipientId as string;
+        await setBalance(senderId, recipientId);
+      }
+      await getTransactionsOfUser();
       return true;
     } catch (error) {
       console.log(error);
