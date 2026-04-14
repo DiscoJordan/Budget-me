@@ -34,8 +34,19 @@ export const TransactionsProvider = ({
       // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
       // const response = await axios.get(`${URL}/transactions/getall/${user?.id}`);
       // setTransactions(response.data.data);
-      const txs = await getAllTransactions(user.id);
-      setTransactions(txs);
+      const { getAllAccounts } = await import("../db/accountsDb");
+      const [txs, accts] = await Promise.all([
+        getAllTransactions(user.id),
+        getAllAccounts(user.id),
+      ]);
+      const accountMap = new Map(accts.map((a) => [a._id, a]));
+      // Populate senderId/recipientId with full Account objects (mirrors server populate)
+      const populated = txs.map((tx) => ({
+        ...tx,
+        senderId: accountMap.get(tx.senderId as string) ?? tx.senderId,
+        recipientId: accountMap.get(tx.recipientId as string) ?? tx.recipientId,
+      }));
+      setTransactions(populated);
     } catch (error) {
       const err = error as Error;
       console.log(err.message);
