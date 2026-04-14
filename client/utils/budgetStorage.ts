@@ -1,7 +1,8 @@
-import axios from "axios";
-import { URL } from "../config";
+// import axios from "axios";
+// import { URL } from "../config";
 import { PeriodType } from "../context/AccountingPeriodContext";
 import { Account } from "../src/types";
+import { getAllAccounts, upsertAccount } from "../db/accountsDb";
 
 export function getBudgetFromAccount(
   account: Account,
@@ -26,11 +27,13 @@ export async function setBudget(
   accountId: string,
   periodType: PeriodType,
   amount: number,
+  ownerId: string,
 ): Promise<void> {
-  await axios.post(`${URL}/accounts/updateaccount`, {
-    accountData: {
-      _id: accountId,
-      [`budgets.${periodType}`]: amount,
-    },
-  });
+  // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+  // await axios.post(`${URL}/accounts/updateaccount`, { accountData: { _id: accountId, [`budgets.${periodType}`]: amount } });
+  const accounts = await getAllAccounts(ownerId);
+  const account = accounts.find((a) => a._id === accountId);
+  if (!account) return;
+  const updatedBudgets = { ...(account.budgets ?? {}), [periodType]: amount };
+  await upsertAccount({ ...account, budgets: updatedBudgets });
 }

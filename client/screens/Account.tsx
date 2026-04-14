@@ -78,7 +78,7 @@ function groupByDate(transactions: any[]): Record<string, any[]> {
 const Account = ({ navigation }: { navigation: any }) => {
   const { transactions, getTransactionsOfUser, setActiveTransaction } =
     useContext(TransactionsContext);
-  const { activeAccount, accounts, setActiveAccount, setRecipientAccount } =
+  const { activeAccount, accounts, setActiveAccount, setRecipientAccount, getAccountsOfUser } =
     useContext(AccountsContext);
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
@@ -683,9 +683,10 @@ const Account = ({ navigation }: { navigation: any }) => {
                 style={styles.budgetSave}
                 onPress={() => {
                   const val = parseFloat(budgetInput) || 0;
-                  setBudget(activeAccount!._id, periodType, val).then(() => {
+                  setBudget(activeAccount!._id, periodType, val, user?.id ?? "").then(() => {
                     setBudgetState(val);
                     setBudgetModalVisible(false);
+                    getAccountsOfUser();
                   });
                 }}
                 accessibilityLabel={t("common.save")}

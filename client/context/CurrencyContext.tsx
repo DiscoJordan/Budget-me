@@ -57,7 +57,7 @@ export const CurrencyProvider = ({ children }: { children: ReactNode }) => {
         }
       }
 
-      const response = await axios.get(`${URL}/currencies${force ? "?force=1" : ""}`);
+      const response = await axios.get(`${URL}/currencies${force ? "?force=1" : ""}`, { timeout: 30000 });
       if (response.data.ok) {
         const newCache: CurrenciesCache = {
           rates: response.data.rates,

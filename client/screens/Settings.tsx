@@ -174,13 +174,10 @@ function Settings() {
       >
         <Text style={styles.label}>{t("settings.mainCurrency")}</Text>
         <View style={styles.currencyRow}>
-          {loading ? (
-            <ActivityIndicator color="white" size="small" />
-          ) : (
-            <Text style={styles.currencyValue}>
-              {mainCurrency} {getCurrencyMeta(mainCurrency).symbol}
-            </Text>
-          )}
+          <Text style={styles.currencyValue}>
+            {mainCurrency} {getCurrencyMeta(mainCurrency).symbol}
+          </Text>
+          {loading && <ActivityIndicator color="white" size="small" style={{ marginLeft: 6 }} />}
           <Feather
             name="chevron-right"
             size={20}
@@ -274,6 +271,8 @@ function Settings() {
         <Text style={subheadline}>{t("settings.logOut")}</Text>
         <Feather name="log-out" size={24} color="white" />
       </TouchableOpacity>
+
+      <Text style={styles.userId} selectable>{user?.id ?? ""}</Text>
 
       <Modal
         visible={dashboardSettingsOpen}
@@ -818,6 +817,13 @@ const styles = StyleSheet.create({
     color: colors.gray,
     fontSize: size.footnote,
     lineHeight: 16,
+  },
+  userId: {
+    color: "rgba(255,255,255,0.2)",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 8,
+    letterSpacing: 0.3,
   },
 });
 

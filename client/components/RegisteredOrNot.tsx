@@ -275,16 +275,30 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
 
   const deleteAccount = async (navigation: any) => {
     try {
-      const response = await axios.post(`${URL}/accounts/deleteaccount/`, {
-        accountId: activeAccount?._id,
-      });
-      if (response.data.ok) {
-        getTransactionsOfUser();
-        getAccountsOfUser();
-        navigation.navigate("Home", { screen: "Dashboard" });
-      } else {
-        console.log(response.data);
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ─────────────────────
+      // const response = await axios.post(`${URL}/accounts/deleteaccount/`, { accountId: activeAccount?._id });
+      if (!activeAccount?._id) return;
+      const { deleteAccount: dbDeleteAccount, getAllAccounts } = await import("../db/accountsDb");
+      const { deleteTransactionById, getTransactionsByAccount } = await import("../db/transactionsDb");
+
+      const accountsInScope: string[] = [activeAccount._id];
+
+      // If multi-account, collect sub-account IDs too
+      if (activeAccount.isMultiAccount && user?.id) {
+        const allAccounts = await getAllAccounts(user.id);
+        const subs = allAccounts.filter((a) => a.parentId === activeAccount._id);
+        subs.forEach((s) => accountsInScope.push(s._id));
       }
+
+      // For each account in scope: delete its transactions, then delete the account
+      for (const accId of accountsInScope) {
+        const txs = await getTransactionsByAccount(accId);
+        for (const tx of txs) await deleteTransactionById(tx._id);
+        await dbDeleteAccount(accId);
+      }
+
+      await Promise.all([getTransactionsOfUser(), getAccountsOfUser()]);
+      navigation.navigate("Home", { screen: "Dashboard" });
     } catch (error) {
       console.log(error);
     }
