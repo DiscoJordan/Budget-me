@@ -97,6 +97,7 @@ export default function EditDebts({ navigation }: { navigation: any }) {
           onValueChange={setIncludeInPersonalBalance}
           trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
           thumbColor="white"
+          style={{ alignSelf: "center" }}
         />
       </View>
 

@@ -285,6 +285,7 @@
     "chooseIcon": "Choose icon",
     "deleteAccount": "Delete Account?",
     "deleteAccountMsg": "Are you sure that you want to delete an account with {{count}} transactions?",
+    "cannotDeleteLastAccount": "You must keep at least one account of this type.",
     "saveIcon": "Save Icon"
   }
 }

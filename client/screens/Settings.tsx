@@ -211,6 +211,7 @@ function Settings() {
           onValueChange={setDebtEnabled}
           trackColor={{ false: colors.darkGray, true: colors.primaryGreen }}
           thumbColor="white"
+          style={{ alignSelf: "center" }}
         />
       </View>
 

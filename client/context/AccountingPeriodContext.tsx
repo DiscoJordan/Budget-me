@@ -1,4 +1,5 @@
-import React, { createContext, useState, useMemo, useEffect } from 'react';
+import React, { createContext, useState, useMemo, useEffect, useCallback } from 'react';
+import PeriodSelectorModal from '../components/PeriodSelectorModal';
 import i18n from '../i18n';
 import { getLocale, formatDayMonth, formatMonthYear } from '../utils/formatDate';
 
@@ -17,6 +18,7 @@ export interface AccountingPeriodContextType {
   canShift: boolean;
   setOffset: (offset: number) => void;
   offset: number;
+  openSelector: () => void;
 }
 
 export const AccountingPeriodContext = createContext<AccountingPeriodContextType>(
@@ -93,6 +95,8 @@ export function AccountingPeriodProvider({ children }: { children: React.ReactNo
   const [customTo, setCustomTo] = useState<Date | null>(null);
   const [offset, setOffset] = useState(0);
   const [, setLang] = useState(i18n.language);
+  const [selectorVisible, setSelectorVisible] = useState(false);
+  const openSelector = useCallback(() => setSelectorVisible(true), []);
 
   useEffect(() => {
     const handler = (lng: string) => setLang(lng);
@@ -145,9 +149,14 @@ export function AccountingPeriodProvider({ children }: { children: React.ReactNo
         canShift,
         setOffset,
         offset,
+        openSelector,
       }}
     >
       {children}
+      <PeriodSelectorModal
+        visible={selectorVisible}
+        onClose={() => setSelectorVisible(false)}
+      />
     </AccountingPeriodContext.Provider>
   );
 }

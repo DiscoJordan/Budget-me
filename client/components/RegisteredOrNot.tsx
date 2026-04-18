@@ -94,11 +94,12 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         colorScheme="dark"
         style={StyleSheet.absoluteFillObject}
       />
+      <View style={[StyleSheet.absoluteFillObject, { backgroundColor: "rgba(0,0,0,0.55)" }]} />
     </GlassContainer>
   ) : (
     <BlurView
-      intensity={60}
-      tint="dark"
+      intensity={20}
+      tint="systemUltraThinMaterialDark"
       style={StyleSheet.absoluteFillObject}
     />
   );
@@ -227,7 +228,7 @@ const tabStyles = StyleSheet.create({
     right: 0,
     height: 85,
     overflow: "hidden",
-    backgroundColor: "rgba(4,8,15,0.85)",
+    backgroundColor: "rgba(2,4,8,0.97)",
     borderTopWidth: 1,
     borderTopColor: "rgba(255,255,255,0.06)",
   },
@@ -277,9 +278,24 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
     try {
       // ─── OFFLINE-FIRST: replaced API call with SQLite ─────────────────────
       // const response = await axios.post(`${URL}/accounts/deleteaccount/`, { accountId: activeAccount?._id });
-      if (!activeAccount?._id) return;
+      if (!activeAccount?._id || !user?.id) return;
       const { deleteAccount: dbDeleteAccount, getAllAccounts } = await import("../db/accountsDb");
       const { deleteTransactionById, getTransactionsByAccount } = await import("../db/transactionsDb");
+
+      // Guard: prevent deleting the last account of a core type
+      const allAccounts = await getAllAccounts(user.id);
+      const type = activeAccount.type;
+      if (type === "income" || type === "expense" || type === "personal") {
+        const sameType = allAccounts.filter((a) =>
+          type === "personal"
+            ? a.type === "personal" && !a.parentId
+            : a.type === type
+        );
+        if (sameType.length <= 1) {
+          Alert.alert(t("common.error"), t("nav.cannotDeleteLastAccount"));
+          return;
+        }
+      }
 
       const accountsInScope: string[] = [activeAccount._id];
 
@@ -426,17 +442,27 @@ const RegisteredOrNot = ({ navigation }: { navigation?: any }) => {
                       cardStyle: { backgroundColor: "transparent" },
                     }}
                   />
-                  <Stack.Screen
-                    name="Edit transaction"
-                    component={EditTransaction}
-                    options={{ title: t("nav.editTransaction") }}
-                  />
-                  <Stack.Screen
-                    name="Choose icon"
-                    component={EditIcon}
-                    options={{ title: t("nav.chooseIcon") }}
-                  />
                 </Stack.Group>
+                <Stack.Screen
+                  name="Edit transaction"
+                  component={EditTransaction}
+                  options={{
+                    title: t("nav.editTransaction"),
+                    headerStyle: { backgroundColor: colors.darkBlack },
+                    headerTintColor: "#fff",
+                    headerTitleStyle: { fontWeight: "bold" },
+                  }}
+                />
+                <Stack.Screen
+                  name="Choose icon"
+                  component={EditIcon}
+                  options={{
+                    title: t("nav.chooseIcon"),
+                    headerStyle: { backgroundColor: colors.darkBlack },
+                    headerTintColor: "#fff",
+                    headerTitleStyle: { fontWeight: "bold" },
+                  }}
+                />
               </>
             ) : /* OFFLINE-FIRST: login/registration commented out */ null
             // ) : (
