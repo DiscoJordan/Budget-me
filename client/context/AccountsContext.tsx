@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext, ReactNode } from "react";
-import axios from "axios";
-import { URL } from "../config";
+// import axios from "axios";
+// import { URL } from "../config";
 import { Alert } from "react-native";
 import uuid from "react-native-uuid";
 import { UsersContext } from "./UsersContext";
@@ -10,6 +10,14 @@ import {
   AccountsContextType,
   Subcategory,
 } from "../src/types";
+import {
+  getAllAccounts,
+  upsertAccount,
+  deleteAccount,
+  updateAccountBalance,
+  deleteAllAccounts,
+} from "../db/accountsDb";
+import { getTransactionsByAccount, deleteAllTransactionsByOwner } from "../db/transactionsDb";
 
 export const AccountsContext = React.createContext<AccountsContextType>(
   {} as AccountsContextType,
@@ -215,13 +223,14 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
   }, [type]);
 
   const getAccountsOfUser = async (): Promise<void> => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      const response = await axios.get(`${URL}/accounts/getall/${user?.id}`);
-      const fresh: Account[] = response.data.data;
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.get(`${URL}/accounts/getall/${user?.id}`);
+      // const fresh: Account[] = response.data.data;
+      const fresh = await getAllAccounts(user.id);
       setAccounts(fresh);
-
-      // Sync activeAccount with fresh data (e.g. after editing currency)
       setActiveAccount((prev) => {
         if (!prev) return prev;
         const match = fresh.find((a) => a._id === prev._id);
@@ -234,14 +243,44 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
     }
   };
 
+  // ─── Local balance recalculation (mirrors server setBalance logic) ──────────
+  const recalcBalance = async (accountId: string): Promise<void> => {
+    if (!user?.id) return;
+    // Read directly from SQLite to avoid stale React state
+    const freshAccounts = await getAllAccounts(user.id);
+    const account = freshAccounts.find((a) => a._id === accountId);
+    if (!account) return;
+    const txs = await getTransactionsByAccount(accountId);
+    // Income transactions (this account is recipient): amount * rate (cross-currency)
+    const incomeAmount = txs
+      .filter((tx) => {
+        const recipientId = typeof tx.recipientId === "string" ? tx.recipientId : (tx.recipientId as any)?._id;
+        return recipientId === accountId;
+      })
+      .reduce((sum, tx) => sum + tx.amount * (tx.rate ?? 1), 0);
+    // Expense transactions (this account is sender): just amount
+    const expenseAmount = txs
+      .filter((tx) => {
+        const senderId = typeof tx.senderId === "string" ? tx.senderId : (tx.senderId as any)?._id;
+        return senderId === accountId;
+      })
+      .reduce((sum, tx) => sum + tx.amount, 0);
+    let balance = account.initialBalance + incomeAmount - expenseAmount;
+    // Income-type accounts: balance is negated (they "give" money out)
+    if (account.type === "income") balance *= -1;
+    balance = Math.round(balance * 100) / 100;
+    await updateAccountBalance(accountId, balance);
+  };
+
   const setBalance = async (senderIdOverride?: string, recipientIdOverride?: string): Promise<void> => {
     try {
-      await axios.post(`${URL}/accounts/setBalance/`, {
-        userId: user?.id,
-        senderId: senderIdOverride ?? activeAccount?._id,
-        recipientId: recipientIdOverride ?? recipientAccount._id,
-      });
-      getAccountsOfUser();
+      // ─── OFFLINE-FIRST: replaced API call with local recalc ────────────────
+      // await axios.post(`${URL}/accounts/setBalance/`, { userId: user?.id, senderId: ..., recipientId: ... });
+      const senderId = senderIdOverride ?? activeAccount?._id;
+      const recipientId = recipientIdOverride ?? recipientAccount._id;
+      if (senderId) await recalcBalance(senderId);
+      if (recipientId) await recalcBalance(recipientId);
+      await getAccountsOfUser();
     } catch (error) {
       console.log(error);
     }
@@ -249,7 +288,9 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
 
   const deleteSubAccount = async (subAccountId: string): Promise<void> => {
     try {
-      await axios.post(`${URL}/accounts/deleteaccount`, { accountId: subAccountId });
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // await axios.post(`${URL}/accounts/deleteaccount`, { accountId: subAccountId });
+      await deleteAccount(subAccountId);
       await getAccountsOfUser();
     } catch (error) {
       console.log(error);
@@ -258,7 +299,11 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
 
   const toggleArchiveAccount = async (id: string, archived: boolean): Promise<void> => {
     try {
-      await axios.post(`${URL}/accounts/updateaccount`, { accountData: { _id: id, archived } });
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // await axios.post(`${URL}/accounts/updateaccount`, { accountData: { _id: id, archived } });
+      const account = accounts.find((a) => a._id === id);
+      if (!account) return;
+      await upsertAccount({ ...account, archived });
       setAccounts((prev) =>
         prev.map((acc) => (acc._id === id ? { ...acc, archived } : acc))
       );
@@ -273,7 +318,9 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
     const newSubcat: Subcategory = { subcategory: subcatName, id: uuid.v4() as string };
     const updatedSubcategories = [...(account.subcategories || []), newSubcat];
     const updatedAccount = { ...account, subcategories: updatedSubcategories };
-    await axios.post(`${URL}/accounts/updateaccount`, { accountData: updatedAccount });
+    // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+    // await axios.post(`${URL}/accounts/updateaccount`, { accountData: updatedAccount });
+    await upsertAccount(updatedAccount);
     setAccounts((prev) => prev.map((a) => (a._id === accountId ? updatedAccount : a)));
     if (activeAccount?._id === accountId) setActiveAccount(updatedAccount);
     if (recipientAccount?._id === accountId) setRecipientAccount(updatedAccount);
@@ -305,12 +352,13 @@ export const AccountsProvider = ({ children }: AccountsProviderProps) => {
 
   const deleteAllData = async (): Promise<boolean> => {
     try {
-      const response = await axios.post(`${URL}/accounts/deleteAllData`, { ownerId: user?.id });
-      if (response.data.ok) {
-        setAccounts([]);
-        return true;
-      }
-      return false;
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.post(`${URL}/accounts/deleteAllData`, { ownerId: user?.id });
+      if (!user?.id) return false;
+      await deleteAllAccounts(user.id);
+      await deleteAllTransactionsByOwner(user.id);
+      setAccounts([]);
+      return true;
     } catch (error) {
       console.log(error);
       return false;

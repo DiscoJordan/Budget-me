@@ -3,10 +3,13 @@ import { useTranslation } from "react-i18next";
 import { formatDateLong } from "../utils/formatDate";
 import Dialog from "react-native-dialog";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { URL } from "../config";
+// import { URL } from "../config";
 import { formatNumber } from "../utils/formatNumber";
 import { parseNumber } from "../utils/parseNumber";
-import axios from "axios";
+// import axios from "axios";
+import uuid from "react-native-uuid";
+import { upsertTransaction } from "../db/transactionsDb";
+import { upsertAccount } from "../db/accountsDb";
 import { UsersContext } from "../context/UsersContext";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { AccountsContext } from "../context/AccountsContext";
@@ -111,12 +114,15 @@ const NewOperation = ({
     recipientAccount,
     setRecipientAccount,
     addSubcategoryToAccount,
+    getAccountsOfUser,
   } = useContext(AccountsContext);
   const [addSubcatDialogVisible, setAddSubcatDialogVisible] = useState(false);
   const [newSubcatInput, setNewSubcatInput] = useState("");
   const [pickerTarget, setPickerTarget] = useState<
     "sender" | "recipient" | null
   >(null);
+  const [addingPerson, setAddingPerson] = useState(false);
+  const [newPersonName, setNewPersonName] = useState("");
   const { user } = useContext(UsersContext);
   const { rates, mainCurrency } = useContext(CurrencyContext);
 
@@ -340,6 +346,39 @@ const NewOperation = ({
     setTransactionData({ ...transactionData, [name]: value as any });
   };
 
+  const PERSON_COLORS = [
+    "#FF6B6B","#4ECDC4","#45B7D1","#96CEB4","#FFEAA7",
+    "#DDA0DD","#98D8C8","#F7DC6F","#BB8FCE","#85C1E9",
+  ];
+
+  const handleAddPerson = async () => {
+    const trimmed = newPersonName.trim();
+    if (!trimmed) return;
+    const debtAccounts = accounts.filter((a) => a.type === "debt");
+    if (debtAccounts.some((a) => a.name.toLowerCase() === trimmed.toLowerCase())) {
+      Alert.alert(t("debts.alreadyExists"), `"${trimmed}" is already in your list.`);
+      return;
+    }
+    try {
+      await upsertAccount({
+        _id: uuid.v4() as string,
+        ownerId: user?.id ?? "",
+        type: "debt",
+        name: trimmed,
+        icon: { color: PERSON_COLORS[Math.floor(Math.random() * PERSON_COLORS.length)], icon_value: "account-outline" },
+        subcategories: [],
+        balance: 0,
+        initialBalance: 0,
+        currency: mainCurrency,
+      } as any);
+      await getAccountsOfUser();
+      setNewPersonName("");
+      setAddingPerson(false);
+    } catch (e) {
+      console.log(e);
+    }
+  };
+
   const handleSubmit = async () => {
     // For multi-accounts, require sub-account selection
     if (activeAccount?.isMultiAccount && !selectedSubAccount) {
@@ -394,36 +433,32 @@ const NewOperation = ({
         activeAccount?.type === "income"
           ? activeAccount.icon
           : recipientAccount?.icon || activeAccount?.icon;
-      const response = await axios.post(`${URL}/transactions/addTransaction`, {
-        ownerId: transactionData.ownerId,
-        senderId: actualSenderId,
-        recipientId: actualRecipientId,
-        icon,
-        comment: transactionData.comment,
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ─────────────────────
+      // const response = await axios.post(`${URL}/transactions/addTransaction`, { ... });
+      await upsertTransaction({
+        _id: uuid.v4() as string,
+        ownerId: transactionData.ownerId ?? "",
+        senderId: actualSenderId ?? "",
+        recipientId: actualRecipientId ?? "",
+        icon: icon ?? { color: "#717171", icon_value: "credit-card-outline" },
+        comment: transactionData.comment ?? "",
         amount: parseNumber(transactionData.amount),
         subcategory:
           debtMode === "repayToDebt" || debtMode === "repayFromDebt"
             ? "__repayment__"
-            : transactionData.subcategory,
-        time: transactionData.time,
+            : (transactionData.subcategory ?? ""),
+        time: transactionData.time ?? new Date().toISOString(),
         currency: senderCurrency,
         rate: effectiveRate,
-      });
-      setMessage(response.data.message);
-      setTimeout(() => {
-        setMessage("");
-      }, 2000);
-      if (response.data.ok) {
-        // Pass sub-account ID as sender override when needed
-        setBalance(
-          activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
-          (recipientAccount as any)?.isMultiAccount
-            ? selectedRecipientSubAccount?._id
-            : undefined,
-        );
-        setRecipientAccount({});
-        navigation.navigate("Home", { screen: "Dashboard" });
-      }
+      } as any);
+      setBalance(
+        activeAccount?.isMultiAccount ? selectedSubAccount?._id : undefined,
+        (recipientAccount as any)?.isMultiAccount
+          ? selectedRecipientSubAccount?._id
+          : undefined,
+      );
+      setRecipientAccount({});
+      navigation.navigate("Home", { screen: "Dashboard" });
     } catch (error) {
       console.log(error);
     }
@@ -570,12 +605,12 @@ const NewOperation = ({
               visible={pickerTarget !== null}
               transparent
               animationType="slide"
-              onRequestClose={() => setPickerTarget(null)}
+              onRequestClose={() => { setPickerTarget(null); setAddingPerson(false); setNewPersonName(""); }}
             >
               <TouchableOpacity
                 style={styles.modalOverlay}
                 activeOpacity={1}
-                onPress={() => setPickerTarget(null)}
+                onPress={() => { setPickerTarget(null); setAddingPerson(false); setNewPersonName(""); }}
               >
                 <View style={styles.pickerSheet}>
                   <Text style={styles.pickerTitle}>
@@ -604,6 +639,47 @@ const NewOperation = ({
                                     : t("transaction.chooseRecipient")}
                   </Text>
                   <ScrollView>
+                    {/* Add person inline form — only in lend/borrow person picker */}
+                    {((debtMode === "lend" && pickerTarget === "recipient") ||
+                      (debtMode === "borrow" && pickerTarget === "sender")) && (
+                      addingPerson ? (
+                        <View style={styles.addPersonForm}>
+                          <TextInput
+                            style={styles.addPersonInput}
+                            placeholder={t("debts.personName")}
+                            placeholderTextColor={colors.gray}
+                            value={newPersonName}
+                            onChangeText={setNewPersonName}
+                            autoFocus
+                            returnKeyType="done"
+                            onSubmitEditing={handleAddPerson}
+                          />
+                          <View style={styles.addPersonActions}>
+                            <TouchableOpacity
+                              style={styles.addPersonCancel}
+                              onPress={() => { setAddingPerson(false); setNewPersonName(""); }}
+                            >
+                              <Text style={styles.addPersonCancelText}>{t("common.cancel")}</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                              style={[styles.addPersonConfirm, !newPersonName.trim() && { opacity: 0.4 }]}
+                              disabled={!newPersonName.trim()}
+                              onPress={handleAddPerson}
+                            >
+                              <Text style={styles.addPersonConfirmText}>{t("common.add")}</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      ) : (
+                        <TouchableOpacity
+                          style={styles.addPersonBtn}
+                          onPress={() => setAddingPerson(true)}
+                        >
+                          <MaterialCommunityIcons name="account-plus-outline" size={20} color={colors.primaryGreen} />
+                          <Text style={styles.addPersonBtnText}>{t("debts.addPerson")}</Text>
+                        </TouchableOpacity>
+                      )
+                    )}
                     {pickerAccounts.map((item) => (
                       <TouchableOpacity
                         key={item._id}
@@ -1080,6 +1156,63 @@ const styles = StyleSheet.create({
   },
   allInText: {
     color: colors.primaryGreen,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  addPersonBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+  },
+  addPersonBtnText: {
+    color: colors.primaryGreen,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  addPersonForm: {
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.darkGray,
+    gap: 8,
+  },
+  addPersonInput: {
+    backgroundColor: colors.surface,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: "white",
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  addPersonActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  addPersonCancel: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: colors.darkGray,
+  },
+  addPersonCancelText: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  addPersonConfirm: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 8,
+    backgroundColor: colors.primaryGreen,
+  },
+  addPersonConfirmText: {
+    color: "#000",
     fontSize: 14,
     fontWeight: "700",
   },

@@ -272,6 +272,7 @@
     "chooseIcon": "Wybierz ikonę",
     "deleteAccount": "Usuń konto?",
     "deleteAccountMsg": "Czy na pewno chcesz usunąć konto z {{count}} operacjami?",
-    "saveIcon": "Zapisz ikonę"
+    "saveIcon": "Zapisz ikonę",
+    "cannotDeleteLastAccount": "Musisz zachować co najmniej jedno konto tego typu."
   }
 }

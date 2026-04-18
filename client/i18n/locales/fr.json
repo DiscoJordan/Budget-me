@@ -272,6 +272,7 @@
     "chooseIcon": "Choisir icône",
     "deleteAccount": "Supprimer compte ?",
     "deleteAccountMsg": "Êtes-vous sûr de vouloir supprimer un compte avec {{count}} transactions ?",
-    "saveIcon": "Enregistrer icône"
+    "saveIcon": "Enregistrer icône",
+    "cannotDeleteLastAccount": "Vous devez conserver au moins un compte de ce type."
   }
 }

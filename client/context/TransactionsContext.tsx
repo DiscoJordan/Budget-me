@@ -1,9 +1,15 @@
 import React, { useState, useContext, ReactNode } from "react";
 import { UsersContext } from "./UsersContext";
 import { AccountsContext } from "./AccountsContext";
-import axios from "axios";
-import { URL } from "../config";
+// import axios from "axios";
+// import { URL } from "../config";
 import { Transaction, TransactionsContextType } from "../src/types";
+import {
+  getAllTransactions,
+  upsertTransaction,
+  deleteTransactionById,
+  deleteAllTransactionsByOwner,
+} from "../db/transactionsDb";
 
 export const TransactionsContext =
   React.createContext<TransactionsContextType>({} as TransactionsContextType);
@@ -19,15 +25,28 @@ export const TransactionsProvider = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [activeTransaction, setActiveTransaction] = useState<Transaction | null>(null);
   const { user } = useContext(UsersContext);
-  const { getAccountsOfUser } = useContext(AccountsContext);
+  const { getAccountsOfUser, setBalance } = useContext(AccountsContext);
 
   const getTransactionsOfUser = async (): Promise<void> => {
+    if (!user?.id) return;
     setLoading(true);
     try {
-      const response = await axios.get(
-        `${URL}/transactions/getall/${user?.id}`
-      );
-      setTransactions(response.data.data);
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.get(`${URL}/transactions/getall/${user?.id}`);
+      // setTransactions(response.data.data);
+      const { getAllAccounts } = await import("../db/accountsDb");
+      const [txs, accts] = await Promise.all([
+        getAllTransactions(user.id),
+        getAllAccounts(user.id),
+      ]);
+      const accountMap = new Map(accts.map((a) => [a._id, a]));
+      // Populate senderId/recipientId with full Account objects (mirrors server populate)
+      const populated = txs.map((tx) => ({
+        ...tx,
+        senderId: accountMap.get(tx.senderId as string) ?? tx.senderId,
+        recipientId: accountMap.get(tx.recipientId as string) ?? tx.recipientId,
+      }));
+      setTransactions(populated);
     } catch (error) {
       const err = error as Error;
       console.log(err.message);
@@ -41,15 +60,22 @@ export const TransactionsProvider = ({
     fields: Partial<Transaction & { senderId: string; recipientId: string }>
   ): Promise<boolean> => {
     try {
-      const response = await axios.post(`${URL}/transactions/updateTransaction`, {
-        transactionId: id,
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.post(`${URL}/transactions/updateTransaction`, { transactionId: id, ...fields });
+      // if (response.data.ok) { ... }
+      const existing = transactions.find((t) => t._id === id);
+      if (!existing) return false;
+      const updated: Transaction = {
+        ...existing,
         ...fields,
-      });
-      if (response.data.ok) {
-        await Promise.all([getTransactionsOfUser(), getAccountsOfUser()]);
-        return true;
-      }
-      return false;
+        _id: id,
+      };
+      await upsertTransaction(updated);
+      const senderId = (updated.senderId as any)?._id ?? updated.senderId as string;
+      const recipientId = (updated.recipientId as any)?._id ?? updated.recipientId as string;
+      await setBalance(senderId, recipientId);
+      await getTransactionsOfUser();
+      return true;
     } catch (error) {
       console.log(error);
       return false;
@@ -58,15 +84,20 @@ export const TransactionsProvider = ({
 
   const deleteAllTransactions = async (): Promise<boolean> => {
     try {
-      const response = await axios.post(`${URL}/transactions/deleteAllTransactions`, {
-        ownerId: user?.id,
-      });
-      if (response.data.ok) {
-        setTransactions([]);
-        await getAccountsOfUser();
-        return true;
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.post(`${URL}/transactions/deleteAllTransactions`, { ownerId: user?.id });
+      if (!user?.id) return false;
+      await deleteAllTransactionsByOwner(user.id);
+      setTransactions([]);
+      // Reset all account balances to initialBalance (no transactions left)
+      const { getAllAccounts, updateAccountBalance } = await import("../db/accountsDb");
+      const accts = await getAllAccounts(user.id);
+      for (const acc of accts) {
+        const resetBalance = acc.type === "income" ? -(acc.initialBalance) : acc.initialBalance;
+        await updateAccountBalance(acc._id, Math.round(resetBalance * 100) / 100);
       }
-      return false;
+      await getAccountsOfUser();
+      return true;
     } catch (error) {
       console.log(error);
       return false;
@@ -75,14 +106,17 @@ export const TransactionsProvider = ({
 
   const deleteTransaction = async (id: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${URL}/transactions/deleteTransaction`, {
-        transactionId: id,
-      });
-      if (response.data.ok) {
-        await Promise.all([getTransactionsOfUser(), getAccountsOfUser()]);
-        return true;
+      // ─── OFFLINE-FIRST: replaced API call with SQLite ───────────────────────
+      // const response = await axios.post(`${URL}/transactions/deleteTransaction`, { transactionId: id });
+      const tx = transactions.find((t) => t._id === id);
+      await deleteTransactionById(id);
+      if (tx) {
+        const senderId = (tx.senderId as any)?._id ?? tx.senderId as string;
+        const recipientId = (tx.recipientId as any)?._id ?? tx.recipientId as string;
+        await setBalance(senderId, recipientId);
       }
-      return false;
+      await getTransactionsOfUser();
+      return true;
     } catch (error) {
       console.log(error);
       return false;

@@ -168,7 +168,14 @@
     "allDeleted": "Done. All data deleted.",
     "deleteFailed": "Failed to delete.",
     "transactionsDeleted": "All transactions deleted.",
-    "transactionsFailed": "Failed to delete transactions."
+    "transactionsFailed": "Failed to delete transactions.",
+    "exportData": "Export data",
+    "importData": "Import data",
+    "exportPassphraseHint": "Enter a passphrase to encrypt your backup. Leave empty to use the default.",
+    "importPassphraseHint": "Enter the passphrase used when this backup was exported.",
+    "passphrase": "Passphrase",
+    "importSuccess": "Data imported successfully.",
+    "importFailed": "Failed to import. Wrong passphrase or invalid file."
   },
   "period": {
     "week": "Week (last 7 days)",
@@ -278,6 +285,7 @@
     "chooseIcon": "Choose icon",
     "deleteAccount": "Delete Account?",
     "deleteAccountMsg": "Are you sure that you want to delete an account with {{count}} transactions?",
+    "cannotDeleteLastAccount": "You must keep at least one account of this type.",
     "saveIcon": "Save Icon"
   }
 }
